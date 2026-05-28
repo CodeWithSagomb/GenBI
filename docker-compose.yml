@@ -8,6 +8,7 @@ x-airflow-common: &airflow-common
     - AIRFLOW__CORE__LOAD_EXAMPLES=false
     - AIRFLOW__CORE__LOGGING_LEVEL=WARNING
     - AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL=10
+    - AIRFLOW_CONN_GENBI_POSTGRES_CONN=postgresql://postgres:postgres_admin_123@postgres:5432/genbi
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/logs:/opt/airflow/logs
