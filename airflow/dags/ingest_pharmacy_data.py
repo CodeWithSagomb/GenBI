@@ -209,7 +209,33 @@ def populate_pharmacy_data():
         (112, '3518665983021', 'Dexeryl Crème', 'Dermatologie', 'Parapharmacie', 'Crème', '250g', 'Pierre Fabre', 'Importé', False, False, 0.18, 4800),
         (113, '6131294830129', 'Eau de Ciel Bébé', 'Cosmétique', 'Parapharmacie', 'Eau de Cologne', '200ml', 'Pharmivoire', 'Local', False, False, 0.18, 3500),
         (114, '6131294830555', 'Savon Antiseptique Valda', 'Hygiène', 'Parapharmacie', 'Savon', '100g', 'Pharmivoire', 'Local', False, False, 0.18, 1200),
-        (115, '3400936272999', 'Paracétamol Valdafrique', 'Paracétamol', 'Antalgique', 'Comprimé', '500mg', 'Valdafrique Ségnal', 'Local', True, True, 0.00, 750)
+        (115, '3400936272999', 'Paracétamol Valdafrique', 'Paracétamol', 'Antalgique', 'Comprimé', '500mg', 'Valdafrique Ségnal', 'Local', True, True, 0.00, 750),
+        # --- Antipaludéens (1ère cause de dispensation en Afrique de l'Ouest) ---
+        (116, '8699540010016', 'Coartem', 'Artémether / Luméfantrine', 'Antipaludéen', 'Comprimé', '80mg/480mg', 'Novartis', 'Importé', False, True, 0.00, 3500),
+        (117, '6131294831001', 'ASAQ Winthrop', 'Artésunate / Amodiaquine', 'Antipaludéen', 'Comprimé', '100mg/270mg', 'Sanofi', 'Importé', True, True, 0.00, 2200),
+        # --- Anti-inflammatoires AINS ---
+        (118, '3400936100011', 'Ibuprofène Biogaran', 'Ibuprofène', 'Anti-inflammatoire', 'Comprimé', '400mg', 'Biogaran', 'Importé', True, True, 0.00, 900),
+        (119, '3400936100028', 'Diclofénac Mylan', 'Diclofénac sodique', 'Anti-inflammatoire', 'Comprimé gastrorésistant', '50mg', 'Mylan', 'Importé', True, True, 0.00, 1100),
+        # --- Antiulcéreux ---
+        (120, '3400936100035', 'Oméprazole Biogaran', 'Oméprazole', 'Antiulcéreux', 'Gélule', '20mg', 'Biogaran', 'Importé', True, True, 0.00, 1200),
+        # --- Antibiotiques supplémentaires ---
+        (121, '3400936100042', 'Azithromycine Biogaran', 'Azithromycine', 'Antibiotique', 'Comprimé', '500mg', 'Biogaran', 'Importé', True, True, 0.00, 2800),
+        (122, '3400936100059', 'Métronidazole Biogaran', 'Métronidazole', 'Antibiotique', 'Comprimé', '500mg', 'Biogaran', 'Importé', True, True, 0.00, 1000),
+        # --- Antihistaminique ---
+        (123, '3400936100066', 'Loratadine Biogaran', 'Loratadine', 'Antihistaminique', 'Comprimé', '10mg', 'Biogaran', 'Importé', True, True, 0.00, 800),
+        # --- Antihypertenseur local ---
+        (124, '6131294831018', 'Amlodipine IPD', 'Amlodipine', 'Antihypertenseur', 'Comprimé', '5mg', 'Institut Pasteur Dakar', 'Local', True, True, 0.00, 1100),
+        # --- Antifongique ---
+        (125, '3400936100073', 'Fluconazole Mylan', 'Fluconazole', 'Antifongique', 'Gélule', '150mg', 'Mylan', 'Importé', True, True, 0.00, 1500),
+        # --- Antiparasitaire ---
+        (126, '3400936100080', 'Albendazole GSK', 'Albendazole', 'Antiparasitaire', 'Comprimé', '400mg', 'GlaxoSmithKline', 'Importé', False, True, 0.00, 950),
+        # --- Suppléments & Maternité ---
+        (127, '3400936100097', 'Tardyferon B9', 'Fer / Acide Folique', 'Supplément', 'Comprimé pelliculé', '80mg/0.35mg', 'Pierre Fabre', 'Importé', False, True, 0.00, 2200),
+        (128, '3400936100103', 'Vitamine C UPSA', 'Acide Ascorbique', 'Supplément', 'Comprimé effervescent', '500mg', 'UPSA', 'Importé', False, False, 0.18, 750),
+        # --- Contraceptif ---
+        (129, '3400936100110', 'Microval', 'Lévonorgestrel', 'Contraceptif', 'Comprimé', '30mcg', 'Pfizer', 'Importé', False, True, 0.00, 1500),
+        # --- Parapharmacie premium ---
+        (130, '3701129501017', 'Photoderm SPF50+', 'Filtre solaire', 'Parapharmacie', 'Crème', '40ml', 'Bioderma', 'Importé', False, False, 0.18, 8500)
     ]
 
     # 4. Données dynamiques : Clients sénégalais (100 clients)
@@ -301,8 +327,8 @@ def populate_pharmacy_data():
     sale_idx = 1
     detail_idx = 1
     
-    # Démarrage au 1er Mars 2026
-    start_date = datetime(2026, 3, 1, 8, 30, 0)
+    # Couverture 4 mois : 1er Février → 28 Mai 2026
+    start_date = datetime(2026, 2, 1, 8, 30, 0)
     current_time = datetime(2026, 5, 28, 12, 0, 0)
     
     # Liste des assurés pour le Tiers-Payant
@@ -317,11 +343,12 @@ def populate_pharmacy_data():
         c_insurer_id = random.choice([1, 2, 3, 4, 5])
         coverage_rate = [ins[2] for ins in insurers if ins[0] == c_insurer_id][0]
         
-        # 3 passages programmés à 30 jours d'intervalle
+        # 4 passages programmés à 30 jours d'intervalle (couverture 4 mois)
         purchase_dates = [
+            datetime(2026, 2, 5, random.randint(9, 19), random.randint(0, 59)),
             datetime(2026, 3, 5, random.randint(9, 19), random.randint(0, 59)),
             datetime(2026, 4, 4, random.randint(9, 19), random.randint(0, 59)),
-            datetime(2026, 5, 4, random.randint(9, 19), random.randint(0, 59))
+            datetime(2026, 5, 4, random.randint(9, 19), random.randint(0, 59)),
         ]
         
         # Le patient diabétique/hypertendu prend toujours les mêmes spécialités
@@ -418,10 +445,10 @@ def populate_pharmacy_data():
     # 9. Ventes manquées (Ruptures de stock constatées)
     missed_sales = []
     missed_idx = 1
-    # 150 ventes manquées sur le trimestre
-    for i in range(150):
+    # 200 ventes manquées sur 4 mois (plage dynamique basée sur delta_days)
+    for i in range(200):
         prod = random.choice(products)
-        m_date = start_date + timedelta(days=random.randint(1, 87), hours=random.randint(8, 20), minutes=random.randint(0, 59))
+        m_date = start_date + timedelta(days=random.randint(1, delta_days - 1), hours=random.randint(8, 20), minutes=random.randint(0, 59))
         missed_sales.append((
             missed_idx, random.choice([1, 2, 3]), prod[0], m_date, random.randint(1, 3), random.choice(['Passant', 'Assuré'])
         ))
@@ -430,11 +457,11 @@ def populate_pharmacy_data():
     # 10. Retours Grossistes (produits renvoyés car péremption à 3-6 mois)
     returns = []
     return_idx = 1
-    # 10 retours grossistes initiés en Mai 2026 pour nos lots B expirant le 20 Juin 2026
+    # 1 retour par produit — initiés entre Mars et Mai 2026 (3 mois avant péremption Juin)
     for prod in products:
         prod_id = prod[0]
-        # On renvoie le lot B expirant en Juin
-        ret_date = date(2026, 5, random.randint(1, 20))
+        # Retours étalés sur Mars-Mai : détection progressive de la péremption proche
+        ret_date = date(2026, random.randint(3, 5), random.randint(1, 20))
         qty_ret = random.randint(5, 15)
         pag = int(prod[12] * 0.71) # PAG estimé
         credit_note = qty_ret * pag # Valeur totale de l'avoir attendu

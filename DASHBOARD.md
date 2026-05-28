@@ -32,7 +32,9 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 | init.sql (schémas + user read-only) | ✅ | [data/postgres-init/init.sql](data/postgres-init/init.sql) |
 | DAG `ingest_pharmacy_data` | ✅ exécuté avec succès | [airflow/dags/ingest_pharmacy_data.py](airflow/dags/ingest_pharmacy_data.py) |
 | 10 tables `raw.*` créées | ✅ 10/10 tables | Vérifié en base |
-| 3 614 ventes + 9 062 lignes (Mars–Mai 2026) | ✅ | CA total : 47 837 250 FCFA |
+| 4 716 ventes + 11 604 lignes (Fév–Mai 2026) | ✅ | CA total : 45 201 400 FCFA |
+| 30 produits (15 classes thérapeutiques) | ✅ | Antipaludéens, AINS, Contraceptifs... |
+| 61 lots stocks / 200 ruptures / 30 retours | ✅ | Couverture 116 jours |
 | Makefile (commandes up/down/clean) | ✅ | [Makefile](Makefile) |
 | Ollama `qwen2.5-coder:7b` | ✅ téléchargé | `ollama list` |
 | Ollama `nomic-embed-text` | ✅ téléchargé (bonus Phase 5) | `ollama list` |
