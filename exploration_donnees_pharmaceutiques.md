@@ -138,3 +138,43 @@ Une fois ce modèle opérationnel, l'utilisateur final (le pharmacien titulaire,
 - *"Quelle est la classe thérapeutique la plus vendue à Abidjan vs Dakar ?"*
 - *"Quelle proportion de nos ventes d'antibiotiques provient de fabricants locaux (Afrique de l'Ouest) ?"*
 - *"Fais-moi un récapitulatif des ventes de DCI 'Paracétamol' toutes marques confondues."*
+
+---
+
+## 5. Zoom Opérationnel : Les 5 Piliers d'une Officine à Dakar
+
+Pour une officine de taille moyenne à grande située à Dakar (ex: sur l'Avenue Bourguiba, à Liberté 6 ou aux Almadies), le système d'information repose sur 5 piliers opérationnels interconnectés que notre GenBI doit pouvoir analyser.
+
+### 📊 Pilier 1 : L'Approvisionnement (Procurement)
+À Dakar, l'approvisionnement est un flux tendu quotidien.
+- **Les Fournisseurs :** Principalement les grossistes locaux. **Laborex** (situé à Hann) et **Ubipharm** livrent plusieurs fois par jour (ex: commande passée à 9h, livrée à 14h).
+- **Le Défi des Ruptures :** Le GenBI doit permettre de calculer le **Taux de Service Grossiste** (le ratio entre les boîtes commandées et les boîtes réellement livrées). Si Ubipharm a un taux de service de 95% sur les antibiotiques et Laborex de 88%, l'officine réajustera ses priorités d'achat.
+- **Les Remises :** Suivi des remises commerciales négociées sur les volumes d'achat (remises de fin d'année - RFA).
+
+### 📦 Pilier 2 : Le Stock (Stock Management)
+Le stock d'une officine dakaroise représente des dizaines de millions de FCFA immobilisés.
+- **Double Valorisation :** Le stock doit être valorisé en temps réel :
+  1. Au **Prix d'Achat Grossiste (PAG)** : pour la comptabilité et le bilan.
+  2. Au **Prix Public Réglementé (PPR)** : pour évaluer la valeur de vente potentielle.
+- **Alerte Péremption (DDP) :** La chaleur à Dakar exige un suivi strict. Le GenBI doit pouvoir répondre à : *"Quel est le stock dormant qui périme dans moins de 180 jours ?"* afin de permettre des retours grossistes ou des promotions sur la parapharmacie.
+- **Chaîne du Froid :** Suivi spécifique des produits réfrigérés (Insulines, vaccins) qui nécessitent des réfrigérateurs avec onduleurs/générateurs en cas de délestages de la Senelec.
+
+### 📝 Pilier 3 : L'Inventaire (Inventory)
+C'est l'outil de contrôle de l'officine pour mesurer la rentabilité réelle.
+- **Écarts d'Inventaire :** Différence entre le stock théorique (logiciel) et le stock physique (compté).
+- **Démarque Inconnue :** Le GenBI doit traquer la démarque inconnue (vols en rayon, produits cassés, pertes thermiques, ou oublis de facturation).
+- **Inventaires Tournants :** Au lieu de fermer l'officine, les auxiliaires font des inventaires tournants par rayonnage (ex: étagère "Pédiatrie" le lundi, étagère "Cardiologie" le mardi).
+
+### 🛒 Pilier 4 : La Vente (Sales & Dispensing)
+La vente à Dakar reflète la mixité sociale et économique de la ville.
+- **Typologie des Ventes :**
+  - **Vente Libre (OTC / Comptoir) :** Clients passants achetant de la parapharmacie ou de l'automédication en espèces ou Mobile Money.
+  - **Vente sur Ordonnance :** Souvent liée au Tiers-Payant.
+- **La Révolution Mobile Money :** À Dakar, l'intégration de **Wave** (reconnaissable à ses QR codes bleus à chaque caisse) et **Orange Money** est indispensable. Les frais Wave (1%) sont bien inférieurs aux cartes bancaires (2.5% à 3.5%), ce qui en fait le mode de paiement digital privilégié.
+- **Les IPM & Assurances :** L'officine dakaroise travaille avec des dizaines d'**IPM (Institutions de Prévoyance Maladie)** d'entreprises publiques et privées (IPM Senelec, IPM Port Autonome de Dakar, IPM Sonatel, IPM Douanes). Le suivi du taux de sinistralité et des délais de remboursement de ces IPM est vital pour la trésorerie.
+
+### 👤 Pilier 5 : Les Clients (Patients & Fidélisation)
+- **Suivi des Pathologies Chroniques :** Dakar connaît une prévalence importante de maladies chroniques (Diabète, Hypertension Artérielle - HTA). Une bonne officine fidélise ces patients en suivant leurs renouvellements mensuels.
+- **Le Dossier Patient :** Regroupe les consommations de la famille (ex: le père, la mère et les enfants rattachés à la même IPM).
+- **Le Ticket Modérateur :** Analyser si le patient paie son ticket modérateur directement (espèces/Wave) ou s'il bénéficie d'une prise en charge à 100% (cas de certaines mutuelles de cadres).
+
