@@ -41,11 +41,12 @@ raw.*  →  staging.*  →  marts.*
 2. **L'agent IA utilise uniquement `genbi_readonly`** (SELECT-only). Toutes les connexions dans `core/` doivent utiliser cet utilisateur, jamais `postgres`.
 3. **SQLGlot n'est PAS un validateur de sécurité** — la vraie protection est l'user read-only + requêtes paramétrées psycopg2.
 4. **dbt_project/target/ est dans .gitignore** — le `manifest.json` est généré localement par `dbt compile`. Il faut l'avoir pour que le backend fonctionne.
-5. **Le DAG Airflow utilise la connexion `genbi_postgres_conn`** — la configurer dans l'UI Airflow (Admin > Connections) avant de déclencher un DAG.
+5. **La connexion Airflow `genbi_postgres_conn` est injectée via variable d'env** dans docker-compose — elle est déjà configurée, pas besoin de la recréer manuellement.
+6. **Pour Phase 2 : installer dbt localement** — `pip install dbt-postgres`, PAS dans Docker. Lancer depuis `dbt_project/`.
 
 ## État d'avancement
-- ✅ Phase 1 — Infra Docker + DAG d'ingestion pharmacie (10 tables raw, ~4000 ventes)
-- 🔄 Phase 2 — dbt (staging + marts) — **EN COURS — BLOQUANT**
+- ✅ Phase 1 — Infra Docker + DAG pharmacie (10 tables raw, 3614 ventes, 47M FCFA CA) — validé 2026-05-28
+- 🔄 Phase 2 — dbt (staging + marts) — **PROCHAINE ÉTAPE — BLOQUANT**
 - ⏳ Phase 3 — Backend FastAPI (endpoints /chat, /execute, /schema)
 - ⏳ Phase 4 — Frontend React (interface chat + visualisations)
 - ⏳ Phase 5 — RAG ChromaDB + feedback loop
