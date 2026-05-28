@@ -6,6 +6,17 @@
 
 ---
 
+## Stratégie de test pour dbt
+
+Les tests dbt sont **natifs et obligatoires** — ils s'écrivent dans les fichiers `.yml` en même temps que le modèle SQL, pas après. Chaque modèle créé doit immédiatement avoir :
+- `unique` + `not_null` sur la clé primaire
+- `relationships` sur chaque clé étrangère
+- `accepted_values` sur les colonnes à cardinalité fixe (ex: `payment_method`, `client_type`)
+
+La commande `dbt test` est le critère de validation de chaque checkpoint.
+
+---
+
 ## Format : `[ID] [P?] [US?] Description`
 - `[P]` = peut s'exécuter en parallèle (fichiers différents, pas de dépendance)
 - `[USN]` = appartient à la User Story N
@@ -53,8 +64,13 @@
 - [ ] T011 [P] Créer `models/staging/raw/stg_raw__pharmacies.sql`
 - [ ] T012 [P] Créer `models/staging/raw/stg_raw__insurers.sql`
 - [ ] T013 Créer `models/staging/raw/_raw__models.yml` avec description de CHAQUE colonne pour les 6 modèles staging ci-dessus (constitution EF-003)
-- [ ] T014 Ajouter les tests `unique` + `not_null` sur toutes les colonnes `*_id` (constitution EF-004)
-- [ ] T015 Exécuter `dbt run --select staging` et `dbt test --select staging`
+- [ ] T014 Dans `_raw__models.yml` — ajouter les tests par colonne :
+  - `unique` + `not_null` sur tous les `*_id`
+  - `accepted_values` : `client_type` → ['Passant','Assuré'], `payment_method` → ['Espèces','Wave','Orange Money','Tiers-Payant']
+  - `relationships` : `stg_raw__sales.pharmacy_id` → `stg_raw__pharmacies.pharmacy_id`
+  - `relationships` : `stg_raw__sales.insurer_id` → `stg_raw__insurers.insurer_id`
+  - `not_null` : `total_amount_fcfa`, `sale_date`
+- [ ] T015 Exécuter `dbt run --select staging` puis `dbt test --select staging` — 0 échec attendu
 
 **Checkpoint US1 & US2** : `dbt test` passe pour les modèles staging ventes/produits. La vue `staging.stg_raw__sales` est requêtable.
 
@@ -66,8 +82,12 @@
 - [ ] T017 [P] Créer `models/staging/raw/stg_raw__purchases.sql`
 - [ ] T018 [P] Créer `models/staging/raw/stg_raw__missed_sales.sql`
 - [ ] T019 [P] Créer `models/staging/raw/stg_raw__wholesaler_returns.sql`
-- [ ] T020 Compléter `_raw__models.yml` avec les descriptions des 4 nouveaux modèles
-- [ ] T021 Exécuter `dbt run --select staging` et `dbt test --select staging` (tous les 10 modèles)
+- [ ] T020 Compléter `_raw__models.yml` — descriptions + tests pour les 4 nouveaux modèles :
+  - `stocks` : `not_null` sur `quantity_in_stock`, `expiration_date` ; `relationships` vers `products`
+  - `purchases` : `accepted_values` sur taux de livraison ; `relationships` vers `pharmacies` et `products`
+  - `missed_sales` : `not_null` sur `missed_date`, `requested_quantity > 0`
+  - `wholesaler_returns` : `accepted_values` sur `status` → ['Validé','En attente']
+- [ ] T021 Exécuter `dbt run --select staging` puis `dbt test --select staging` — 10 modèles, 0 échec
 
 **Checkpoint US3** : Tous les 10 modèles staging sont verts. `dbt test` passe à 100%.
 
@@ -81,7 +101,9 @@
 - [ ] T023 [P] Créer `models/marts/pharmacy/dim_clients.sql` : type client, statut chronique, points fidélité
 - [ ] T024 [P] Créer `models/marts/pharmacy/dim_pharmacies.sql`
 - [ ] T025 [P] Créer `models/marts/pharmacy/dim_insurers.sql`
-- [ ] T026 Créer `models/marts/pharmacy/_pharmacy__models.yml` avec description de CHAQUE colonne (en français, niveau pharmacien non-technique — constitution EF-003)
+- [ ] T026 Créer `models/marts/pharmacy/_pharmacy__models.yml` — description CHAQUE colonne (français, niveau pharmacien) + tests :
+  - `unique` + `not_null` sur `product_id`, `client_id`, `pharmacy_id`, `insurer_id`
+  - `accepted_values` : `origin` → ['Importé','Local'] ; `is_generic` → [true, false]
 
 **Checkpoint Dimensions** : Les 4 tables `dim_*` sont créées et documentées.
 
@@ -99,9 +121,17 @@
 - [ ] T029 Créer `models/marts/pharmacy/fct_purchases.sql` : grain = une ligne par commande grossiste
 - [ ] T030 Créer `models/marts/pharmacy/fct_wholesaler_returns.sql`
 - [ ] T031 [US3] Créer `models/marts/pharmacy/dim_stocks.sql` : état actuel du stock avec alertes de péremption calculées
-- [ ] T032 Compléter `_pharmacy__models.yml` avec toutes les tables de faits (description niveau pharmacien)
-- [ ] T033 Ajouter tests `relationships` entre les tables de faits et les dimensions
-- [ ] T034 Exécuter `dbt run` (complet) et `dbt test` — tous les tests doivent passer
+- [ ] T032 Compléter `_pharmacy__models.yml` pour les tables de faits — description + tests :
+  - `fct_sales` : `unique` + `not_null` sur `sale_id` ; `not_null` sur `total_amount_fcfa`, `sale_date` ; `accepted_values` sur `payment_method` et `client_type`
+  - `fct_sales` : test custom — `patient_share_fcfa + insurer_share_fcfa = total_amount_fcfa` (cohérence tiers-payant)
+  - `fct_purchases` : `not_null` sur `quantity_ordered` ; test `quantity_received <= quantity_ordered`
+  - `fct_missed_sales` : `not_null` sur `missed_date`, `requested_quantity`
+  - `dim_stocks` : `not_null` sur `expiration_date`, `quantity_in_stock`
+- [ ] T033 Ajouter tests `relationships` entre faits et dimensions dans `_pharmacy__models.yml` :
+  - `fct_sales.pharmacy_id` → `dim_pharmacies.pharmacy_id`
+  - `fct_sales.product_id` (via sale_details) → `dim_products.product_id`
+  - `fct_sales.insurer_id` → `dim_insurers.insurer_id`
+- [ ] T034 Exécuter `dbt run` complet puis `dbt test` — cible : **0 échec sur l'ensemble des modèles**
 
 **Checkpoint Faits** : Toutes les tables `fct_*` et `dim_*` sont requêtables. `dbt test` est vert à 100%.
 
