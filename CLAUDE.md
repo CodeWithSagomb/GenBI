@@ -45,10 +45,11 @@ raw.*  →  staging.*  →  marts.*
 6. **Pour Phase 2 : installer dbt localement** — `pip install dbt-postgres`, PAS dans Docker. Lancer depuis `dbt_project/`.
 
 ## État d'avancement
-- ✅ Phase 1 — Infra Docker + DAG pharmacie (10 tables raw, 3614 ventes, 47M FCFA CA) — validé 2026-05-28
+- ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
+  - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
 - 🔄 Phase 2 — dbt (staging + marts) — **PROCHAINE ÉTAPE — BLOQUANT**
-- ⏳ Phase 3 — Backend FastAPI (endpoints /chat, /execute, /schema)
-- ⏳ Phase 4 — Frontend React (interface chat + visualisations)
+- ⏳ Phase 3 — Backend FastAPI (/chat, /execute, /schema) + tests pytest
+- ⏳ Phase 4 — Frontend React (chat + visualisations) + tests Vitest + Playwright E2E
 - ⏳ Phase 5 — RAG ChromaDB + feedback loop
 
 ## Structure des fichiers clés
@@ -71,3 +72,10 @@ dbt_project/                       ← couche sémantique (Phase 2)
 - SQL dbt : préfixes `stg_raw__`, `fct_`, `dim_` stricts (voir guide_meilleures_pratiques.md)
 - React : composants fonctionnels uniquement, hooks custom dans `src/hooks/`
 - Pas de commentaires évidents — seulement les WHY non-obvieux
+
+## Stratégie de test (par couche)
+- **dbt** : tests dans les `.yml` (unique, not_null, relationships, accepted_values) — écrits avec chaque modèle
+- **sql_validator.py** : TDD strict — 13 cas écrits **avant** l'implémentation
+- **FastAPI** : tests unitaires (`tests/unit/`) + intégration (`tests/integration/`) via pytest + httpx
+- **React** : composants avec Vitest + RTL ; flux E2E avec Playwright
+- Commandes : `pytest tests/ -v` (backend) · `npm run test` (frontend) · `npm run test:e2e` (E2E)

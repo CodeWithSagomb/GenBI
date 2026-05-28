@@ -1,7 +1,6 @@
 # GenBI — Tableau de Bord de Supervision
 
-> Fichier de référence unique pour suivre l'état du projet en temps réel.
-> Mettre à jour ce fichier après chaque session de travail.
+> Fichier de référence unique. Mettre à jour après chaque session de travail.
 
 **Dernière mise à jour** : 2026-05-28
 **Phase active** : Phase 2 — Couche Sémantique dbt
@@ -18,194 +17,147 @@ Phase 4 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ I
 Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ RAG & Feedback Loop
 ```
 
-> Audit Phase 1 validé le 2026-05-28 — voir [audit_phase1.md](audit_phase1.md)
-
 ---
 
 ## Phase 1 — Infrastructure & Ingestion ✅ TERMINÉE
 
-**Objectif** : Environnement Docker + pipeline d'ingestion pharmacie opérationnel.
+| Livrable | Statut |
+|---|---|
+| 6 services Docker (postgres, airflow, metabase, backend, frontend) | ✅ Up & healthy |
+| Schémas PostgreSQL : `raw` / `staging` / `marts` | ✅ |
+| User `genbi_readonly` + droits SELECT sur les 3 schémas | ✅ |
+| DAG `ingest_pharmacy_data` — 10 tables raw | ✅ |
+| **30 produits** · 16 classes thérapeutiques (antipaludéens inclus) | ✅ |
+| **4 716 ventes** + 11 604 lignes · Fév–Mai 2026 (116 jours) | ✅ |
+| 61 lots stocks · 200 ruptures · 30 retours grossistes | ✅ |
+| CA total : **45 201 400 FCFA** | ✅ |
+| Ollama natif : `qwen2.5-coder:7b` + `nomic-embed-text` | ✅ |
 
-| Livrable | Statut | Fichier |
-|---|---|---|
-| docker-compose.yml (8 services) | ✅ | [docker-compose.yml](docker-compose.yml) |
-| init.sql (schémas + user read-only) | ✅ | [data/postgres-init/init.sql](data/postgres-init/init.sql) |
-| DAG `ingest_pharmacy_data` | ✅ exécuté avec succès | [airflow/dags/ingest_pharmacy_data.py](airflow/dags/ingest_pharmacy_data.py) |
-| 10 tables `raw.*` créées | ✅ 10/10 tables | Vérifié en base |
-| 4 716 ventes + 11 604 lignes (Fév–Mai 2026) | ✅ | CA total : 45 201 400 FCFA |
-| 30 produits (15 classes thérapeutiques) | ✅ | Antipaludéens, AINS, Contraceptifs... |
-| 61 lots stocks / 200 ruptures / 30 retours | ✅ | Couverture 116 jours |
-| Makefile (commandes up/down/clean) | ✅ | [Makefile](Makefile) |
-| Ollama `qwen2.5-coder:7b` | ✅ téléchargé | `ollama list` |
-| Ollama `nomic-embed-text` | ✅ téléchargé (bonus Phase 5) | `ollama list` |
-| `genbi_readonly` SELECT sur raw.* | ✅ vérifié | ALTER DEFAULT PRIVILEGES actif |
-
-**Pour vérifier** : `make ps` → tous les conteneurs sont `Up`
+> Audit complet : [audit_phase1.md](audit_phase1.md)
 
 ---
 
-## Phase 2 — Couche Sémantique dbt 🔄 EN COURS (0 / 39 tâches)
+## Phase 2 — Couche Sémantique dbt 🔄 À DÉMARRER
 
-**Objectif** : Transformer les données brutes en tables analytiques documentées pour l'IA.
-**BLOQUANT** : Sans `manifest.json`, les Phases 3, 4 et 5 ne peuvent pas démarrer.
+**BLOQUANT** — Sans `manifest.json`, les Phases 3-4-5 ne peuvent pas commencer.
+
+**Prérequis immédiat** : `pip install dbt-postgres` (local, hors Docker)
 
 **Spec** : [specs/001-dbt-semantic-layer/spec.md](specs/001-dbt-semantic-layer/spec.md)
-**Tasks** : [specs/001-dbt-semantic-layer/tasks.md](specs/001-dbt-semantic-layer/tasks.md)
+**Tasks** : [specs/001-dbt-semantic-layer/tasks.md](specs/001-dbt-semantic-layer/tasks.md) — **39 tâches**
 
-### Progression par phase interne
-
-| Phase interne | Tâches | Statut | Checkpoint |
+| Phase interne | Tâches | Statut | Validation |
 |---|---|---|---|
-| Setup dbt | T001–T004 | ⬜ 0/4 | `dbt debug` passe |
-| Sources raw | T005–T006 | ⬜ 0/2 | Sources reconnues |
-| Staging US1 & US2 | T007–T015 | ⬜ 0/9 | `dbt test` staging vert |
-| Staging US3 | T016–T021 | ⬜ 0/6 | 10 modèles staging OK |
-| Dimensions | T022–T026 | ⬜ 0/5 | 4 tables `dim_*` créées |
+| Setup dbt | T001–T004 | ⬜ 0/4 | `dbt debug` vert |
+| Sources raw | T005–T006 | ⬜ 0/2 | Sources déclarées |
+| Staging US1 & US2 (ventes/produits) | T007–T015 | ⬜ 0/9 | `dbt test` staging vert |
+| Staging US3 (stocks/supply) | T016–T021 | ⬜ 0/6 | 10 modèles staging OK |
+| Dimensions | T022–T026 | ⬜ 0/5 | 4 `dim_*` créées |
 | Tables de faits | T027–T034 | ⬜ 0/8 | `dbt test` 100% vert |
 | Manifest & Validation | T035–T039 | ⬜ 0/5 | `manifest.json` généré |
 
-### Modèles à créer
+**Modèles à créer (19 total)**
 
-**Staging (views)**
-- [ ] `stg_raw__sales`
-- [ ] `stg_raw__sale_details`
-- [ ] `stg_raw__products`
-- [ ] `stg_raw__clients`
-- [ ] `stg_raw__pharmacies`
-- [ ] `stg_raw__insurers`
-- [ ] `stg_raw__stocks`
-- [ ] `stg_raw__purchases`
-- [ ] `stg_raw__missed_sales`
-- [ ] `stg_raw__wholesaler_returns`
-
-**Marts — Dimensions (tables)**
-- [ ] `dim_products`
-- [ ] `dim_clients`
-- [ ] `dim_pharmacies`
-- [ ] `dim_insurers`
-- [ ] `dim_stocks`
-
-**Marts — Faits (tables)**
-- [ ] `fct_sales`
-- [ ] `fct_purchases`
-- [ ] `fct_missed_sales`
-- [ ] `fct_wholesaler_returns`
-
-**Artefact final**
-- [ ] `dbt_project/target/manifest.json` généré
+| Staging (views) | Marts Dimensions (tables) | Marts Faits (tables) |
+|---|---|---|
+| `stg_raw__sales` ⬜ | `dim_products` ⬜ | `fct_sales` ⬜ |
+| `stg_raw__sale_details` ⬜ | `dim_clients` ⬜ | `fct_purchases` ⬜ |
+| `stg_raw__products` ⬜ | `dim_pharmacies` ⬜ | `fct_missed_sales` ⬜ |
+| `stg_raw__clients` ⬜ | `dim_insurers` ⬜ | `fct_wholesaler_returns` ⬜ |
+| `stg_raw__pharmacies` ⬜ | `dim_stocks` ⬜ | |
+| `stg_raw__insurers` ⬜ | | |
+| `stg_raw__stocks` ⬜ | | |
+| `stg_raw__purchases` ⬜ | | |
+| `stg_raw__missed_sales` ⬜ | | |
+| `stg_raw__wholesaler_returns` ⬜ | | |
 
 ---
 
 ## Phase 3 — Backend API FastAPI ⏳ EN ATTENTE
 
-**Prérequis** : `manifest.json` de la Phase 2
+**Prérequis** : `manifest.json` (Phase 2)
 **Spec** : [specs/002-backend-api/spec.md](specs/002-backend-api/spec.md)
-**Tasks** : À créer (`/speckit.tasks` sur la spec)
+**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **30 tâches**
 
-| Endpoint | Statut | Description |
+| Module | Statut | Tests |
 |---|---|---|
-| `GET /` | ✅ Existe | Page d'accueil (squelette) |
-| `GET /api/health` | ✅ Existe | Health check basique |
-| `GET /api/v1/schema` | ⬜ À faire | Liste tables + colonnes depuis manifest.json |
-| `POST /api/v1/chat` | ⬜ À faire | Question → SQL via Ollama |
-| `POST /api/v1/execute` | ⬜ À faire | SQL validé → résultats JSON |
-
-**Modules à créer**
-- [ ] `core/dbt_parser.py` — lecteur de manifest.json
-- [ ] `core/llm.py` — client Ollama (LiteLLM)
-- [ ] `core/sql_validator.py` — whitelist SELECT via SQLGlot
-- [ ] `api/v1/chat/` — router + service + schemas
-- [ ] `api/v1/execute/` — router + service + schemas
-- [ ] `api/v1/schema/` — router + service
+| `core/sql_validator.py` | ⬜ | TDD — 13 cas (écrits avant impl.) |
+| `core/dbt_parser.py` | ⬜ | 6 cas unitaires |
+| `core/llm.py` | ⬜ | 3 cas (prompt builder) |
+| `GET /api/v1/schema` | ⬜ | 3 cas intégration |
+| `POST /api/v1/chat` | ⬜ | 3 cas intégration |
+| `POST /api/v1/execute` | ⬜ | 6 cas intégration 🔴 sécurité |
 
 ---
 
 ## Phase 4 — Interface de Chat React ⏳ EN ATTENTE
 
-**Prérequis** : Phases 2 + 3 opérationnelles
+**Prérequis** : Phases 2 + 3
 **Spec** : [specs/003-frontend-chat/spec.md](specs/003-frontend-chat/spec.md)
-**Tasks** : À créer
+**Tasks** : [specs/003-frontend-chat/tasks.md](specs/003-frontend-chat/tasks.md) — **33 tâches**
 
-| Composant | Statut | Description |
+| Composant | Statut | Tests |
 |---|---|---|
-| Design system CSS | ✅ Existe | Dark mode glassmorphism prêt |
-| Page vitrine | ✅ Existe | `App.jsx` — page d'accueil |
-| `ChatWindow.jsx` | ⬜ À faire | Conteneur principal |
-| `MessageBubble.jsx` | ⬜ À faire | Bulle user / IA |
-| `SQLDisplay.jsx` | ⬜ À faire | Affichage SQL avec highlighting |
-| `QueryInput.jsx` | ⬜ À faire | Barre de saisie |
-| `DataTable.jsx` | ⬜ À faire | Tableau de résultats |
-| `ChartRouter.jsx` | ⬜ À faire | Sélection auto du graphique Recharts |
-| `useChat.js` | ⬜ À faire | Hook logique chat + API |
-| `services/api.js` | ⬜ À faire | Client HTTP centralisé |
+| `services/api.js` | ⬜ | — |
+| `hooks/useChat.js` | ⬜ | 5 cas Vitest |
+| `ChatWindow.jsx` | ⬜ | 5 cas Vitest |
+| `SQLDisplay.jsx` | ⬜ | 5 cas Vitest |
+| `DataTable.jsx` | ⬜ | 4 cas Vitest |
+| `ChartRouter.jsx` | ⬜ | 5 cas Vitest |
+| Flux chat complet | ⬜ | 3 scénarios Playwright E2E |
 
 ---
 
 ## Phase 5 — RAG & Feedback Loop ⏳ BACKLOG
 
-**Prérequis** : Phases 2 + 3 + 4 opérationnelles
 **Spec** : [specs/004-rag-feedback/spec.md](specs/004-rag-feedback/spec.md)
-**Tasks** : À créer (après Phase 4)
-
-| Composant | Statut |
-|---|---|
-| ChromaDB initialisé | ⬜ |
-| Pipeline embedding (nomic-embed-text) | ⬜ |
-| Retrieval few-shot dans le prompt | ⬜ |
-| Bouton "✅ Correct" dans le frontend | ⬜ |
-| Éditeur SQL de correction | ⬜ |
+**Tasks** : À créer après Phase 4
 
 ---
 
 ## Services & Connectivité
 
-Vérifier avec `make ps` avant chaque session de travail.
-
-| Service | Port | URL de vérification |
+| Service | Port | Statut actuel |
 |---|---|---|
-| PostgreSQL | 5432 | `psql -h localhost -U postgres -d genbi` |
-| Airflow UI | 8080 | http://localhost:8080 |
-| Metabase | 3000 | http://localhost:3000 |
-| Ollama (natif) | 11434 | `ollama list` |
-| Backend FastAPI | 8000 | http://localhost:8000/api/health |
-| Frontend React | 5173 | http://localhost:5173 |
+| PostgreSQL | 5432 | ✅ healthy |
+| Airflow | 8080 | ✅ healthy → http://localhost:8080 |
+| Metabase | 3000 | ✅ up → http://localhost:3000 |
+| Ollama (natif) | 11434 | ✅ 2 modèles |
+| Backend FastAPI | 8000 | ✅ healthy → http://localhost:8000/api/health |
+| Frontend React | 5173 | ✅ up → http://localhost:5173 |
+
+---
+
+## Blocages Actifs
+
+| # | Blocage | Impact | Action |
+|---|---|---|---|
+| B1 | `dbt` non installé localement | 🔴 Bloque Phase 2 | `pip install dbt-postgres` |
+| B2 | `manifest.json` absent | 🔴 Bloque Phases 3-4-5 | Terminer Phase 2 |
 
 ---
 
 ## Constitution — Conformité
 
-Les 5 principes non-négociables. Tout code mergé doit les respecter.
-
-| Principe | Vérifié | Détail |
-|---|---|---|
-| I. Souveraineté des données | ✅ | Ollama local, pas d'appel externe |
-| II. Sémantique-First | ⬜ Vérifier Phase 3 | Le prompt doit utiliser manifest.json |
-| III. Sécurité par architecture | ✅ | `genbi_readonly` créé dans init.sql |
-| IV. Open-Source & Vendor-Agnostic | ✅ | Toute la stack est open-source |
-| V. Simplicité incrémentale | ✅ | MVP par user story dans chaque spec |
+| Principe | Statut |
+|---|---|
+| I. Souveraineté des données — LLM local, 0 appel externe | ✅ |
+| II. Sémantique-First — manifest.json comme seule source du prompt | ⏳ Phase 2 |
+| III. Sécurité — `genbi_readonly` SELECT-only + TDD sur `sql_validator` | ✅ / ⏳ Phase 3 |
+| IV. Open-Source & Vendor-Agnostic | ✅ |
+| V. Simplicité incrémentale — MVP par user story | ✅ |
 
 ---
 
-## Blocages & Risques Actifs
-
-| # | Blocage | Impact | Action requise |
-|---|---|---|---|
-| B1 | dbt non installé localement | 🔴 Bloque Phase 2 | `pip install dbt-postgres` |
-| B2 | `manifest.json` absent | 🔴 Bloque Phases 3-4-5 | Terminer Phase 2 |
-| ~~B3~~ | ~~Connexion Airflow `genbi_postgres_conn`~~ | ~~🟡~~ | ✅ Résolu |
-| ~~B4~~ | ~~Modèle Ollama `qwen2.5-coder:7b` téléchargé ?~~ | ~~🟡~~ | ✅ Résolu |
-
----
-
-## Références Rapides
+## Références
 
 | Document | Rôle |
 |---|---|
-| [CLAUDE.md](CLAUDE.md) | Contexte projet pour Claude Code (chargé automatiquement) |
-| [.specify/memory/constitution.md](.specify/memory/constitution.md) | Principes non-négociables |
-| [guide_meilleures_pratiques.md](guide_meilleures_pratiques.md) | Standards techniques de chaque couche |
-| [formation_claude_code.md](formation_claude_code.md) | Comment utiliser Claude Code sur ce projet |
-| [formation_spec_kit.md](formation_spec_kit.md) | Méthode SDD adaptée à GenBI |
-| [vision_et_objectifs.md](vision_et_objectifs.md) | Vision produit et feuille de route |
+| [CLAUDE.md](CLAUDE.md) | Contexte auto-chargé par Claude Code |
+| [.specify/memory/constitution.md](.specify/memory/constitution.md) | 5 principes non-négociables |
+| [guide_meilleures_pratiques.md](guide_meilleures_pratiques.md) | Standards techniques par couche |
+| [formation_claude_code.md](formation_claude_code.md) | Harness Claude Code — configuration |
+| [formation_spec_kit.md](formation_spec_kit.md) | Méthode SDD (spec → plan → tasks → implement) |
+| [audit_phase1.md](audit_phase1.md) | Audit complet Phase 1 |
+| [vision_et_objectifs.md](vision_et_objectifs.md) | Vision produit & feuille de route |
 | [exploration_donnees_pharmaceutiques.md](exploration_donnees_pharmaceutiques.md) | Contexte métier pharma Dakar |
-| [analyse_projet.md](analyse_projet.md) | Analyse technique complète du projet |
