@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from config import settings
 
 app = FastAPI(
     title="GenBI Backend API",
     description="API de génération et d'exécution SQL gouvernée et sécurisée pour la Business Intelligence Générative.",
-    version="1.0.0"
+    version="1.0.0",
+    debug=settings.DEBUG
 )
 
 # Configuration de CORS pour permettre au frontend React de se connecter
