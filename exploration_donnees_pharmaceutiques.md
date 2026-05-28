@@ -45,20 +45,24 @@ Le marché pharmaceutique d'Afrique de l'Ouest francophone possède des règles 
 
 ---
 
-## 3. Schéma Physique Cible : Les 8 Tables Clés du Système Officine
+## 3. Schéma Physique Cible : Les 10 Tables Clés d'une Officine Digitale (Niveau Expert)
 
-Pour modéliser l'intégralité des flux d'une officine dakaroise (les 5 piliers), nous avons besoin de **8 tables physiques** dans notre schéma `raw`. Cette structure est à la fois complète (elle couvre l'achat, le stock lot par lot, l'inventaire physique, la facturation et les tiers-payants) et parfaitement normalisée.
+Pour modéliser l'intégralité des flux financiers, logistiques et cliniques d'une officine dakaroise (les 5 piliers), nous avons besoin de **10 tables physiques** dans notre schéma `raw`. Cette structure est à la fois complète (elle couvre l'achat, le stock lot par lot, les ventes manquées, les retours pour avoir, l'inventaire physique, la facturation et les tiers-payants) et parfaitement normalisée.
 
 ```mermaid
 erDiagram
     PHARMACIES ||--o{ SALES : "realise"
     PHARMACIES ||--o{ PURCHASES : "recoit"
+    PHARMACIES ||--o{ MISSED_SALES : "enregistre_rupture"
+    PHARMACIES ||--o{ WHOLESALER_RETURNS : "renvoie"
     CLIENTS ||--o{ SALES : "achete"
     INSURERS ||--o{ SALES : "prend_en_charge"
     PRODUCTS ||--o{ SALE_DETAILS : "est_vendu"
     PRODUCTS ||--o{ STOCKS : "a"
     PRODUCTS ||--o{ PURCHASES : "est_achete"
     PRODUCTS ||--o{ INVENTORIES : "est_controle"
+    PRODUCTS ||--o{ MISSED_SALES : "fait_defaut"
+    PRODUCTS ||--o{ WHOLESALER_RETURNS : "est_retourne"
     SALES ||--o{ SALE_DETAILS : "comporte"
 
     PHARMACIES {
@@ -79,6 +83,9 @@ erDiagram
         string dosage "Dosage (1g, 500mg)"
         string laboratory "Laboratoire (Sanofi, Biogaran, local)"
         string origin "Origine (Importé / Local)"
+        boolean is_generic "Indicateur si Générique (MEG)"
+        boolean is_regulated "Indicateur si prix réglementé par l'État"
+        decimal vat_rate "Taux de TVA appliqué (ex: 0.00 ou 0.18)"
         int public_price_fcfa "Prix Public Réglementé (PPR)"
     }
 
@@ -88,6 +95,8 @@ erDiagram
         string last_name "Nom"
         string phone_number "Téléphone (Sénégal : +221 77...)"
         string client_type "Type (Passant, Assuré, Chronique)"
+        boolean is_chronic "Indicateur Patient Chronique (Diabète/HTA)"
+        int loyalty_points "Points de fidélité cumulés"
         timestamp created_at "Date d'inscription"
     }
 
@@ -104,6 +113,7 @@ erDiagram
         date expiration_date "Date Limite d'Utilisation (DDP)"
         int quantity_in_stock "Quantité physique disponible"
         int safety_stock_threshold "Seuil d'alerte pour réapprovisionnement"
+        string shelf_location "Emplacement physique (ex: Tiroir B3, Frigo 1)"
         timestamp last_updated_at "Date de mise à jour"
     }
 
@@ -132,6 +142,7 @@ erDiagram
         int total_amount_fcfa "Chiffre d'Affaires Brut"
         int patient_share_fcfa "Ticket modérateur (payé par le patient)"
         int insurer_share_fcfa "Reste à recouvrer auprès de l'assurance"
+        int vat_amount_fcfa "Montant de TVA collectée (18% sur parapharmacie)"
     }
 
     SALE_DETAILS {
@@ -152,6 +163,27 @@ erDiagram
         int physical_quantity "Quantité réelle comptée"
         int discrepancy_quantity "Écart (Physique - Théorique)"
         string adjustment_reason "Motif de l'écart (Périmé, Cassé, Vol, Don)"
+    }
+
+    MISSED_SALES {
+        int missed_sale_id PK
+        int pharmacy_id FK
+        int product_id FK
+        timestamp missed_date "Date de la demande manquée"
+        int requested_quantity "Quantité demandée par le client"
+        string client_type "Type (Passant, Assuré)"
+    }
+
+    WHOLESALER_RETURNS {
+        int return_id PK
+        int pharmacy_id FK
+        string wholesaler_name "Grossiste cible (Laborex, Ubipharm...)"
+        date return_date "Date du renvoi physique"
+        int product_id FK
+        string batch_number "Lot renvoyé"
+        int quantity_returned "Quantité de boîtes renvoyées"
+        int credit_note_amount_fcfa "Montant estimé de l'avoir à recevoir (FCFA)"
+        string status "Statut de l'avoir (En attente, Validé, Rejeté)"
     }
 ```
 
@@ -214,4 +246,43 @@ La vente à Dakar reflète la mixité sociale et économique de la ville.
 - **Suivi des Pathologies Chroniques :** Dakar connaît une prévalence importante de maladies chroniques (Diabète, Hypertension Artérielle - HTA). Une bonne officine fidélise ces patients en suivant leurs renouvellements mensuels.
 - **Le Dossier Patient :** Regroupe les consommations de la famille (ex: le père, la mère et les enfants rattachés à la même IPM).
 - **Le Ticket Modérateur :** Analyser si le patient paie son ticket modérateur directement (espèces/Wave) ou s'il bénéficie d'une prise en charge à 100% (cas de certaines mutuelles de cadres).
+
+---
+
+## 6. Approfondissement Stratégique & Analytique à 360 Degrés (Niveau Expert)
+
+En poussant l'analyse au plus haut niveau de maturité décisionnelle, l'officine n'est plus seulement un commerce de proximité, mais une entreprise logistique, financière et de santé publique. Voici la modélisation à 360° des défis analytiques majeurs :
+
+### 💳 1. Le BFR et les Encours IPM (Days Sales Outstanding - DSO)
+Le besoin en fonds de roulement (BFR) d'une pharmacie à Dakar est directement impacté par les délais de paiement des IPM. 
+- **La problématique :** L'IPM Senelec ou Douanes peut accumuler 60 à 90 jours de retard pour rembourser sa part de Tiers-Payant. Si l'officine doit payer ses grossistes à 30 jours, elle fait face à une crise de trésorerie (le "trou" du Tiers-Payant).
+- **Modélisation analytique :** Le GenBI calcule le DSO par assureur : 
+  $$\text{DSO} = \frac{\text{Encours assurance}}{\text{Ventes mensuelles Tiers-Payant}} \times 30$$
+- **Question IA :** *"Quels assureurs ont un délai moyen de remboursement supérieur à 45 jours et quel est le montant total de notre encours actuel chez eux ?"*
+
+### 💊 2. La Substitution Générique et l'Optimisation de Marge
+- **La problématique :** Face aux ruptures de stocks régulières et pour réduire le reste à charge du patient, le pharmacien remplace un médicament de marque (Princeps, ex: *Clamoxyl*) par son générique équivalent (MEG, ex: *Amoxicilline Biogaran*).
+- **Modélisation analytique :** Le champ `is_generic` dans `raw.products` permet de calculer le **Taux de Substitution**. Les médicaments génériques ont généralement des coefficients de marge réglementés légèrement plus favorables en pourcentage pour l'officine, tout en étant moins coûteux pour les clients (et moins consommateurs d'encours de remboursement pour les mutuelles).
+- **Question IA :** *"Calcule notre taux de substitution générique par classe thérapeutique ce mois-ci et estime la marge additionnelle dégagée grâce à cette substitution."*
+
+### 📉 3. Le Manque à Gagner des Ventes Manquées (Missed Sales)
+- **La problématique :** Lorsqu'un client demande un médicament en rupture (ex: *Lovenox*) et s'en va, le système informatique de vente classique n'enregistre rien car aucune transaction n'a eu lieu. C'est une perte invisible de chiffre d'affaires et de fidélité.
+- **Modélisation analytique :** La table `raw.missed_sales` enregistre chaque demande insatisfaite. Le GenBI peut croiser ces données avec le catalogue de prix pour quantifier le **Coût d'opportunité des ruptures**.
+- **Question IA :** *"Quel est le montant total estimé du manque à gagner dû aux ruptures de stock ce mois-ci, et quels sont les 5 produits les plus demandés qui étaient absents ?"*
+
+### 📦 4. La Gestion Active des Retours pour Avoirs Grossistes
+- **La problématique :** Les grossistes (Laborex, Ubipharm...) acceptent de reprendre les médicaments non vendus jusqu'à 3 ou 6 mois avant leur date limite d'utilisation (DDP) pour émettre un avoir. Si la pharmacie dépasse ce délai, le produit doit être détruit (perte de 100% de la valeur d'achat).
+- **Modélisation analytique :** La table `raw.wholesaler_returns` croisée avec `raw.stocks` permet de mettre en place des alertes prédictives. Le GenBI peut lister les produits à renvoyer immédiatement aux grossistes pour sécuriser les avoirs financiers.
+- **Question IA :** *"Quels lots en stock atteignent leur fenêtre de retour grossiste de 4 mois ce mois-ci et quelle est la valeur totale des avoirs que nous pouvons récupérer ?"*
+
+### 🧾 5. La Fiscalité Régionale (TVA UEMOA 18%)
+- **La problématique :** Au Sénégal, les médicaments prescrits et inscrits au Tarif National sont exonérés de TVA (TVA 0%). En revanche, les produits de parapharmacie (cosmétiques, laits infantiles, brosses à dents) sont assujettis à la TVA standard de 18%.
+- **Modélisation analytique :** Le champ `vat_rate` dans `raw.products` et `vat_amount_fcfa` dans `raw.sales` permettent une ventilation fiscale automatique et transparente pour les déclarations de TVA mensuelles.
+- **Question IA :** *"Donne-moi le montant de la TVA collectée sur la parapharmacie par semaine pour notre déclaration fiscale et le ratio CA Médicament vs CA Parapharmacie."*
+
+### 🩺 6. L'Observance Thérapeutique Clinique (CRM Prédictif)
+- **La problématique :** Dans le cas des maladies chroniques (Diabète, HTA) à Dakar, le renouvellement régulier de l'ordonnance est synonyme d'observance du traitement par le patient (enjeu de santé publique) et de récurrence commerciale stable pour l'officine.
+- **Modélisation analytique :** Grâce au champ `is_chronic` de `raw.clients` et au suivi des ventes nominatives dans `raw.sales`, le GenBI peut détecter les patients "hors observance" (ceux dont la durée théorique du traitement est dépassée mais qui ne sont pas revenus acheter leur renouvellement).
+- **Question IA :** *"Identifie tous les patients chroniques hypertendus qui auraient dû renouveler leur ordonnance il y a plus de 5 jours et sors la liste de leurs numéros de téléphone pour un suivi de courtoisie."*
+
 
