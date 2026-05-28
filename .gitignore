@@ -1,0 +1,40 @@
+# --- GLOBAUX & OS ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- DONNÉES & VOLUMES DOCKER ---
+# On ignore les données persistantes des conteneurs
+data/*
+# Sauf le script d'initialisation de PostgreSQL qu'on veut absolument versionner
+!data/postgres-init/
+!data/postgres-init/init.sql
+
+# --- APACHE AIRFLOW ---
+airflow/logs/
+airflow/plugins/
+
+# --- DBT (DATA BUILD TOOL) ---
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+
+# --- BACKEND PYTHON (FastAPI) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+genbi_backend/.env
+
+# --- FRONTEND NODE / REACT ---
+genbi_frontend/node_modules/
+genbi_frontend/dist/
+genbi_frontend/dist-ssr/
+genbi_frontend/*.local
+genbi_frontend/.env.local
+genbi_frontend/.env.development.local
+genbi_frontend/.env.test.local
+genbi_frontend/.env.production.local

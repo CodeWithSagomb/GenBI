@@ -1,0 +1,12 @@
+fastapi==0.110.0
+uvicorn==0.28.0
+psycopg2-binary==2.9.9
+sqlglot==23.0.0
+langchain==0.1.12
+langchain-community==0.0.28
+litellm==1.34.22
+pydantic==2.6.4
+instructor==1.0.3
+chromadb==0.4.24
+pandas==2.2.1
+requests==2.31.0

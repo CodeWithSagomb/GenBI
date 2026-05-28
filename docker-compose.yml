@@ -1,0 +1,151 @@
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.2-python3.11
+  environment:
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres_admin_123@postgres:5432/airflow
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    - AIRFLOW__CORE__LOGGING_LEVEL=WARNING
+    - AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL=10
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  # 1. Base de données OLAP et Métadonnées
+  postgres:
+    image: postgres:16-alpine
+    container_name: genbi_postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres_admin_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/postgres-init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Apache Airflow - Initialisation de la Base de Données
+  airflow-init:
+    <<: *airflow-common
+    container_name: genbi_airflow_init
+    entrypoint: /bin/bash
+    user: "50000:0"
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@genbi.local
+
+  # 3. Apache Airflow - Webserver (Port 8080)
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: genbi_airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  # 4. Apache Airflow - Scheduler
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: genbi_airflow_scheduler
+    command: scheduler
+    restart: always
+
+  # 5. Outil BI Standard - Metabase (Port 3000)
+  metabase:
+    image: metabase/metabase:latest
+    container_name: genbi_metabase
+    ports:
+      - "3000:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  # 6. Serveur LLM Local - Ollama (Nativement sur macOS)
+  # NOTE MAC : Étant donné qu'Ollama est installé nativement sur votre Mac,
+  # le conteneur Docker Ollama (lent car uniquement CPU sur Docker Mac) a été désactivé.
+  # Le backend FastAPI communique directement avec votre Ollama natif (GPU accéléré Metal)
+  # via l'adresse http://host.docker.internal:11434.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: genbi_ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   restart: always
+
+  # 7. Notre Backend GenBI - FastAPI (Port 8000)
+  genbi-backend:
+    build:
+      context: ./genbi_backend
+      dockerfile: Dockerfile
+    container_name: genbi_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./genbi_backend:/app
+      - ./dbt_project:/app/dbt_project:ro  # Lecture seule du manifest.json
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=genbi
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres_admin_123
+      - DB_READONLY_USER=genbi_readonly
+      - DB_READONLY_PASSWORD=genbi_secure_readonly_123
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434 # Connecté à l'Ollama natif du Mac pour le GPU Metal
+      - DBT_MANIFEST_PATH=/app/dbt_project/target/manifest.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Permet de communiquer avec le Mac hôte
+    restart: always
+
+  # 8. Notre Frontend GenBI - React + Vite (Port 5173)
+  genbi-frontend:
+    build:
+      context: ./genbi_frontend
+      dockerfile: Dockerfile
+    container_name: genbi_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./genbi_frontend:/app
+      - /app/node_modules  # Évite d'écraser les modules node sous Docker avec ceux du Mac
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - genbi-backend
+    restart: always
+
+volumes:
+  postgres_data:
+  metabase_data:
+  # ollama_data:
+
