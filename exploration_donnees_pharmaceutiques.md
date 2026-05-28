@@ -45,76 +45,113 @@ Le marché pharmaceutique d'Afrique de l'Ouest francophone possède des règles 
 
 ---
 
-## 3. Schéma Relationnel Proposé (Modèle Physique RAW)
+## 3. Schéma Physique Cible : Les 8 Tables Clés du Système Officine
 
-Pour alimenter notre GenBI, nous allons simuler ou charger 6 tables principales dans le schéma `raw`.
+Pour modéliser l'intégralité des flux d'une officine dakaroise (les 5 piliers), nous avons besoin de **8 tables physiques** dans notre schéma `raw`. Cette structure est à la fois complète (elle couvre l'achat, le stock lot par lot, l'inventaire physique, la facturation et les tiers-payants) et parfaitement normalisée.
 
 ```mermaid
 erDiagram
     PHARMACIES ||--o{ SALES : "realise"
-    PRODUCTS ||--o{ SALE_DETAILS : "contient"
-    SALES ||--o{ SALE_DETAILS : "comporte"
-    INSURERS ||--o{ SALES : "couvre"
-    PRODUCTS ||--o{ PURCHASES : "achete"
     PHARMACIES ||--o{ PURCHASES : "recoit"
+    CLIENTS ||--o{ SALES : "achete"
+    INSURERS ||--o{ SALES : "prend_en_charge"
+    PRODUCTS ||--o{ SALE_DETAILS : "est_vendu"
+    PRODUCTS ||--o{ STOCKS : "a"
+    PRODUCTS ||--o{ PURCHASES : "est_achete"
+    PRODUCTS ||--o{ INVENTORIES : "est_controle"
+    SALES ||--o{ SALE_DETAILS : "comporte"
 
     PHARMACIES {
         int pharmacy_id PK
         string name "Nom de la pharmacie"
-        string country "Pays (Sénégal, Côte d'Ivoire, etc.)"
-        string city "Ville (Dakar, Abidjan, etc.)"
-        string district "Quartier (Cocody, Plateau, Almadies...)"
+        string country "Pays (Sénégal, Côte d'Ivoire...)"
+        string city "Ville (Dakar, Abidjan...)"
+        string district "Quartier (Almadies, Liberté 6...)"
     }
 
     PRODUCTS {
         int product_id PK
-        string cip_code "Code CIP unique du médicament"
-        string commercial_name "Nom commercial (ex: Augmentin)"
-        string dci "Dénomination Commune Internationale (ex: Amoxicilline)"
-        string therapeutic_class "Classe (Antibiotique, Antalgique...)"
-        string form "Forme (Comprimé, Sirop...)"
-        string dosage "Dosage (500mg, 1g...)"
+        string cip_code "Code CIP (ex: 3400936272545)"
+        string commercial_name "Nom de marque (ex: Doliprane)"
+        string dci "Dénomination Commune Internationale (ex: Paracétamol)"
+        string therapeutic_class "Classe (Antalgique, Cardio...)"
+        string form "Forme galénique (Comprimé, Gélule, Sirop)"
+        string dosage "Dosage (1g, 500mg)"
         string laboratory "Laboratoire (Sanofi, Biogaran, local)"
         string origin "Origine (Importé / Local)"
-        int public_price_fcfa "Prix Public Réglementé"
+        int public_price_fcfa "Prix Public Réglementé (PPR)"
+    }
+
+    CLIENTS {
+        int client_id PK
+        string first_name "Prénom"
+        string last_name "Nom"
+        string phone_number "Téléphone (Sénégal : +221 77...)"
+        string client_type "Type (Passant, Assuré, Chronique)"
+        timestamp created_at "Date d'inscription"
     }
 
     INSURERS {
         int insurer_id PK
-        string name "Saham, Senelec, NSIA..."
-        decimal default_coverage_rate "Taux de prise en charge (0.70 = 70%)"
+        string name "Nom (IPM Senelec, Saham, AXA...)"
+        decimal default_coverage_rate "Taux de prise en charge (ex: 0.80)"
+    }
+
+    STOCKS {
+        int stock_id PK
+        int product_id FK
+        string batch_number "Numéro de Lot (Traçabilité)"
+        date expiration_date "Date Limite d'Utilisation (DDP)"
+        int quantity_in_stock "Quantité physique disponible"
+        int safety_stock_threshold "Seuil d'alerte pour réapprovisionnement"
+        timestamp last_updated_at "Date de mise à jour"
+    }
+
+    PURCHASES {
+        int purchase_id PK
+        int pharmacy_id FK
+        string wholesaler_name "Grossiste (Laborex, Ubipharm, Tedis...)"
+        date order_date "Date de commande"
+        date delivery_date "Date de livraison (NULL si en cours)"
+        int product_id FK
+        int quantity_ordered "Quantité commandée"
+        int quantity_received "Quantité livrée (Taux de service)"
+        int purchase_price_fcfa "Prix d'Achat Grossiste (PAG)"
+        string batch_number "Numéro de Lot reçu"
+        date expiration_date "DDP du lot reçu"
     }
 
     SALES {
         int sale_id PK
         int pharmacy_id FK
-        timestamp sale_date "Date et heure"
+        int client_id FK "NULL si client anonyme"
+        timestamp sale_date "Date et heure exacte"
         string payment_method "Espèces, Wave, Orange Money, Tiers-Payant"
         string client_type "Passant, Assuré"
-        int insurer_id FK "NULL si client Passant"
-        int total_amount_fcfa "Montant total"
-        int patient_share_fcfa "Ticket modérateur payé par le client"
-        int insurer_share_fcfa "Montant à facturer à l'assurance"
+        int insurer_id FK "NULL si client hors tiers-payant"
+        int total_amount_fcfa "Chiffre d'Affaires Brut"
+        int patient_share_fcfa "Ticket modérateur (payé par le patient)"
+        int insurer_share_fcfa "Reste à recouvrer auprès de l'assurance"
     }
 
     SALE_DETAILS {
         int detail_id PK
         int sale_id FK
         int product_id FK
-        int quantity "Quantité vendue"
-        int unit_price_fcfa "Prix unitaire appliqué"
-        int total_line_amount_fcfa "Total ligne"
+        int quantity "Quantité d'unités vendues"
+        int unit_price_fcfa "Prix unitaire de vente appliqué"
+        int total_line_amount_fcfa "Montant total de la ligne"
     }
 
-    PURCHASES {
-        int purchase_id PK
-        int pharmacy_id FK
-        string wholesaler_name "Grossiste (Laborex, Ubipharm...)"
-        date purchase_date
+    INVENTORIES {
+        int inventory_id PK
+        timestamp inventory_date "Date de l'audit physique"
         int product_id FK
-        int quantity_received
-        int purchase_price_fcfa "Prix d'Achat Grossiste (PAG)"
-        date expiration_date "DDP (Date de Péremption)"
+        string batch_number "Lot contrôlé"
+        int theoretical_quantity "Quantité théorique en base"
+        int physical_quantity "Quantité réelle comptée"
+        int discrepancy_quantity "Écart (Physique - Théorique)"
+        string adjustment_reason "Motif de l'écart (Périmé, Cassé, Vol, Don)"
     }
 ```
 
