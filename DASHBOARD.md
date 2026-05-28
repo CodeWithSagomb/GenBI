@@ -4,21 +4,21 @@
 > Mettre à jour ce fichier après chaque session de travail.
 
 **Dernière mise à jour** : 2026-05-28
-**Phase active** : Phase 1 — Correction ingestion (DAG jamais déclenché)
+**Phase active** : Phase 2 — Couche Sémantique dbt
 
 ---
 
 ## État Global du Projet
 
 ```
-Phase 1 ███████████████░░░░░  75%  ⚠️  Infrastructure OK, DAG jamais déclenché ← ICI
-Phase 2 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ Couche Sémantique dbt
+Phase 1 ████████████████████ 100%  ✅ Infrastructure & Ingestion
+Phase 2 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Couche Sémantique dbt      ← ICI
 Phase 3 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ Backend API FastAPI
 Phase 4 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ Interface de Chat React
 Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ RAG & Feedback Loop
 ```
 
-> ⚠️ Audit du 2026-05-28 : voir [audit_phase1.md](audit_phase1.md)
+> Audit Phase 1 validé le 2026-05-28 — voir [audit_phase1.md](audit_phase1.md)
 
 ---
 
@@ -30,27 +30,15 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 |---|---|---|
 | docker-compose.yml (8 services) | ✅ | [docker-compose.yml](docker-compose.yml) |
 | init.sql (schémas + user read-only) | ✅ | [data/postgres-init/init.sql](data/postgres-init/init.sql) |
-| DAG `ingest_pharmacy_data` | ✅ chargé / ❌ jamais déclenché | [airflow/dags/ingest_pharmacy_data.py](airflow/dags/ingest_pharmacy_data.py) |
-| 10 tables `raw.*` créées | ❌ 0 tables — DAG non exécuté | Déclencher le DAG |
-| ~4 000 ventes simulées (Mars–Mai 2026) | ❌ 0 lignes | Déclencher le DAG |
+| DAG `ingest_pharmacy_data` | ✅ exécuté avec succès | [airflow/dags/ingest_pharmacy_data.py](airflow/dags/ingest_pharmacy_data.py) |
+| 10 tables `raw.*` créées | ✅ 10/10 tables | Vérifié en base |
+| 3 614 ventes + 9 062 lignes (Mars–Mai 2026) | ✅ | CA total : 47 837 250 FCFA |
 | Makefile (commandes up/down/clean) | ✅ | [Makefile](Makefile) |
 | Ollama `qwen2.5-coder:7b` | ✅ téléchargé | `ollama list` |
 | Ollama `nomic-embed-text` | ✅ téléchargé (bonus Phase 5) | `ollama list` |
+| `genbi_readonly` SELECT sur raw.* | ✅ vérifié | ALTER DEFAULT PRIVILEGES actif |
 
-**Pour terminer Phase 1 :**
-```bash
-# 1. Déclencher le DAG (UI Airflow → http://localhost:8080)
-docker exec genbi_airflow_webserver airflow dags unpause ingest_pharmacy_data
-docker exec genbi_airflow_webserver airflow dags trigger ingest_pharmacy_data
-
-# 2. Vérifier après ~2 min
-docker exec genbi_postgres psql -U postgres -d genbi -c "SELECT COUNT(*) FROM raw.sales;"
-# Attendu : ~4000 lignes
-
-# 3. Commiter le DAG (non versionné)
-git add airflow/dags/ingest_pharmacy_data.py
-git commit -m "feat: add pharmacy data ingestion DAG"
-```
+**Pour vérifier** : `make ps` → tous les conteneurs sont `Up`
 
 ---
 
@@ -202,8 +190,8 @@ Les 5 principes non-négociables. Tout code mergé doit les respecter.
 |---|---|---|---|
 | B1 | dbt non installé localement | 🔴 Bloque Phase 2 | `pip install dbt-postgres` |
 | B2 | `manifest.json` absent | 🔴 Bloque Phases 3-4-5 | Terminer Phase 2 |
-| B3 | Connexion Airflow `genbi_postgres_conn` | 🟡 Bloque ré-ingestion | Configurer dans UI Airflow |
-| B4 | Modèle Ollama `qwen2.5-coder:7b` téléchargé ? | 🟡 Bloque Phase 3 | `ollama pull qwen2.5-coder:7b` |
+| ~~B3~~ | ~~Connexion Airflow `genbi_postgres_conn`~~ | ~~🟡~~ | ✅ Résolu |
+| ~~B4~~ | ~~Modèle Ollama `qwen2.5-coder:7b` téléchargé ?~~ | ~~🟡~~ | ✅ Résolu |
 
 ---
 
