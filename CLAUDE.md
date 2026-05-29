@@ -38,34 +38,44 @@ raw.*  →  staging.*  →  marts.*
 
 ## Gotchas critiques
 1. **Ollama tourne nativement sur macOS** — PAS dans Docker. Le backend l'atteint via `host.docker.internal:11434`. Ne pas essayer de conteneuriser Ollama.
-2. **L'agent IA utilise uniquement `genbi_readonly`** (SELECT-only). Toutes les connexions dans `core/` doivent utiliser cet utilisateur, jamais `postgres`.
-3. **SQLGlot n'est PAS un validateur de sécurité** — la vraie protection est l'user read-only + requêtes paramétrées psycopg2.
-4. **dbt_project/target/ est dans .gitignore** — le `manifest.json` est généré localement par `dbt compile`. Il faut l'avoir pour que le backend fonctionne.
-5. **La connexion Airflow `genbi_postgres_conn` est injectée via variable d'env** dans docker-compose — elle est déjà configurée, pas besoin de la recréer manuellement.
-6. **dbt installé localement** — dbt-postgres 1.10.0, PAS dans Docker. Lancer depuis `dbt_project/`. `dbt test` → PASS=149.
+2. **`genbi_readonly`** (SELECT-only) pour toutes les lectures. **`genbi_write`** uniquement pour INSERT sur `raw.feedback`. Jamais `postgres` dans `core/`.
+3. **RLS PostgreSQL > filtre applicatif** — l'isolation multi-pharmacie est garantie par `SET app.current_pharmacy_id` + policies RLS, pas par `WHERE pharmacy_id = ?` dans le code.
+4. **SQLGlot n'est PAS un validateur de sécurité** — la vraie protection est RLS + `genbi_readonly` + sql_validator (whitelist SELECT).
+5. **dbt_project/target/ est dans .gitignore** — `manifest.json` généré localement par `dbt compile`. Requis pour que le backend fonctionne.
+6. **La connexion Airflow `genbi_postgres_conn` est injectée via variable d'env** dans docker-compose — déjà configurée, ne pas recréer.
+7. **dbt installé localement** — dbt-postgres 1.10.0, PAS dans Docker. Lancer depuis `dbt_project/`. `dbt test` → PASS=149 WARN=0.
+8. **API Keys dans `.env`** — jamais dans le code source. `core/auth.py` lit `os.environ`. 3 clés : une par pharmacie (Bourguiba / Almadies / Nation).
+9. **Lifespan FastAPI** — `manifest.json` + pool DB chargés une seule fois au démarrage. Jamais dans les routes.
+10. **Prompts versionnés** — `core/prompts/v1_sql_generation.txt`. Changer le comportement LLM = changer le fichier `.txt`, pas le code Python.
 
 ## État d'avancement
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
   - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
 - ✅ Phase 2 — dbt sémantique — validé 2026-05-29
   - 19 modèles · 149 tests PASS · manifest.json 1.0 MB · staging (views) + marts (tables)
-- 🔄 Phase 3 — Backend FastAPI (/chat, /execute, /schema) + tests pytest — **PROCHAINE ÉTAPE**
+- 🔄 Phase 3 — Backend FastAPI — **PROCHAINE ÉTAPE** — 54 tâches · 52 cas de test
+  - Scénario B : 1 instance · 3 pharmacies · isolation PostgreSQL RLS
+  - Auth : API Key par pharmacie (header `X-API-Key`) · rate limit 10req/min
+  - 7 endpoints : `/chat` `/execute` `/query` `/interpret` `/schema` `/suggestions` `/feedback`
+  - Maintenabilité : lifespan · domain exceptions · logging JSON · request_id · pagination · prompts versionnés
 - ⏳ Phase 4 — Frontend React (chat + visualisations) + tests Vitest + Playwright E2E
-- ⏳ Phase 5 — RAG ChromaDB + feedback loop
+- ⏳ Phase 5 — RAG ChromaDB + feedback loop + JWT/RBAC
 
 ## Structure des fichiers clés
 ```
-CLAUDE.md                          ← ce fichier
-guide_meilleures_pratiques.md      ← standards techniques du projet
-exploration_donnees_pharmaceutiques.md  ← contexte métier pharma Dakar
-vision_et_objectifs.md             ← feuille de route et vision produit
-docker-compose.yml                 ← orchestration complète
-data/postgres-init/init.sql        ← schémas DB + user read-only
+CLAUDE.md                               ← ce fichier
+DASHBOARD.md                            ← supervision temps réel
+specs/002-backend-api/spec.md           ← spécification Phase 3
+specs/002-backend-api/tasks.md          ← 54 tâches Phase 3
+docker-compose.yml                      ← orchestration complète
+data/postgres-init/init.sql             ← schémas DB + users + RLS policies
 airflow/dags/ingest_pharmacy_data.py    ← pipeline d'ingestion
-genbi_backend/main.py              ← API FastAPI (squelette)
-genbi_backend/config.py            ← configuration centralisée
-genbi_frontend/src/App.jsx         ← interface React
-dbt_project/                       ← couche sémantique (Phase 2)
+genbi_backend/main.py                   ← API FastAPI (lifespan + routers + exception handlers)
+genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
+genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware
+genbi_frontend/src/App.jsx              ← interface React
+dbt_project/                            ← couche sémantique (Phase 2 terminée)
+dbt_project/target/manifest.json        ← généré localement, requis pour le backend
 ```
 
 ## Conventions de code
