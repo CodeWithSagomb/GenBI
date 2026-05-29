@@ -72,16 +72,22 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 
 **Prérequis** : `manifest.json` ✅ (Phase 2 terminée)
 **Spec** : [specs/002-backend-api/spec.md](specs/002-backend-api/spec.md)
-**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **30 tâches**
+**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **50 tâches · 46 cas de test**
 
-| Module | Statut | Tests |
+| Module / Endpoint | Statut | Tests |
 |---|---|---|
-| `core/sql_validator.py` | ⬜ | TDD — 13 cas (écrits avant impl.) |
+| Infrastructure tests + lifespan + exceptions | ⬜ | — |
+| `core/sql_validator.py` | ⬜ | TDD — 13 cas 🔴 |
 | `core/dbt_parser.py` | ⬜ | 6 cas unitaires |
-| `core/llm.py` | ⬜ | 3 cas (prompt builder) |
+| `core/llm.py` | ⬜ | 4 cas (prompt builder + timeout) |
+| `core/database.py` (pool) | ⬜ | — |
 | `GET /api/v1/schema` | ⬜ | 3 cas intégration |
-| `POST /api/v1/chat` | ⬜ | 3 cas intégration |
+| `POST /api/v1/chat` | ⬜ | 4 cas intégration |
 | `POST /api/v1/execute` | ⬜ | 6 cas intégration 🔴 sécurité |
+| `POST /api/v1/interpret` | ⬜ | 3 cas intégration |
+| `POST /api/v1/query` ← endpoint principal | ⬜ | 4 cas intégration 🔴 |
+| `GET /api/v1/suggestions` | ⬜ | 3 cas intégration |
+| `POST /api/v1/feedback` | ⬜ | — |
 
 ---
 
