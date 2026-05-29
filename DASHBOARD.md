@@ -72,22 +72,25 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 
 **Prérequis** : `manifest.json` ✅ (Phase 2 terminée)
 **Spec** : [specs/002-backend-api/spec.md](specs/002-backend-api/spec.md)
-**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **50 tâches · 46 cas de test**
+**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **54 tâches · 52 cas de test**
+
+**Déploiement** : Scénario B — instance unique, 3 pharmacies, isolation via PostgreSQL RLS
 
 | Module / Endpoint | Statut | Tests |
 |---|---|---|
-| Infrastructure tests + lifespan + exceptions | ⬜ | — |
+| Socle : lifespan + exceptions + middleware + RLS | ⬜ | — |
+| `core/auth.py` — API Key → pharmacy_id | ⬜ | 4 cas 🔴 auth |
 | `core/sql_validator.py` | ⬜ | TDD — 13 cas 🔴 |
 | `core/dbt_parser.py` | ⬜ | 6 cas unitaires |
-| `core/llm.py` | ⬜ | 4 cas (prompt builder + timeout) |
-| `core/database.py` (pool) | ⬜ | — |
+| `core/llm.py` — timeout + prompts versionnés | ⬜ | 4 cas |
+| `core/database.py` — pool + RLS setter | ⬜ | — |
 | `GET /api/v1/schema` | ⬜ | 3 cas intégration |
 | `POST /api/v1/chat` | ⬜ | 4 cas intégration |
-| `POST /api/v1/execute` | ⬜ | 6 cas intégration 🔴 sécurité |
+| `POST /api/v1/execute` — paginé + RLS vérifié | ⬜ | 7 cas intégration 🔴 |
 | `POST /api/v1/interpret` | ⬜ | 3 cas intégration |
-| `POST /api/v1/query` ← endpoint principal | ⬜ | 4 cas intégration 🔴 |
+| `POST /api/v1/query` ← endpoint principal | ⬜ | 5 cas intégration 🔴 |
 | `GET /api/v1/suggestions` | ⬜ | 3 cas intégration |
-| `POST /api/v1/feedback` | ⬜ | — |
+| `POST /api/v1/feedback` — genbi_write | ⬜ | — |
 
 ---
 
