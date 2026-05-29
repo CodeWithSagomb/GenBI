@@ -1,0 +1,254 @@
+version: 2
+
+models:
+  - name: dim_products
+    description: "Dimension produits — catalogue complet des 30 médicaments et articles de parapharmacie référencés dans les 3 pharmacies de Dakar."
+    columns:
+      - name: product_id
+        description: "Identifiant unique du produit."
+        data_tests: [unique, not_null]
+      - name: cip_code
+        description: "Code CIP — identifiant pharmaceutique international."
+        data_tests: [unique, not_null]
+      - name: commercial_name
+        description: "Nom de marque (ex : Doliprane, Coartem, Glucophage)."
+        data_tests: [not_null]
+      - name: dci
+        description: "Dénomination Commune Internationale — molécule active (ex : Paracétamol, Artémether)."
+        data_tests: [not_null]
+      - name: therapeutic_class
+        description: "Classe thérapeutique (ex : Antipaludéen, Antibiotique, Antalgique)."
+        data_tests: [not_null]
+      - name: origin
+        description: "'Importé' ou 'Local' (fabriqué en Afrique de l'Ouest)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Importé', 'Local']
+      - name: is_generic
+        description: "Vrai si le produit est un générique."
+        data_tests: [not_null]
+      - name: public_price_fcfa
+        description: "Prix Public Réglementé (PPR) en FCFA."
+        data_tests: [not_null]
+      - name: product_category
+        description: "'Médicament' (exonéré de TVA) ou 'Parapharmacie' (TVA 18%)."
+
+  - name: dim_clients
+    description: "Dimension clients — 100 patients enregistrés dans les pharmacies."
+    columns:
+      - name: client_id
+        description: "Identifiant unique du patient."
+        data_tests: [unique, not_null]
+      - name: full_name
+        description: "Prénom et nom du patient."
+      - name: client_type
+        description: "'Passant' ou 'Assuré' (couvert par une IPM ou assurance)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Passant', 'Assuré']
+      - name: is_chronic
+        description: "Vrai si le patient suit un traitement long terme (diabète, hypertension)."
+      - name: loyalty_points
+        description: "Points de fidélité accumulés dans le programme pharmacie."
+
+  - name: dim_pharmacies
+    description: "Dimension pharmacies — les 3 officines de Dakar couvertes par GenBI."
+    columns:
+      - name: pharmacy_id
+        description: "Identifiant unique de la pharmacie."
+        data_tests: [unique, not_null]
+      - name: pharmacy_name
+        description: "Nom commercial (Pharmacie Bourguiba, des Almadies, de la Nation)."
+        data_tests: [not_null]
+      - name: district
+        description: "Quartier de Dakar (Amitié/Fann, Almadies, Plateau)."
+
+  - name: dim_insurers
+    description: "Dimension assureurs — les 5 organismes de tiers-payant partenaires."
+    columns:
+      - name: insurer_id
+        description: "Identifiant unique de l'assureur."
+        data_tests: [unique, not_null]
+      - name: insurer_name
+        description: "Nom de l'organisme (IPM Senelec, IPM Sonatel, NSIA Assurances, Saham/Sanlam, IPM Port Autonome)."
+        data_tests: [not_null]
+      - name: coverage_pct
+        description: "Taux de prise en charge en % (70 ou 80)."
+
+  - name: dim_stocks
+    description: "Dimension stocks — état actuel des lots physiques avec alertes de péremption calculées. Grain : un lot par produit."
+    columns:
+      - name: stock_id
+        description: "Identifiant unique du lot en stock."
+        data_tests: [unique, not_null]
+      - name: product_id
+        description: "Produit correspondant à ce lot."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+      - name: commercial_name
+        description: "Nom du médicament (dénormalisé depuis dim_products pour faciliter les requêtes)."
+      - name: expiration_date
+        description: "Date limite d'utilisation du lot."
+        data_tests: [not_null]
+      - name: quantity_in_stock
+        description: "Nombre d'unités disponibles dans ce lot."
+        data_tests: [not_null]
+      - name: expiry_status
+        description: "Alerte péremption : 'OK', 'Attention (< 90j)', 'Critique (< 30j)' ou 'Expiré'."
+      - name: is_below_safety_threshold
+        description: "Vrai si la quantité est sous le seuil de sécurité — signal de réapprovisionnement urgent."
+
+  - name: fct_sales
+    description: >
+      Table de faits des ventes — grain : une ligne par transaction de vente (en-tête).
+      Enrichie du nombre de produits dans le panier et des métriques temporelles.
+      Couvre 4 716 ventes sur Fév–Mai 2026 pour les 3 pharmacies de Dakar.
+    columns:
+      - name: sale_id
+        description: "Identifiant unique de la vente."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie où la vente a eu lieu."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_pharmacies')
+              field: pharmacy_id
+      - name: insurer_id
+        description: "Assureur ayant pris en charge une partie de la vente. NULL si paiement comptant."
+        data_tests:
+          - relationships:
+              to: ref('dim_insurers')
+              field: insurer_id
+      - name: sale_date
+        description: "Horodatage complet de la vente."
+        data_tests: [not_null]
+      - name: sale_year
+        description: "Année de la vente — pour les analyses annuelles."
+      - name: sale_month
+        description: "Mois de la vente (1=Janvier ... 12=Décembre) — pour les analyses mensuelles."
+      - name: sale_dow
+        description: "Jour de la semaine (0=Dimanche, 6=Samedi) — pour analyser l'activité par jour."
+      - name: payment_method
+        description: "Mode de paiement : 'Espèces', 'Wave', 'Orange Money' ou 'Tiers-Payant'."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Espèces', 'Wave', 'Orange Money', 'Tiers-Payant']
+      - name: client_type
+        description: "'Passant' (client anonyme) ou 'Assuré' (patient avec mutuelle/IPM)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Passant', 'Assuré']
+      - name: total_amount_fcfa
+        description: "Montant total de la vente en FCFA. C'est le Chiffre d'Affaires brut de la transaction."
+        data_tests: [not_null]
+      - name: patient_share_fcfa
+        description: "Montant payé directement par le patient (ticket modérateur en cas de tiers-payant)."
+        data_tests: [not_null]
+      - name: insurer_share_fcfa
+        description: "Montant pris en charge par l'assureur ou l'IPM. Zéro si pas de tiers-payant."
+        data_tests: [not_null]
+      - name: nb_products_in_cart
+        description: "Nombre de références produits différentes dans ce panier."
+      - name: total_units_sold
+        description: "Nombre total d'unités vendues dans cette transaction (toutes références confondues)."
+
+  - name: fct_purchases
+    description: "Table de faits des commandes aux grossistes — grain : une ligne par bon de commande produit."
+    columns:
+      - name: purchase_id
+        description: "Identifiant unique de la commande."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant passé la commande."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_pharmacies')
+              field: pharmacy_id
+      - name: product_id
+        description: "Produit commandé."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+      - name: wholesaler_name
+        description: "Grossiste répartiteur fournisseur (UBIPHARM, LABOREX, COPHARMA, TEDIS PHARMA)."
+        data_tests: [not_null]
+      - name: delivery_status
+        description: "'Livraison complète', 'Livraison partielle' ou 'Rupture totale'."
+      - name: service_rate_pct
+        description: "Taux de service du grossiste en % (quantité reçue / commandée × 100)."
+      - name: total_ordered_fcfa
+        description: "Valeur totale de la commande au prix d'achat grossiste (PAG)."
+      - name: total_received_fcfa
+        description: "Valeur totale effectivement reçue au PAG."
+
+  - name: fct_missed_sales
+    description: "Table de faits des ventes manquées — grain : une ligne par demande non servie (rupture de stock)."
+    columns:
+      - name: missed_sale_id
+        description: "Identifiant unique de la rupture."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant constaté la rupture."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_pharmacies')
+              field: pharmacy_id
+      - name: product_id
+        description: "Produit demandé mais non disponible."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+      - name: missed_date
+        description: "Horodatage de la demande non servie."
+        data_tests: [not_null]
+      - name: requested_quantity
+        description: "Quantité demandée qui n'a pas pu être servie."
+        data_tests: [not_null]
+      - name: client_type
+        description: "Type du client non servi : 'Passant' ou 'Assuré'."
+
+  - name: fct_wholesaler_returns
+    description: "Table de faits des retours grossistes — grain : une ligne par retour de lot. Représente les lots proches de la péremption renvoyés pour avoir."
+    columns:
+      - name: return_id
+        description: "Identifiant unique du retour."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant initié le retour."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_pharmacies')
+              field: pharmacy_id
+      - name: product_id
+        description: "Produit retourné."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+      - name: quantity_returned
+        description: "Nombre d'unités renvoyées au grossiste."
+        data_tests: [not_null]
+      - name: credit_note_amount_fcfa
+        description: "Montant de l'avoir attendu en FCFA (quantité × prix d'achat grossiste)."
+      - name: status
+        description: "'Validé' si l'avoir est confirmé, 'En attente' si le grossiste n'a pas encore répondu."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Validé', 'En attente']

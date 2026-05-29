@@ -1,0 +1,334 @@
+version: 2
+
+models:
+  - name: stg_raw__sales
+    description: "Ventes au comptoir nettoyées — une ligne par transaction. Couvre les paiements Espèces, Wave, Orange Money et Tiers-Payant pour les 3 pharmacies de Dakar sur Fév–Mai 2026."
+    columns:
+      - name: sale_id
+        description: "Identifiant unique de la vente."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant réalisé la vente."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'pharmacies')
+              field: pharmacy_id
+      - name: client_id
+        description: "Patient identifié. NULL si client anonyme (passant non enregistré)."
+      - name: sale_date
+        description: "Horodatage complet de la vente (timestamp)."
+        data_tests: [not_null]
+      - name: sale_date_day
+        description: "Date de la vente sans l'heure — utile pour les agrégations journalières."
+        data_tests: [not_null]
+      - name: payment_method
+        description: "Mode de paiement utilisé par le client."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Espèces', 'Wave', 'Orange Money', 'Tiers-Payant']
+      - name: client_type
+        description: "'Passant' pour un client de passage, 'Assuré' pour un client couvert par une mutuelle ou IPM."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Passant', 'Assuré']
+      - name: insurer_id
+        description: "Assureur prenant en charge une partie de la vente. NULL si paiement comptant."
+      - name: total_amount_fcfa
+        description: "Montant total de la vente en Francs CFA XOF. Entier strict."
+        data_tests: [not_null]
+      - name: patient_share_fcfa
+        description: "Part payée directement par le patient (ticket modérateur). Égal au total si paiement comptant."
+        data_tests: [not_null]
+      - name: insurer_share_fcfa
+        description: "Part prise en charge par l'assureur ou l'IPM. Zéro si paiement comptant."
+        data_tests: [not_null]
+      - name: vat_amount_fcfa
+        description: "Montant de TVA appliqué (18% parapharmacie uniquement — médicaments exonérés)."
+      - name: is_anonymous
+        description: "Vrai si le client n'est pas enregistré dans le système."
+
+  - name: stg_raw__sale_details
+    description: "Lignes de ventes — une ligne par produit inclus dans une transaction."
+    columns:
+      - name: detail_id
+        description: "Identifiant unique de la ligne de vente."
+        data_tests: [unique, not_null]
+      - name: sale_id
+        description: "Vente à laquelle appartient cette ligne."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'sales')
+              field: sale_id
+      - name: product_id
+        description: "Produit vendu."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'products')
+              field: product_id
+      - name: quantity
+        description: "Nombre d'unités vendues pour ce produit dans cette transaction."
+        data_tests: [not_null]
+      - name: unit_price_fcfa
+        description: "Prix unitaire public réglementé (PPR) en FCFA au moment de la vente."
+        data_tests: [not_null]
+      - name: total_line_amount_fcfa
+        description: "Montant total de la ligne : quantity × unit_price_fcfa."
+        data_tests: [not_null]
+
+  - name: stg_raw__products
+    description: "Catalogue des 30 médicaments et articles de parapharmacie."
+    columns:
+      - name: product_id
+        description: "Identifiant unique du produit."
+        data_tests: [unique, not_null]
+      - name: cip_code
+        description: "Code CIP — identifiant pharmaceutique international."
+        data_tests: [unique, not_null]
+      - name: commercial_name
+        description: "Nom de marque (ex : Doliprane, Augmentin, Coartem)."
+        data_tests: [not_null]
+      - name: dci
+        description: "Dénomination Commune Internationale — nom générique de la molécule active."
+        data_tests: [not_null]
+      - name: therapeutic_class
+        description: "Classe thérapeutique (ex : Antibiotique, Antipaludéen, Antalgique, Parapharmacie)."
+        data_tests: [not_null]
+      - name: form
+        description: "Forme galénique (ex : Comprimé, Sirop, Gélule, Seringue préremplie)."
+      - name: dosage
+        description: "Dosage de la substance active (ex : 1g, 500mg, 2.4%)."
+      - name: laboratory
+        description: "Laboratoire fabricant (ex : Sanofi, GlaxoSmithKline, Institut Pasteur Dakar)."
+      - name: origin
+        description: "'Importé' ou 'Local' (fabriqué en Afrique de l'Ouest)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Importé', 'Local']
+      - name: is_generic
+        description: "Vrai si le produit est un générique."
+        data_tests: [not_null]
+      - name: is_regulated
+        description: "Vrai si le prix est réglementé par l'État sénégalais."
+      - name: vat_rate
+        description: "Taux de TVA : 0.00 pour médicaments, 0.18 pour parapharmacie."
+      - name: public_price_fcfa
+        description: "Prix Public Réglementé (PPR) en FCFA."
+        data_tests: [not_null]
+      - name: product_category
+        description: "'Médicament' (TVA 0%) ou 'Parapharmacie' (TVA 18%)."
+
+  - name: stg_raw__clients
+    description: "100 patients enregistrés avec nom complet, type et statut chronique."
+    columns:
+      - name: client_id
+        description: "Identifiant unique du patient."
+        data_tests: [unique, not_null]
+      - name: full_name
+        description: "Prénom et nom du patient concaténés."
+      - name: phone_number
+        description: "Numéro de téléphone mobile sénégalais."
+      - name: client_type
+        description: "'Passant' (pas de mutuelle) ou 'Assuré' (couvert par une IPM ou assurance)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Passant', 'Assuré']
+      - name: is_chronic
+        description: "Vrai si le patient suit un traitement long terme et revient tous les 30 jours."
+      - name: loyalty_points
+        description: "Points de fidélité accumulés."
+      - name: created_at
+        description: "Date d'enregistrement du patient."
+
+  - name: stg_raw__pharmacies
+    description: "Les 3 officines pharmaceutiques de Dakar."
+    columns:
+      - name: pharmacy_id
+        description: "Identifiant unique de la pharmacie."
+        data_tests: [unique, not_null]
+      - name: pharmacy_name
+        description: "Nom commercial (ex : Pharmacie Bourguiba, Pharmacie des Almadies)."
+        data_tests: [not_null]
+      - name: country
+        description: "Pays de la pharmacie."
+      - name: city
+        description: "Ville (Dakar)."
+      - name: district
+        description: "Quartier de Dakar (ex : Almadies, Plateau, Amitié/Fann)."
+
+  - name: stg_raw__insurers
+    description: "Les 5 assureurs et IPM partenaires pour le tiers-payant."
+    columns:
+      - name: insurer_id
+        description: "Identifiant unique de l'assureur."
+        data_tests: [unique, not_null]
+      - name: insurer_name
+        description: "Nom de l'organisme assureur (ex : IPM Senelec, NSIA Assurances)."
+        data_tests: [not_null]
+      - name: default_coverage_rate
+        description: "Taux de prise en charge standard (ex : 0.80 = 80%)."
+        data_tests: [not_null]
+      - name: coverage_pct
+        description: "Taux de prise en charge en pourcentage entier (ex : 80)."
+
+  - name: stg_raw__stocks
+    description: "Lots physiques en stock avec alertes de péremption calculées dynamiquement."
+    columns:
+      - name: stock_id
+        description: "Identifiant unique du lot en stock."
+        data_tests: [unique, not_null]
+      - name: product_id
+        description: "Produit correspondant à ce lot."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'products')
+              field: product_id
+      - name: batch_number
+        description: "Numéro de lot pharmaceutique (ex : LOT-101-A, LOT-108-C)."
+        data_tests: [not_null]
+      - name: expiration_date
+        description: "Date limite d'utilisation du lot."
+        data_tests: [not_null]
+      - name: quantity_in_stock
+        description: "Nombre d'unités encore disponibles dans ce lot."
+        data_tests: [not_null]
+      - name: safety_stock_threshold
+        description: "Seuil d'alerte de stock bas — déclenche une commande de réapprovisionnement."
+      - name: shelf_location
+        description: "Emplacement physique dans la pharmacie (tiroir, rayon, frigo)."
+      - name: days_until_expiry
+        description: "Nombre de jours restants avant péremption. Négatif si déjà expiré."
+      - name: expiry_status
+        description: "Statut de péremption : 'OK', 'Attention (< 90j)', 'Critique (< 30j)' ou 'Expiré'."
+      - name: is_below_safety_threshold
+        description: "Vrai si la quantité en stock est inférieure ou égale au seuil de sécurité."
+
+  - name: stg_raw__purchases
+    description: "Commandes passées auprès des grossistes répartiteurs, enrichies du statut de livraison."
+    columns:
+      - name: purchase_id
+        description: "Identifiant unique de la commande."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant passé la commande."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'pharmacies')
+              field: pharmacy_id
+      - name: wholesaler_name
+        description: "Grossiste répartiteur fournisseur (UBIPHARM, LABOREX, COPHARMA, TEDIS PHARMA)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['UBIPHARM Sénégal', 'LABOREX Sénégal', 'COPHARMA', 'TEDIS PHARMA']
+      - name: order_date
+        description: "Date à laquelle la commande a été passée."
+        data_tests: [not_null]
+      - name: delivery_date
+        description: "Date de réception effective de la livraison. NULL si rupture totale."
+      - name: product_id
+        description: "Produit commandé."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'products')
+              field: product_id
+      - name: quantity_ordered
+        description: "Quantité commandée au grossiste."
+        data_tests: [not_null]
+      - name: quantity_received
+        description: "Quantité effectivement reçue (peut être inférieure en cas de rupture partielle)."
+      - name: purchase_price_fcfa
+        description: "Prix d'Achat Grossiste (PAG) en FCFA — environ 71% du Prix Public Réglementé."
+        data_tests: [not_null]
+      - name: delivery_status
+        description: "Statut de livraison : 'Livraison complète', 'Livraison partielle' ou 'Rupture totale'."
+      - name: service_rate_pct
+        description: "Taux de service du grossiste en % : quantité reçue / quantité commandée × 100."
+
+  - name: stg_raw__missed_sales
+    description: "Ventes manquées enregistrées lors d'une rupture de stock — 200 événements sur Fév–Mai 2026."
+    columns:
+      - name: missed_sale_id
+        description: "Identifiant unique de la rupture."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant constaté la rupture."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'pharmacies')
+              field: pharmacy_id
+      - name: product_id
+        description: "Produit demandé mais non disponible."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'products')
+              field: product_id
+      - name: missed_date
+        description: "Horodatage de la demande non servie."
+        data_tests: [not_null]
+      - name: missed_date_day
+        description: "Date de la rupture (sans l'heure)."
+      - name: requested_quantity
+        description: "Quantité demandée par le client qui n'a pas pu être servie."
+        data_tests: [not_null]
+      - name: client_type
+        description: "Type du client non servi : 'Passant' ou 'Assuré'."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Passant', 'Assuré']
+
+  - name: stg_raw__wholesaler_returns
+    description: "Retours de marchandises aux grossistes — produits proches de la péremption (lots B expirant Juin 2026)."
+    columns:
+      - name: return_id
+        description: "Identifiant unique du retour."
+        data_tests: [unique, not_null]
+      - name: pharmacy_id
+        description: "Pharmacie ayant initié le retour."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'pharmacies')
+              field: pharmacy_id
+      - name: wholesaler_name
+        description: "Grossiste auquel la marchandise est renvoyée."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['UBIPHARM Sénégal', 'LABOREX Sénégal']
+      - name: return_date
+        description: "Date à laquelle le retour a été initié."
+        data_tests: [not_null]
+      - name: product_id
+        description: "Produit retourné."
+        data_tests:
+          - not_null
+          - relationships:
+              to: source('raw', 'products')
+              field: product_id
+      - name: batch_number
+        description: "Numéro du lot retourné."
+        data_tests: [not_null]
+      - name: quantity_returned
+        description: "Nombre d'unités renvoyées au grossiste."
+        data_tests: [not_null]
+      - name: credit_note_amount_fcfa
+        description: "Montant de l'avoir attendu du grossiste en FCFA (quantité × PAG)."
+      - name: status
+        description: "État du retour : 'Validé' (avoir confirmé) ou 'En attente' (en cours de traitement)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Validé', 'En attente']

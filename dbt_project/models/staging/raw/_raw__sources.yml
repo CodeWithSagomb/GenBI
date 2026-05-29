@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Données brutes ingérées par le DAG Airflow ingest_pharmacy_data. NE JAMAIS modifier manuellement."
+    tables:
+      - name: pharmacies
+        description: "Les 3 officines pharmaceutiques de Dakar couvertes par le système."
+      - name: products
+        description: "Catalogue des 30 médicaments et articles de parapharmacie référencés."
+      - name: clients
+        description: "100 patients enregistrés (passants anonymes ou assurés identifiés)."
+      - name: insurers
+        description: "5 assureurs et IPM (Institutions de Prévoyance Maladie) partenaires."
+      - name: stocks
+        description: "Lots physiques en stock par produit, avec dates de péremption et emplacements."
+      - name: purchases
+        description: "Bons de commande passés auprès des grossistes répartiteurs (UBIPHARM, LABOREX...)."
+      - name: sales
+        description: "En-têtes de ventes au comptoir — une ligne par transaction client."
+      - name: sale_details
+        description: "Lignes de ventes — une ligne par produit vendu dans une transaction."
+      - name: missed_sales
+        description: "Ventes manquées enregistrées lors d'une rupture de stock."
+      - name: wholesaler_returns
+        description: "Retours de marchandises aux grossistes (produits proches de la péremption)."
