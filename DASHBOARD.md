@@ -2,8 +2,8 @@
 
 > Fichier de référence unique. Mettre à jour après chaque session de travail.
 
-**Dernière mise à jour** : 2026-05-28
-**Phase active** : Phase 2 — Couche Sémantique dbt
+**Dernière mise à jour** : 2026-05-29
+**Phase active** : Phase 3 — Backend API FastAPI
 
 ---
 
@@ -11,8 +11,8 @@
 
 ```
 Phase 1 ████████████████████ 100%  ✅ Infrastructure & Ingestion
-Phase 2 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Couche Sémantique dbt      ← ICI
-Phase 3 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ Backend API FastAPI
+Phase 2 ████████████████████ 100%  ✅ Couche Sémantique dbt
+Phase 3 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Backend API FastAPI         ← ICI
 Phase 4 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ Interface de Chat React
 Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ RAG & Feedback Loop
 ```
@@ -37,45 +37,40 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 
 ---
 
-## Phase 2 — Couche Sémantique dbt 🔄 À DÉMARRER
-
-**BLOQUANT** — Sans `manifest.json`, les Phases 3-4-5 ne peuvent pas commencer.
-
-**Prérequis immédiat** : `pip install dbt-postgres` (local, hors Docker)
+## Phase 2 — Couche Sémantique dbt ✅ TERMINÉE
 
 **Spec** : [specs/001-dbt-semantic-layer/spec.md](specs/001-dbt-semantic-layer/spec.md)
-**Tasks** : [specs/001-dbt-semantic-layer/tasks.md](specs/001-dbt-semantic-layer/tasks.md) — **39 tâches**
 
-| Phase interne | Tâches | Statut | Validation |
-|---|---|---|---|
-| Setup dbt | T001–T004 | ⬜ 0/4 | `dbt debug` vert |
-| Sources raw | T005–T006 | ⬜ 0/2 | Sources déclarées |
-| Staging US1 & US2 (ventes/produits) | T007–T015 | ⬜ 0/9 | `dbt test` staging vert |
-| Staging US3 (stocks/supply) | T016–T021 | ⬜ 0/6 | 10 modèles staging OK |
-| Dimensions | T022–T026 | ⬜ 0/5 | 4 `dim_*` créées |
-| Tables de faits | T027–T034 | ⬜ 0/8 | `dbt test` 100% vert |
-| Manifest & Validation | T035–T039 | ⬜ 0/5 | `manifest.json` généré |
+| Livrable | Statut |
+|---|---|
+| dbt-postgres 1.10.0 installé + `dbt debug` vert | ✅ |
+| 10 sources raw déclarées | ✅ |
+| 10 modèles staging (views dans `staging.*`) | ✅ |
+| 5 dimensions + 4 tables de faits (tables dans `marts.*`) | ✅ |
+| 149 colonnes documentées — 100% | ✅ |
+| `dbt test` : **PASS=149 ERROR=0** | ✅ |
+| `manifest.json` généré (1.0 MB) | ✅ |
 
-**Modèles à créer (19 total)**
+**Modèles créés (19 total)**
 
-| Staging (views) | Marts Dimensions (tables) | Marts Faits (tables) |
+| Staging (views) | Marts Dimensions | Marts Faits |
 |---|---|---|
-| `stg_raw__sales` ⬜ | `dim_products` ⬜ | `fct_sales` ⬜ |
-| `stg_raw__sale_details` ⬜ | `dim_clients` ⬜ | `fct_purchases` ⬜ |
-| `stg_raw__products` ⬜ | `dim_pharmacies` ⬜ | `fct_missed_sales` ⬜ |
-| `stg_raw__clients` ⬜ | `dim_insurers` ⬜ | `fct_wholesaler_returns` ⬜ |
-| `stg_raw__pharmacies` ⬜ | `dim_stocks` ⬜ | |
-| `stg_raw__insurers` ⬜ | | |
-| `stg_raw__stocks` ⬜ | | |
-| `stg_raw__purchases` ⬜ | | |
-| `stg_raw__missed_sales` ⬜ | | |
-| `stg_raw__wholesaler_returns` ⬜ | | |
+| `stg_raw__sales` ✅ | `dim_products` ✅ | `fct_sales` ✅ |
+| `stg_raw__sale_details` ✅ | `dim_clients` ✅ | `fct_purchases` ✅ |
+| `stg_raw__products` ✅ | `dim_pharmacies` ✅ | `fct_missed_sales` ✅ |
+| `stg_raw__clients` ✅ | `dim_insurers` ✅ | `fct_wholesaler_returns` ✅ |
+| `stg_raw__pharmacies` ✅ | `dim_stocks` ✅ | |
+| `stg_raw__insurers` ✅ | | |
+| `stg_raw__stocks` ✅ | | |
+| `stg_raw__purchases` ✅ | | |
+| `stg_raw__missed_sales` ✅ | | |
+| `stg_raw__wholesaler_returns` ✅ | | |
 
 ---
 
-## Phase 3 — Backend API FastAPI ⏳ EN ATTENTE
+## Phase 3 — Backend API FastAPI 🔄 À DÉMARRER
 
-**Prérequis** : `manifest.json` (Phase 2)
+**Prérequis** : `manifest.json` ✅ (Phase 2 terminée)
 **Spec** : [specs/002-backend-api/spec.md](specs/002-backend-api/spec.md)
 **Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **30 tâches**
 
@@ -132,8 +127,8 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 
 | # | Blocage | Impact | Action |
 |---|---|---|---|
-| B1 | `dbt` non installé localement | 🔴 Bloque Phase 2 | `pip install dbt-postgres` |
-| B2 | `manifest.json` absent | 🔴 Bloque Phases 3-4-5 | Terminer Phase 2 |
+| ~~B1~~ | ~~`dbt` non installé~~ | ~~🔴~~ | ✅ Résolu — dbt 1.10.0 |
+| ~~B2~~ | ~~`manifest.json` absent~~ | ~~🔴~~ | ✅ Résolu — 1.0 MB généré |
 
 ---
 
