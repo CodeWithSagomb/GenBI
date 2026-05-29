@@ -42,13 +42,14 @@ raw.*  →  staging.*  →  marts.*
 3. **SQLGlot n'est PAS un validateur de sécurité** — la vraie protection est l'user read-only + requêtes paramétrées psycopg2.
 4. **dbt_project/target/ est dans .gitignore** — le `manifest.json` est généré localement par `dbt compile`. Il faut l'avoir pour que le backend fonctionne.
 5. **La connexion Airflow `genbi_postgres_conn` est injectée via variable d'env** dans docker-compose — elle est déjà configurée, pas besoin de la recréer manuellement.
-6. **Pour Phase 2 : installer dbt localement** — `pip install dbt-postgres`, PAS dans Docker. Lancer depuis `dbt_project/`.
+6. **dbt installé localement** — dbt-postgres 1.10.0, PAS dans Docker. Lancer depuis `dbt_project/`. `dbt test` → PASS=149.
 
 ## État d'avancement
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
   - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
-- 🔄 Phase 2 — dbt (staging + marts) — **PROCHAINE ÉTAPE — BLOQUANT**
-- ⏳ Phase 3 — Backend FastAPI (/chat, /execute, /schema) + tests pytest
+- ✅ Phase 2 — dbt sémantique — validé 2026-05-29
+  - 19 modèles · 149 tests PASS · manifest.json 1.0 MB · staging (views) + marts (tables)
+- 🔄 Phase 3 — Backend FastAPI (/chat, /execute, /schema) + tests pytest — **PROCHAINE ÉTAPE**
 - ⏳ Phase 4 — Frontend React (chat + visualisations) + tests Vitest + Playwright E2E
 - ⏳ Phase 5 — RAG ChromaDB + feedback loop
 

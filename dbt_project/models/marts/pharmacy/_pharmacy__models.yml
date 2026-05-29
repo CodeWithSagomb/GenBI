@@ -24,7 +24,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['Importé', 'Local']
+              arguments:
+                values: ['Importé', 'Local']
       - name: is_generic
         description: "Vrai si le produit est un générique."
         data_tests: [not_null]
@@ -47,7 +48,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['Passant', 'Assuré']
+              arguments:
+                values: ['Passant', 'Assuré']
       - name: is_chronic
         description: "Vrai si le patient suit un traitement long terme (diabète, hypertension)."
       - name: loyalty_points
@@ -88,8 +90,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_products')
-              field: product_id
+              arguments:
+                to: ref('dim_products')
+                field: product_id
       - name: commercial_name
         description: "Nom du médicament (dénormalisé depuis dim_products pour faciliter les requêtes)."
       - name: expiration_date
@@ -117,14 +120,16 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_pharmacies')
-              field: pharmacy_id
+              arguments:
+                to: ref('dim_pharmacies')
+                field: pharmacy_id
       - name: insurer_id
         description: "Assureur ayant pris en charge une partie de la vente. NULL si paiement comptant."
         data_tests:
           - relationships:
-              to: ref('dim_insurers')
-              field: insurer_id
+              arguments:
+                to: ref('dim_insurers')
+                field: insurer_id
       - name: sale_date
         description: "Horodatage complet de la vente."
         data_tests: [not_null]
@@ -139,13 +144,15 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['Espèces', 'Wave', 'Orange Money', 'Tiers-Payant']
+              arguments:
+                values: ['Espèces', 'Wave', 'Orange Money', 'Tiers-Payant']
       - name: client_type
         description: "'Passant' (client anonyme) ou 'Assuré' (patient avec mutuelle/IPM)."
         data_tests:
           - not_null
           - accepted_values:
-              values: ['Passant', 'Assuré']
+              arguments:
+                values: ['Passant', 'Assuré']
       - name: total_amount_fcfa
         description: "Montant total de la vente en FCFA. C'est le Chiffre d'Affaires brut de la transaction."
         data_tests: [not_null]
@@ -171,15 +178,17 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_pharmacies')
-              field: pharmacy_id
+              arguments:
+                to: ref('dim_pharmacies')
+                field: pharmacy_id
       - name: product_id
         description: "Produit commandé."
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_products')
-              field: product_id
+              arguments:
+                to: ref('dim_products')
+                field: product_id
       - name: wholesaler_name
         description: "Grossiste répartiteur fournisseur (UBIPHARM, LABOREX, COPHARMA, TEDIS PHARMA)."
         data_tests: [not_null]
@@ -203,15 +212,17 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_pharmacies')
-              field: pharmacy_id
+              arguments:
+                to: ref('dim_pharmacies')
+                field: pharmacy_id
       - name: product_id
         description: "Produit demandé mais non disponible."
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_products')
-              field: product_id
+              arguments:
+                to: ref('dim_products')
+                field: product_id
       - name: missed_date
         description: "Horodatage de la demande non servie."
         data_tests: [not_null]
@@ -232,15 +243,17 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_pharmacies')
-              field: pharmacy_id
+              arguments:
+                to: ref('dim_pharmacies')
+                field: pharmacy_id
       - name: product_id
         description: "Produit retourné."
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_products')
-              field: product_id
+              arguments:
+                to: ref('dim_products')
+                field: product_id
       - name: quantity_returned
         description: "Nombre d'unités renvoyées au grossiste."
         data_tests: [not_null]
@@ -251,4 +264,5 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['Validé', 'En attente']
+              arguments:
+                values: ['Validé', 'En attente']
