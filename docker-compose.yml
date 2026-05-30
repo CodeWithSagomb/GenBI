@@ -33,10 +33,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Apache Airflow - Initialisation de la Base de Données
+  # 2. Apache Airflow - Initialisation de la Base de Données [profil: full]
   airflow-init:
     <<: *airflow-common
     container_name: genbi_airflow_init
+    profiles: ["full"]
     entrypoint: /bin/bash
     user: "50000:0"
     command:
@@ -51,10 +52,11 @@ services:
           --role Admin \
           --email admin@genbi.local
 
-  # 3. Apache Airflow - Webserver (Port 8080)
+  # 3. Apache Airflow - Webserver (Port 8080) [profil: full]
   airflow-webserver:
     <<: *airflow-common
     container_name: genbi_airflow_webserver
+    profiles: ["full"]
     command: webserver
     ports:
       - "8080:8080"
@@ -65,17 +67,19 @@ services:
       retries: 5
     restart: always
 
-  # 4. Apache Airflow - Scheduler
+  # 4. Apache Airflow - Scheduler [profil: full]
   airflow-scheduler:
     <<: *airflow-common
     container_name: genbi_airflow_scheduler
+    profiles: ["full"]
     command: scheduler
     restart: always
 
-  # 5. Outil BI Standard - Metabase (Port 3000)
+  # 5. Outil BI Standard - Metabase (Port 3000) [profil: full]
   metabase:
     image: metabase/metabase:latest
     container_name: genbi_metabase
+    profiles: ["full"]
     ports:
       - "3000:3000"
     volumes:
