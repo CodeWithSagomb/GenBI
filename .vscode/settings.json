@@ -1,0 +1,4 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/genbi_backend/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}/genbi_backend"]
+}

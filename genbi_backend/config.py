@@ -1,32 +1,38 @@
-import os
-from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
 
-class Settings(BaseModel):
-    """
-    Configuration de l'application GenBI Backend.
-    Gère le chargement des variables d'environnement avec des valeurs par défaut sécurisées.
-    """
-    # Configuration PostgreSQL Administrative
-    DB_HOST: str = Field(default_factory=lambda: os.getenv("DB_HOST", "localhost"))
-    DB_PORT: int = Field(default_factory=lambda: int(os.getenv("DB_PORT", "5432")))
-    DB_NAME: str = Field(default_factory=lambda: os.getenv("DB_NAME", "genbi"))
-    DB_USER: str = Field(default_factory=lambda: os.getenv("DB_USER", "postgres"))
-    DB_PASSWORD: str = Field(default_factory=lambda: os.getenv("DB_PASSWORD", "postgres_admin_123"))
 
-    # Configuration PostgreSQL Lecture Seule (Zero-Trust pour l'Agent IA)
-    DB_READONLY_USER: str = Field(default_factory=lambda: os.getenv("DB_READONLY_USER", "genbi_readonly"))
-    DB_READONLY_PASSWORD: str = Field(default_factory=lambda: os.getenv("DB_READONLY_PASSWORD", "genbi_secure_readonly_123"))
+class Settings(BaseSettings):
+    # PostgreSQL — lecture seule (toutes les routes sauf feedback)
+    DB_HOST: str = "postgres"
+    DB_PORT: int = 5432
+    DB_NAME: str = "genbi"
+    DB_READONLY_USER: str = "genbi_readonly"
+    DB_READONLY_PASSWORD: str = "genbi_secure_readonly_123"
 
-    # Configuration de l'Agent LLM (Ollama)
-    OLLAMA_BASE_URL: str = Field(default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434"))
-    OLLAMA_MODEL: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b"))
+    # PostgreSQL — écriture limitée (feedback uniquement)
+    DB_WRITE_USER: str = "genbi_write"
+    DB_WRITE_PASSWORD: str = "genbi_write_456"
 
-    # Couche Sémantique (dbt)
-    DBT_MANIFEST_PATH: str = Field(default_factory=lambda: os.getenv("DBT_MANIFEST_PATH", "./dbt_project/target/manifest.json"))
+    # Ollama (LLM local natif macOS — accès depuis Docker)
+    OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
+    OLLAMA_MODEL: str = "qwen2.5-coder:7b"
+    LLM_SQL_TIMEOUT: int = 30
+    LLM_INSIGHT_TIMEOUT: int = 20
 
-    # Application Settings
-    APP_ENV: str = Field(default_factory=lambda: os.getenv("APP_ENV", "development"))
-    DEBUG: bool = Field(default_factory=lambda: os.getenv("DEBUG", "true").lower() in ("true", "1", "yes"))
+    # dbt manifest (chemin dans le conteneur Docker)
+    DBT_MANIFEST_PATH: str = "/app/dbt_project/target/manifest.json"
 
-# Instanciation globale des paramètres de configuration
+    # Auth — API Keys par pharmacie (override depuis .env en production)
+    API_KEY_BOURGUIBA: str = "pk_bourguiba_dev"
+    API_KEY_ALMADIES: str = "pk_almadies_dev"
+    API_KEY_NATION: str = "pk_nation_dev"
+
+    APP_ENV: str = "development"
+    DEBUG: bool = True
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+
 settings = Settings()

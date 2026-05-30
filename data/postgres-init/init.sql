@@ -1,30 +1,53 @@
--- script d'initialisation de la base de données PostgreSQL
--- exécuté automatiquement au démarrage du conteneur
+-- Initialisation PostgreSQL GenBI
+-- Exécuté une seule fois au premier démarrage du conteneur
 
--- Création des bases de données de travail
 CREATE DATABASE airflow;
 CREATE DATABASE genbi;
 
--- Connexion à la base analytique genbi pour configurer les schémas et la sécurité
 \c genbi;
 
--- Création des schémas d'entrepôt de données (Modèle raw -> staging -> marts)
+-- Schémas (pipeline raw → staging → marts)
 CREATE SCHEMA raw;
 CREATE SCHEMA staging;
 CREATE SCHEMA marts;
 
--- Création de l'utilisateur restreint en lecture seule pour l'Agent IA GenBI (Zero-Trust)
-CREATE USER genbi_readonly WITH PASSWORD 'genbi_secure_readonly_123';
+-- ── Utilisateurs ────────────────────────────────────────────────────────────
 
--- Attribution des droits d'utilisation des schémas
-GRANT USAGE ON SCHEMA raw TO genbi_readonly;
-GRANT USAGE ON SCHEMA staging TO genbi_readonly;
-GRANT USAGE ON SCHEMA marts TO genbi_readonly;
-
--- Configuration des droits par défaut pour les futures tables (crucial car dbt ne les a pas encore créées)
-ALTER DEFAULT PRIVILEGES IN SCHEMA raw GRANT SELECT ON TABLES TO genbi_readonly;
+-- genbi_readonly : lecture seule pour l'agent IA (toutes les routes sauf feedback)
+CREATE USER genbi_readonly WITH PASSWORD 'genbi_secure_readonly_123' NOBYPASSRLS;
+GRANT USAGE ON SCHEMA raw      TO genbi_readonly;
+GRANT USAGE ON SCHEMA staging  TO genbi_readonly;
+GRANT USAGE ON SCHEMA marts    TO genbi_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA raw     GRANT SELECT ON TABLES TO genbi_readonly;
 ALTER DEFAULT PRIVILEGES IN SCHEMA staging GRANT SELECT ON TABLES TO genbi_readonly;
-ALTER DEFAULT PRIVILEGES IN SCHEMA marts GRANT SELECT ON TABLES TO genbi_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA marts   GRANT SELECT ON TABLES TO genbi_readonly;
 
--- Rendre la sécurité plus explicite en révoquant les droits d'écriture sur le schéma public par défaut
+-- genbi_write : INSERT uniquement sur raw.feedback
+CREATE USER genbi_write WITH PASSWORD 'genbi_write_456';
+GRANT USAGE ON SCHEMA raw TO genbi_write;
+
+-- ── Table feedback ───────────────────────────────────────────────────────────
+
+CREATE TABLE raw.feedback (
+    feedback_id   SERIAL PRIMARY KEY,
+    pharmacy_id   INT NOT NULL,
+    question      TEXT NOT NULL,
+    sql_generated TEXT,
+    rating        VARCHAR(4) CHECK (rating IN ('good', 'bad')) NOT NULL,
+    comment       TEXT,
+    created_at    TIMESTAMP DEFAULT NOW()
+);
+GRANT INSERT ON raw.feedback TO genbi_write;
+GRANT USAGE ON SEQUENCE raw.feedback_feedback_id_seq TO genbi_write;
+
+-- ── Row Level Security ───────────────────────────────────────────────────────
+-- Activé après que dbt ait créé les tables marts (via dbt run)
+-- Les policies sont appliquées manuellement après la première exécution dbt.
+-- Script de référence :
+--   ALTER TABLE marts.fct_sales ENABLE ROW LEVEL SECURITY;
+--   CREATE POLICY pharmacy_isolation ON marts.fct_sales
+--       USING (pharmacy_id = current_setting('app.current_pharmacy_id', true)::int);
+-- (répéter pour fct_purchases, fct_missed_sales, fct_wholesaler_returns)
+
+-- ── Sécurité générale ────────────────────────────────────────────────────────
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
