@@ -1,11 +1,10 @@
 import psycopg2
 from psycopg2 import pool
-from fastapi import Depends
+from fastapi import Depends, Request
+
 from config import settings
 from core.auth import get_current_pharmacy
 from core.exceptions import DatabaseError
-
-_pool: pool.ThreadedConnectionPool | None = None
 
 
 def create_pool() -> pool.ThreadedConnectionPool:
@@ -20,10 +19,12 @@ def create_pool() -> pool.ThreadedConnectionPool:
     )
 
 
-def get_db_conn(pharmacy_id: int = Depends(get_current_pharmacy)):
+def get_db_conn(
+    request: Request,
+    pharmacy_id: int = Depends(get_current_pharmacy),
+):
     """Dependency : connexion readonly avec RLS actif pour la pharmacie courante."""
-    from main import app
-    conn = app.state.db_pool.getconn()
+    conn = request.app.state.db_pool.getconn()
     try:
         with conn.cursor() as cur:
             cur.execute("SET app.current_pharmacy_id = %s", (pharmacy_id,))
@@ -33,11 +34,10 @@ def get_db_conn(pharmacy_id: int = Depends(get_current_pharmacy)):
         conn.rollback()
         raise DatabaseError(f"Erreur base de données : {e}") from e
     finally:
-        # Réinitialise le contexte RLS avant de remettre la connexion dans le pool
         try:
             with conn.cursor() as cur:
                 cur.execute("RESET app.current_pharmacy_id")
             conn.commit()
         except Exception:
             pass
-        app.state.db_pool.putconn(conn)
+        request.app.state.db_pool.putconn(conn)

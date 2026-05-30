@@ -13,13 +13,14 @@ from core.middleware import RequestIDMiddleware, LoggingMiddleware, configure_lo
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialise les ressources au démarrage — manifest + pool DB."""
+    """Initialise manifest + pool DB au démarrage — libère à l'arrêt."""
     configure_logging()
 
-    from core.dbt_parser import load_manifest
+    from core.dbt_parser import load_manifest, count_models
     from core.database import create_pool
 
     app.state.manifest = load_manifest(settings.DBT_MANIFEST_PATH)
+    app.state.manifest_model_count = count_models(settings.DBT_MANIFEST_PATH)
     app.state.db_pool = create_pool()
 
     yield
@@ -36,9 +37,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# --- Middleware (ordre important : RequestID d'abord, puis Logging) ---
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(RequestIDMiddleware)
+# Middleware — exécutés dans l'ordre inverse d'ajout (LIFO)
+# Résultat : RequestID → Logging → CORSMiddleware → handler
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -46,8 +46,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
-# --- Exception handlers — domain exceptions → HTTP ---
+
+# Exception handlers — domain exceptions → codes HTTP
 @app.exception_handler(SQLValidationError)
 async def sql_validation_handler(_: Request, exc: SQLValidationError):
     return JSONResponse(status_code=400, content={"error": str(exc)})
@@ -73,18 +76,19 @@ async def rate_limit_handler(_: Request, exc: RateLimitError):
     return JSONResponse(status_code=429, content={"error": str(exc)})
 
 
-# --- Routes de base ---
 @app.get("/", include_in_schema=False)
 def root():
     return {"status": "online", "docs": "/docs"}
+
 
 @app.get("/api/health", tags=["health"])
 def health_check(request: Request):
     pool = getattr(request.app.state, "db_pool", None)
     manifest = getattr(request.app.state, "manifest", None)
+    model_count = getattr(request.app.state, "manifest_model_count", 0)
     return {
         "status": "healthy",
         "db": "connected" if pool else "not_initialized",
         "manifest": "loaded" if manifest else "not_loaded",
-        "manifest_models": len(manifest) if manifest else 0,
+        "manifest_models": model_count,
     }
