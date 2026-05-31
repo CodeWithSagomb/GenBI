@@ -44,6 +44,18 @@ def get_write_conn(request: Request):
         request.app.state.db_write_pool.putconn(conn)
 
 
+def get_auth_conn(request: Request):
+    """Dependency readonly sans RLS — réservé à /auth/login (avant authentification)."""
+    conn = request.app.state.db_pool.getconn()
+    try:
+        yield conn
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise DatabaseError(f"Erreur base de données : {e}") from e
+    finally:
+        request.app.state.db_pool.putconn(conn)
+
+
 def get_db_conn(
     request: Request,
     pharmacy_id: int = Depends(get_current_pharmacy),

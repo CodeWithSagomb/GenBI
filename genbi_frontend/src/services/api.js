@@ -1,21 +1,30 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-const API_KEY = import.meta.env.VITE_API_KEY ?? ''
+
+function _authHeaders() {
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('genbi_token') : null
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': API_KEY,
+      ..._authHeaders(),
       ...options.headers,
     },
   })
+
+  if (res.status === 401) {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('genbi_token')
+    throw new Error('Session expirée. Veuillez vous reconnecter.')
+  }
 
   if (!res.ok) {
     let detail = `Erreur ${res.status}`
     try {
       const body = await res.json()
-      detail = body.detail ?? detail
+      detail = body.error ?? body.detail ?? detail
     } catch (_) {}
     throw new Error(detail)
   }
@@ -50,5 +59,13 @@ export const chatApi = {
     request('/api/v1/feedback', {
       method: 'POST',
       body: JSON.stringify({ question, sql_generated, rating, comment }),
+    }),
+}
+
+export const authApi = {
+  login: (email, password) =>
+    request('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
     }),
 }

@@ -5,10 +5,17 @@ from core.pagination import PageParams
 
 
 def execute_sql(sql: str, conn, page: PageParams) -> dict:
-    """Valide puis exécute le SQL en lecture seule avec pagination."""
+    """Valide puis exécute le SQL en lecture seule avec pagination.
+
+    Enveloppe le SQL dans une sous-requête pour appliquer LIMIT/OFFSET sans
+    conflit avec un éventuel LIMIT déjà présent dans la requête générée.
+    """
     validate_sql(sql)
 
-    paginated = f"{sql} LIMIT {page.limit} OFFSET {page.offset}"
+    paginated = (
+        f"SELECT * FROM ({sql}) AS _q "
+        f"LIMIT {page.limit} OFFSET {page.offset}"
+    )
 
     try:
         with conn.cursor() as cur:

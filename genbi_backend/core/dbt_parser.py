@@ -57,6 +57,20 @@ def _format_for_llm(manifest: dict) -> str:
     return "\n".join(lines)
 
 
+def reload_manifest(manifest_path: str) -> tuple:
+    """Vide le cache lru_cache et recharge le manifest depuis le disque.
+
+    À appeler après chaque `dbt run` pour que le backend voie le nouveau schéma
+    sans redémarrage du container.
+
+    Retourne (manifest_text, model_count).
+    """
+    load_manifest.cache_clear()
+    text = load_manifest(manifest_path)
+    count = count_models(manifest_path)
+    return text, count
+
+
 def count_models(manifest_path: str) -> int:
     """Retourne le nombre de modèles exposés (staging + marts, sans raw)."""
     path = Path(manifest_path)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from core.auth import get_current_pharmacy
 from core.database import get_write_conn
@@ -14,8 +14,9 @@ router = APIRouter(
 @router.post("", response_model=FeedbackResponse, status_code=201)
 def feedback_endpoint(
     body: FeedbackRequest,
+    request: Request,
     pharmacy_id: int = Depends(get_current_pharmacy),
     conn=Depends(get_write_conn),
 ):
-    result = insert_feedback(body, pharmacy_id, conn)
+    result = insert_feedback(body, pharmacy_id, conn, request)
     return FeedbackResponse(**result)

@@ -1,59 +1,52 @@
-import { useState, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { chatApi } from '../services/api'
 
-const INITIAL_STATE = {
-  status: 'idle',   // idle | loading | success | error
-  question: '',
-  sql: null,
-  columns: [],
-  rows: [],
-  row_count: 0,
-  insight: null,
-  error: null,
-}
-
 export function useChat() {
-  const [state, setState] = useState(INITIAL_STATE)
+  const [messages, setMessages] = useState([])
+  const [status, setStatus] = useState('idle')
+  const nextId = useRef(0)
 
   const sendQuestion = useCallback(async (question) => {
-    if (!question || !question.trim()) return
+    if (!question?.trim()) return
 
-    setState({ ...INITIAL_STATE, status: 'loading', question: question.trim() })
+    const q = question.trim()
+    const userId = nextId.current++
+    const aiId = nextId.current++
+
+    setMessages(prev => [...prev, { id: userId, role: 'user', content: q }])
+    setStatus('loading')
 
     try {
-      // Étape 1 : génération SQL
-      const { sql } = await chatApi.sendQuestion(question.trim())
-
-      // Étape 2 : exécution SQL
+      const { sql } = await chatApi.sendQuestion(q)
       const { columns, rows, row_count } = await chatApi.executeSQL(sql)
 
-      // Étape 3 : insight (best-effort — ne bloque pas l'affichage)
       let insight = null
       try {
-        const res = await chatApi.interpret(question.trim(), { columns, rows })
+        const res = await chatApi.interpret(q, { columns, rows })
         insight = res.insight
       } catch (_) {}
 
-      setState({
-        status: 'success',
-        question: question.trim(),
-        sql,
-        columns,
-        rows,
-        row_count,
-        insight,
-        error: null,
-      })
+      setMessages(prev => [...prev, {
+        id: aiId, role: 'ai',
+        question: q, sql, columns, rows, row_count,
+        insight, error: null, feedback: null,
+      }])
     } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        status: 'error',
+      setMessages(prev => [...prev, {
+        id: aiId, role: 'ai',
         error: err.message ?? 'Une erreur inattendue est survenue.',
-      }))
+        feedback: null,
+      }])
+    } finally {
+      setStatus('idle')
     }
   }, [])
 
-  const reset = useCallback(() => setState(INITIAL_STATE), [])
+  const setFeedback = useCallback((messageId, rating) => {
+    setMessages(prev =>
+      prev.map(msg => msg.id === messageId ? { ...msg, feedback: rating } : msg)
+    )
+  }, [])
 
-  return { ...state, sendQuestion, reset }
+  return { messages, status, sendQuestion, setFeedback }
 }

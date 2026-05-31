@@ -9,6 +9,9 @@ data/*
 # Sauf le script d'initialisation de PostgreSQL qu'on veut absolument versionner
 !data/postgres-init/
 !data/postgres-init/init.sql
+# Répertoire ChromaDB : données ignorées, dossier tracké via .gitkeep
+!data/chromadb/
+!data/chromadb/.gitkeep
 
 # --- APACHE AIRFLOW ---
 airflow/logs/

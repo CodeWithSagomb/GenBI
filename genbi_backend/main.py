@@ -17,13 +17,16 @@ from api.v1.interpret.router import router as interpret_router
 from api.v1.query.router import router as query_router
 from api.v1.suggestions.router import router as suggestions_router
 from api.v1.feedback.router import router as feedback_router
+from api.v1.admin.router import router as admin_router
+from api.v1.auth.router import router as auth_jwt_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialise manifest + pool DB au démarrage — libère à l'arrêt."""
+    """Initialise manifest + pool DB + ChromaDB au démarrage — libère à l'arrêt."""
     configure_logging()
 
+    import chromadb
     from core.dbt_parser import load_manifest, count_models
     from core.database import create_pool, create_write_pool
 
@@ -31,6 +34,7 @@ async def lifespan(app: FastAPI):
     app.state.manifest_model_count = count_models(settings.DBT_MANIFEST_PATH)
     app.state.db_pool = create_pool()
     app.state.db_write_pool = create_write_pool()
+    app.state.rag_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
 
     yield
 
@@ -97,6 +101,8 @@ app.include_router(interpret_router)
 app.include_router(query_router)
 app.include_router(suggestions_router)
 app.include_router(feedback_router)
+app.include_router(admin_router)
+app.include_router(auth_jwt_router)
 
 
 @app.get("/", include_in_schema=False)

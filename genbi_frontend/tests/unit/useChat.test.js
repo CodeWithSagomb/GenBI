@@ -8,6 +8,7 @@ vi.mock('../../src/services/api', () => ({
     sendQuestion: vi.fn(),
     executeSQL: vi.fn(),
     interpret: vi.fn(),
+    sendFeedback: vi.fn(),
   },
 }))
 
@@ -15,21 +16,26 @@ const { chatApi } = api
 
 beforeEach(() => vi.clearAllMocks())
 
-test('état initial est idle', () => {
+// ── État initial ──────────────────────────────────────────────────────────────
+
+test('état initial : messages vide et status idle', () => {
   const { result } = renderHook(() => useChat())
+  expect(result.current.messages).toEqual([])
   expect(result.current.status).toBe('idle')
-  expect(result.current.sql).toBeNull()
-  expect(result.current.rows).toEqual([])
 })
 
-test('sendQuestion passe en loading', async () => {
-  chatApi.sendQuestion.mockReturnValue(new Promise(() => {})) // ne résout jamais
+// ── Question vide ─────────────────────────────────────────────────────────────
+
+test('question vide ne déclenche pas appel API', async () => {
   const { result } = renderHook(() => useChat())
-  act(() => { result.current.sendQuestion('Quel est mon CA ?') })
-  expect(result.current.status).toBe('loading')
+  await act(async () => { await result.current.sendQuestion('   ') })
+  expect(chatApi.sendQuestion).not.toHaveBeenCalled()
+  expect(result.current.messages).toHaveLength(0)
 })
 
-test('sendQuestion succès stocke sql et résultats', async () => {
+// ── Flux succès ───────────────────────────────────────────────────────────────
+
+test('succès : 2 messages ajoutés (user + ai)', async () => {
   chatApi.sendQuestion.mockResolvedValue({ sql: 'SELECT 1' })
   chatApi.executeSQL.mockResolvedValue({ columns: ['total'], rows: [[42]], row_count: 1 })
   chatApi.interpret.mockResolvedValue({ insight: 'Bonne performance.' })
@@ -37,27 +43,62 @@ test('sendQuestion succès stocke sql et résultats', async () => {
   const { result } = renderHook(() => useChat())
   await act(async () => { await result.current.sendQuestion('Quel est mon CA ?') })
 
-  expect(result.current.status).toBe('success')
-  expect(result.current.sql).toBe('SELECT 1')
-  expect(result.current.columns).toEqual(['total'])
-  expect(result.current.rows).toEqual([[42]])
-  expect(result.current.insight).toBe('Bonne performance.')
+  expect(result.current.messages).toHaveLength(2)
+  expect(result.current.messages[0].role).toBe('user')
+  expect(result.current.messages[0].content).toBe('Quel est mon CA ?')
+  expect(result.current.messages[1].role).toBe('ai')
+  expect(result.current.messages[1].sql).toBe('SELECT 1')
+  expect(result.current.messages[1].columns).toEqual(['total'])
+  expect(result.current.messages[1].rows).toEqual([[42]])
+  expect(result.current.messages[1].insight).toBe('Bonne performance.')
+  expect(result.current.messages[1].feedback).toBeNull()
+  expect(result.current.status).toBe('idle')
 })
 
-test('sendQuestion erreur stocke message erreur', async () => {
+// ── Flux erreur ───────────────────────────────────────────────────────────────
+
+test('erreur : message ai avec champ error, status revient idle', async () => {
   chatApi.sendQuestion.mockRejectedValue(new Error('Erreur LLM'))
 
   const { result } = renderHook(() => useChat())
   await act(async () => { await result.current.sendQuestion('Quel est mon CA ?') })
 
-  expect(result.current.status).toBe('error')
-  expect(result.current.error).toBe('Erreur LLM')
+  expect(result.current.messages).toHaveLength(2)
+  expect(result.current.messages[1].role).toBe('ai')
+  expect(result.current.messages[1].error).toBe('Erreur LLM')
+  expect(result.current.status).toBe('idle')
 })
 
-test('question vide ne déclenche pas appel API', async () => {
-  const { result } = renderHook(() => useChat())
-  await act(async () => { await result.current.sendQuestion('   ') })
+// ── Historique ────────────────────────────────────────────────────────────────
 
-  expect(chatApi.sendQuestion).not.toHaveBeenCalled()
-  expect(result.current.status).toBe('idle')
+test('deux questions accumulent 4 messages', async () => {
+  chatApi.sendQuestion.mockResolvedValue({ sql: 'SELECT 1' })
+  chatApi.executeSQL.mockResolvedValue({ columns: ['v'], rows: [[1]], row_count: 1 })
+  chatApi.interpret.mockResolvedValue({ insight: 'ok' })
+
+  const { result } = renderHook(() => useChat())
+  await act(async () => { await result.current.sendQuestion('Question 1') })
+  await act(async () => { await result.current.sendQuestion('Question 2') })
+
+  expect(result.current.messages).toHaveLength(4)
+  expect(result.current.messages[0].content).toBe('Question 1')
+  expect(result.current.messages[2].content).toBe('Question 2')
+})
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+
+test('setFeedback met à jour feedback du message ciblé', async () => {
+  chatApi.sendQuestion.mockResolvedValue({ sql: 'SELECT 1' })
+  chatApi.executeSQL.mockResolvedValue({ columns: ['v'], rows: [[1]], row_count: 1 })
+  chatApi.interpret.mockResolvedValue({ insight: 'ok' })
+
+  const { result } = renderHook(() => useChat())
+  await act(async () => { await result.current.sendQuestion('Question') })
+
+  const aiMsg = result.current.messages[1]
+  expect(aiMsg.feedback).toBeNull()
+
+  act(() => { result.current.setFeedback(aiMsg.id, 'good') })
+
+  expect(result.current.messages[1].feedback).toBe('good')
 })

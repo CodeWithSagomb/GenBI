@@ -1,9 +1,21 @@
 function formatCell(value) {
-  if (typeof value === 'number' && value > 999) {
-    return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-  }
   if (value === null || value === undefined) return '—'
+  // PostgreSQL NUMERIC/DECIMAL arrive en string depuis JSON — convertir avant le test
+  const num = Number(value)
+  if (!isNaN(num) && String(value).trim() !== '') {
+    const abs = Math.abs(num)
+    if (abs > 999) {
+      const rounded = Math.round(num * 100) / 100
+      const [int, dec] = rounded.toFixed(2).split('.')
+      const formatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      return dec === '00' ? formatted : `${formatted},${dec}`
+    }
+  }
   return String(value)
+}
+
+function formatHeader(col) {
+  return col.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 export function DataTable({ columns, rows }) {
@@ -19,7 +31,7 @@ export function DataTable({ columns, rows }) {
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col} className="datatable__th">{col}</th>
+              <th key={col} className="datatable__th">{formatHeader(col)}</th>
             ))}
           </tr>
         </thead>

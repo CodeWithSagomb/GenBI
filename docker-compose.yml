@@ -114,6 +114,7 @@ services:
     volumes:
       - ./genbi_backend:/app
       - ./dbt_project:/app/dbt_project:ro  # Lecture seule du manifest.json
+      - ./data/chromadb:/data/chromadb
     environment:
       - DB_HOST=postgres
       - DB_NAME=genbi

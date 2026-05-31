@@ -18,3 +18,6 @@ class AuthError(GenBIException):
 
 class RateLimitError(GenBIException):
     pass
+
+class RAGError(GenBIException):
+    pass

@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import Header
 from config import settings
 from core.exceptions import AuthError, RateLimitError
+from core.security import decode_access_token
 
 RATE_LIMIT = 10   # requêtes max
 RATE_WINDOW = 60  # secondes
@@ -31,13 +32,28 @@ def _check_rate_limit(api_key: str) -> None:
     _request_log[api_key].append(now)
 
 
-def get_current_pharmacy(x_api_key: Optional[str] = Header(None)) -> int:
-    """Valide la clé API et retourne le pharmacy_id associé.
+def get_current_pharmacy(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+) -> int:
+    """Retourne le pharmacy_id courant.
 
-    Header optionnel pour retourner 401 (pas 422) quand la clé est absente.
+    Accepte deux modes :
+    - JWT  : Authorization: Bearer <token>  (production + Phase 5)
+    - X-API-Key : clé statique (dev / rétrocompatibilité tests Phase 3)
     """
+    # ── Mode JWT ──────────────────────────────────────────────────────────────
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[len("Bearer "):]
+        payload = decode_access_token(token)  # lève AuthError si invalide
+        pharmacy_id = payload.get("pharmacy_id")
+        if pharmacy_id is None:
+            raise AuthError("Token JWT sans pharmacy_id (rôle admin non autorisé ici).")
+        return int(pharmacy_id)
+
+    # ── Mode X-API-Key (dev / backward-compat) ────────────────────────────────
     if not x_api_key:
-        raise AuthError("Clé API manquante. Fournir le header X-API-Key.")
+        raise AuthError("Authentification requise : fournir Authorization: Bearer <token> ou X-API-Key.")
     pharmacy_id = _get_api_keys().get(x_api_key)
     if pharmacy_id is None:
         raise AuthError("Clé API invalide.")

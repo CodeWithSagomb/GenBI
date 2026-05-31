@@ -64,7 +64,13 @@ raw.*  →  staging.*  →  marts.*
 - ✅ Phase 4 — Frontend React — validé 2026-05-31 — **26/26 Vitest + 5/5 Playwright PASS**
   - ChatWindow · SQLDisplay (mode édition) · DataTable · ChartRouter (LineChart/BarChart auto)
   - Alpine ARM64 : apk add chromium (binaire Playwright glibc incompatible musl)
-- 🔄 Phase 5 — RAG ChromaDB + feedback loop + JWT/RBAC — **PROCHAINE ÉTAPE**
+- ✅ Phase 5 — RAG + Feedback Loop + JWT/RBAC — validé 2026-05-31 — **111/111 backend + 37/37 frontend PASS**
+  - RAG few-shot : ChromaDB PersistentClient · nomic-embed-text · isolation par pharmacie · best-effort
+  - Feedback loop : rating "good" → index ChromaDB · rating "bad" → ignoré · 5 tests intégration
+  - JWT/RBAC : bcrypt (direct, pas passlib) · python-jose · raw.users (4 users test) · /auth/login|me|refresh
+  - Frontend : LoginPage · App.jsx routing login↔chat · Bearer token · logout automatique si 401
+  - Gotcha : passlib 1.7.4 incompatible bcrypt 5.0.0 → utiliser `import bcrypt` directement
+  - core/auth.py : accepte Bearer JWT (prod) ET X-API-Key (rétrocompat tests Phase 3)
 
 ## Structure des fichiers clés
 ```
@@ -77,10 +83,11 @@ data/postgres-init/init.sql             ← schémas DB + users + RLS policies
 airflow/dags/ingest_pharmacy_data.py    ← pipeline d'ingestion
 genbi_backend/main.py                   ← API FastAPI (lifespan + 7 routers + exception handlers)
 genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
-genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware
-genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/
-genbi_backend/tests/                    ← unit/ + integration/ — 59 tests PASS
-genbi_frontend/src/App.jsx              ← interface React (Phase 4)
+genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware, rag, security, column_classifier
+genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/, auth/, admin/
+genbi_backend/tests/                    ← unit/ + integration/ — 111 tests PASS
+genbi_frontend/src/App.jsx              ← interface React (Phase 4-5) — routing login/chat
+genbi_frontend/src/components/auth/     ← LoginPage.jsx
 dbt_project/                            ← couche sémantique (Phase 2 terminée)
 dbt_project/target/manifest.json        ← généré localement, requis pour le backend
 ```

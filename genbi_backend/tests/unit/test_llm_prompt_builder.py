@@ -6,7 +6,7 @@ On teste : construction des prompts + gestion du timeout.
 import pytest
 from unittest.mock import patch
 
-from core.llm import build_sql_prompt, build_insight_prompt, generate_sql
+from core.llm import build_sql_prompt, build_insight_prompt, generate_sql, _clean_sql
 from core.exceptions import LLMTimeoutError
 
 
@@ -37,6 +37,36 @@ def test_prompt_insight_contient_les_donnees():
     prompt = build_insight_prompt("Quel est mon CA ?", results)
     assert "45000" in prompt
     assert "CA" in prompt
+
+
+def test_insight_prompt_inclut_annotations():
+    """Vérifie que build_insight_prompt injecte les annotations de type de colonne."""
+    results = {"columns": ["total_sales"], "rows": [[389]]}
+    prompt = build_insight_prompt("Combien de ventes ?", results)
+    assert "NOMBRE DE TRANSACTIONS" in prompt
+    assert "389" in prompt
+
+
+# ── _clean_sql ────────────────────────────────────────────────────────────────
+
+def test_clean_sql_retire_bloc_markdown_sql():
+    raw = "```sql\nSELECT 1\n```"
+    assert _clean_sql(raw) == "SELECT 1"
+
+
+def test_clean_sql_retire_bloc_markdown_sans_langage():
+    raw = "```\nSELECT 1\n```"
+    assert _clean_sql(raw) == "SELECT 1"
+
+
+def test_clean_sql_retire_point_virgule_final():
+    raw = "SELECT 1;"
+    assert _clean_sql(raw) == "SELECT 1"
+
+
+def test_clean_sql_passe_sql_propre_intact():
+    sql = "SELECT id FROM marts.fct_sales"
+    assert _clean_sql(sql) == sql
 
 
 # ── Timeout ───────────────────────────────────────────────────────────────────

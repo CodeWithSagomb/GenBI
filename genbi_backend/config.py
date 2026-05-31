@@ -27,6 +27,17 @@ class Settings(BaseSettings):
     API_KEY_ALMADIES: str = "pk_almadies_dev"
     API_KEY_NATION: str = "pk_nation_dev"
 
+    # ChromaDB — stockage persistant des paires Q→SQL (RAG few-shot)
+    CHROMADB_PATH: str = "/data/chromadb"
+
+    # JWT — authentification pharmaciens (Phase 5)
+    JWT_SECRET_KEY: str = "dev_secret_change_in_production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 1440  # 24h
+
+    # Admin — secret pour les opérations de maintenance (vide = endpoint désactivé)
+    ADMIN_SECRET: str = ""
+
     APP_ENV: str = "development"
     DEBUG: bool = True
 

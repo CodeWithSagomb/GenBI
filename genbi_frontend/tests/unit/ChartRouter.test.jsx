@@ -45,3 +45,13 @@ test('détecte colonne date correctement — "mois" fallback en BarChart', () =>
   )
   expect(container.querySelector('[data-chart-type="bar"]')).not.toBeNull()
 })
+
+test('BarChart avec product_id : utilise commercial_name comme label', () => {
+  const cols = ['product_id', 'commercial_name', 'total_quantity_sold']
+  const rows = [
+    [105, 'Glucophage', 15],
+    [110, 'Gaviscon', 13],
+  ]
+  const { container } = render(<ChartRouter columns={cols} rows={rows} />)
+  expect(container.querySelector('[data-chart-type="bar"]')).not.toBeNull()
+})

@@ -12,6 +12,10 @@ router = APIRouter(
 
 
 @router.post("", response_model=ChatResponse)
-async def chat_endpoint(body: ChatRequest, request: Request):
-    sql = await chat(body.question, request)
+async def chat_endpoint(
+    body: ChatRequest,
+    request: Request,
+    pharmacy_id: int = Depends(get_current_pharmacy),
+):
+    sql = await chat(body.question, pharmacy_id, request)
     return ChatResponse(question=body.question, sql=sql)

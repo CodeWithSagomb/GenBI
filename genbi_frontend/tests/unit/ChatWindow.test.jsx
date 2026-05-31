@@ -1,35 +1,23 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import { ChatWindow } from '../../src/components/chat/ChatWindow'
-import * as useChatModule from '../../src/hooks/useChat'
+import * as hooks from '../../src/hooks/useChat'
 
 vi.mock('../../src/hooks/useChat')
-vi.mock('../../src/hooks/useSchema', () => ({
-  useSchema: () => ({ schema: 'mocked', loading: false, error: null }),
+vi.mock('../../src/services/api', () => ({
+  chatApi: { executeSQL: vi.fn(), sendFeedback: vi.fn() },
 }))
 
-const mockSendQuestion = vi.fn()
-
-function setupHook(overrides = {}) {
-  useChatModule.useChat.mockReturnValue({
-    status: 'idle',
-    question: '',
-    sql: null,
-    columns: [],
-    rows: [],
-    row_count: 0,
-    insight: null,
-    error: null,
-    sendQuestion: mockSendQuestion,
-    reset: vi.fn(),
-    ...overrides,
-  })
+const defaultHook = {
+  messages: [],
+  status: 'idle',
+  sendQuestion: vi.fn(),
+  setFeedback: vi.fn(),
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  setupHook()
+  hooks.useChat.mockReturnValue(defaultHook)
 })
 
 test('input vide au démarrage', () => {
@@ -37,34 +25,45 @@ test('input vide au démarrage', () => {
   expect(screen.getByTestId('query-input').value).toBe('')
 })
 
-test('submit avec question appelle sendQuestion', async () => {
+test('submit appelle sendQuestion avec la question', async () => {
+  const sendQuestion = vi.fn()
+  hooks.useChat.mockReturnValue({ ...defaultHook, sendQuestion })
+
   render(<ChatWindow />)
-  await userEvent.type(screen.getByTestId('query-input'), 'Quel est mon CA ?')
-  await userEvent.click(screen.getByTestId('send-button'))
-  expect(mockSendQuestion).toHaveBeenCalledWith('Quel est mon CA ?')
+  fireEvent.change(screen.getByTestId('query-input'), { target: { value: 'Mon CA ?' } })
+  fireEvent.click(screen.getByTestId('send-button'))
+
+  await waitFor(() => expect(sendQuestion).toHaveBeenCalledWith('Mon CA ?'))
 })
 
 test('affiche spinner pendant loading', () => {
-  setupHook({ status: 'loading' })
+  hooks.useChat.mockReturnValue({ ...defaultHook, status: 'loading' })
   render(<ChatWindow />)
   expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
 })
 
-test('affiche erreur si API échoue', () => {
-  setupHook({ status: 'error', error: 'Erreur LLM' })
-  render(<ChatWindow />)
-  expect(screen.getByText(/Erreur LLM/i)).toBeInTheDocument()
-})
-
-test('affiche résultats après succès', () => {
-  setupHook({
-    status: 'success',
-    sql: 'SELECT 1',
-    columns: ['total'],
-    rows: [[42]],
-    row_count: 1,
+test('affiche les messages de la conversation', () => {
+  hooks.useChat.mockReturnValue({
+    ...defaultHook,
+    messages: [
+      { id: 0, role: 'user', content: 'Quel est mon CA ?' },
+      { id: 1, role: 'ai', sql: 'SELECT 1', columns: ['ca'], rows: [[42]], insight: 'Bonne perf.', error: null, feedback: null },
+    ],
   })
   render(<ChatWindow />)
+  expect(screen.getByText('Quel est mon CA ?')).toBeInTheDocument()
+  expect(screen.getByText('Bonne perf.')).toBeInTheDocument()
   expect(screen.getByTestId('results-table')).toBeInTheDocument()
-  expect(screen.getByTestId('sql-display')).toBeInTheDocument()
+})
+
+test('affiche erreur dans le message ai concerné', () => {
+  hooks.useChat.mockReturnValue({
+    ...defaultHook,
+    messages: [
+      { id: 0, role: 'user', content: 'Question' },
+      { id: 1, role: 'ai', error: 'Erreur serveur', feedback: null },
+    ],
+  })
+  render(<ChatWindow />)
+  expect(screen.getByText('Erreur serveur')).toBeInTheDocument()
 })

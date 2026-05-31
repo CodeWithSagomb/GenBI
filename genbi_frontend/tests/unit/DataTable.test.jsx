@@ -7,10 +7,11 @@ const ROWS = [
   ['Paracétamol', 2100000],
 ]
 
-test('affiche les colonnes', () => {
+test('affiche les colonnes en Title Case', () => {
   render(<DataTable columns={COLS} rows={ROWS} />)
-  expect(screen.getByText('produit')).toBeInTheDocument()
-  expect(screen.getByText('ca_total')).toBeInTheDocument()
+  // formatHeader transforme snake_case → Title Case
+  expect(screen.getByText('Produit')).toBeInTheDocument()
+  expect(screen.getByText('Ca Total')).toBeInTheDocument()
 })
 
 test('affiche les lignes', () => {
