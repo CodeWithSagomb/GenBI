@@ -30,10 +30,23 @@ def _check_rate_limit(api_key: str) -> None:
     _request_log[api_key].append(now)
 
 
-def get_current_pharmacy(x_api_key: str = Header(...)) -> int:
-    """Valide la clé API et retourne le pharmacy_id associé."""
+def get_current_pharmacy(x_api_key: str | None = Header(None)) -> int:
+    """Valide la clé API et retourne le pharmacy_id associé.
+
+    Header optionnel pour retourner 401 (pas 422) quand la clé est absente.
+    """
+    if not x_api_key:
+        raise AuthError("Clé API manquante. Fournir le header X-API-Key.")
     pharmacy_id = _get_api_keys().get(x_api_key)
     if pharmacy_id is None:
-        raise AuthError("Clé API invalide ou manquante.")
+        raise AuthError("Clé API invalide.")
     _check_rate_limit(x_api_key)
     return pharmacy_id
+
+
+def reset_rate_limit(api_key: str | None = None) -> None:
+    """Réinitialise le rate limiter. Réservé aux tests."""
+    if api_key:
+        _request_log.pop(api_key, None)
+    else:
+        _request_log.clear()

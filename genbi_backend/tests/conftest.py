@@ -4,6 +4,14 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="session")
+def client():
+    """Client de test avec lifespan complet (manifest + pool DB initialisés)."""
+    from main import app
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture(scope="session")
 def manifest_path() -> Path:
     p = Path("dbt_project/target/manifest.json")
     if not p.exists():
@@ -12,16 +20,15 @@ def manifest_path() -> Path:
 
 
 @pytest.fixture
-def auth_headers_bourguiba() -> dict:
+def auth_bourguiba() -> dict:
     return {"X-API-Key": "pk_bourguiba_dev"}
 
 
 @pytest.fixture
-def auth_headers_almadies() -> dict:
+def auth_almadies() -> dict:
     return {"X-API-Key": "pk_almadies_dev"}
 
 
 @pytest.fixture
-def client():
-    from main import app
-    return TestClient(app)
+def auth_nation() -> dict:
+    return {"X-API-Key": "pk_nation_dev"}

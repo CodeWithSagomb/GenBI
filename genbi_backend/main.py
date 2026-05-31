@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -8,6 +8,7 @@ from core.exceptions import (
     SQLValidationError, LLMTimeoutError, ManifestNotFoundError,
     DatabaseError, AuthError, RateLimitError,
 )
+from core.auth import get_current_pharmacy
 from core.middleware import RequestIDMiddleware, LoggingMiddleware, configure_logging
 
 
@@ -79,6 +80,12 @@ async def rate_limit_handler(_: Request, exc: RateLimitError):
 @app.get("/", include_in_schema=False)
 def root():
     return {"status": "online", "docs": "/docs"}
+
+
+@app.get("/api/v1/ping", tags=["auth"])
+def ping(pharmacy_id: int = Depends(get_current_pharmacy)):
+    """Endpoint léger — vérifie l'authentification sans toucher à la DB."""
+    return {"pharmacy_id": pharmacy_id}
 
 
 @app.get("/api/health", tags=["health"])
