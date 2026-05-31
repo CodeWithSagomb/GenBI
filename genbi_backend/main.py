@@ -16,6 +16,7 @@ from api.v1.schema.router import router as schema_router
 from api.v1.interpret.router import router as interpret_router
 from api.v1.query.router import router as query_router
 from api.v1.suggestions.router import router as suggestions_router
+from api.v1.feedback.router import router as feedback_router
 
 
 @asynccontextmanager
@@ -24,15 +25,17 @@ async def lifespan(app: FastAPI):
     configure_logging()
 
     from core.dbt_parser import load_manifest, count_models
-    from core.database import create_pool
+    from core.database import create_pool, create_write_pool
 
     app.state.manifest = load_manifest(settings.DBT_MANIFEST_PATH)
     app.state.manifest_model_count = count_models(settings.DBT_MANIFEST_PATH)
     app.state.db_pool = create_pool()
+    app.state.db_write_pool = create_write_pool()
 
     yield
 
     app.state.db_pool.closeall()
+    app.state.db_write_pool.closeall()
 
 
 app = FastAPI(
@@ -93,6 +96,7 @@ app.include_router(schema_router)
 app.include_router(interpret_router)
 app.include_router(query_router)
 app.include_router(suggestions_router)
+app.include_router(feedback_router)
 
 
 @app.get("/", include_in_schema=False)
@@ -108,12 +112,51 @@ def ping(pharmacy_id: int = Depends(get_current_pharmacy)):
 
 @app.get("/api/health", tags=["health"])
 def health_check(request: Request):
+    import urllib.request as _urllib
+
+    # DB + RLS
     pool = getattr(request.app.state, "db_pool", None)
+    db_status = "not_initialized"
+    rls_status = "unknown"
+    if pool:
+        conn = None
+        try:
+            conn = pool.getconn()
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.execute(
+                    "SELECT COUNT(*) FROM pg_policies WHERE tablename = 'fct_sales'"
+                )
+                rls_status = "active" if cur.fetchone()[0] > 0 else "inactive"
+            db_status = "connected"
+        except Exception:
+            db_status = "error"
+        finally:
+            if conn:
+                pool.putconn(conn)
+
+    # Ollama
+    try:
+        with _urllib.urlopen(
+            settings.OLLAMA_BASE_URL.replace("host.docker.internal", "localhost") + "/api/tags",
+            timeout=3,
+        ) as resp:
+            ollama_status = "connected" if resp.status == 200 else "error"
+    except Exception:
+        try:
+            with _urllib.urlopen(settings.OLLAMA_BASE_URL + "/api/tags", timeout=3) as resp:
+                ollama_status = "connected" if resp.status == 200 else "error"
+        except Exception:
+            ollama_status = "unreachable"
+
     manifest = getattr(request.app.state, "manifest", None)
     model_count = getattr(request.app.state, "manifest_model_count", 0)
+
     return {
         "status": "healthy",
-        "db": "connected" if pool else "not_initialized",
+        "db": db_status,
+        "ollama": ollama_status,
         "manifest": "loaded" if manifest else "not_loaded",
         "manifest_models": model_count,
+        "rls": rls_status,
     }

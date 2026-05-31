@@ -37,8 +37,9 @@ CREATE TABLE raw.feedback (
     comment       TEXT,
     created_at    TIMESTAMP DEFAULT NOW()
 );
-GRANT INSERT ON raw.feedback TO genbi_write;
-GRANT USAGE ON SEQUENCE raw.feedback_feedback_id_seq TO genbi_write;
+-- INSERT + SELECT requis : SELECT est nécessaire pour la clause RETURNING
+GRANT INSERT, SELECT ON raw.feedback TO genbi_write;
+GRANT USAGE, SELECT ON SEQUENCE raw.feedback_feedback_id_seq TO genbi_write;
 
 -- ── Row Level Security ───────────────────────────────────────────────────────
 -- Activé après que dbt ait créé les tables marts (via dbt run)
