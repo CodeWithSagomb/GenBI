@@ -6,7 +6,10 @@
       "Bash(git push --force*)",
       "Bash(git reset --hard*)",
       "Bash(DROP TABLE*)",
-      "Bash(DELETE FROM*)"
+      "Bash(DELETE FROM*)",
+      "Bash(make logs)",
+      "Bash(docker logs -f*)",
+      "Bash(tail -f*)"
     ]
   }
 }
