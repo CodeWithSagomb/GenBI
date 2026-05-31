@@ -2,8 +2,8 @@
 
 > Fichier de référence unique. Mettre à jour après chaque session de travail.
 
-**Dernière mise à jour** : 2026-05-29
-**Phase active** : Phase 3 — Backend API FastAPI
+**Dernière mise à jour** : 2026-05-31
+**Phase active** : Phase 4 — Interface de Chat React
 
 ---
 
@@ -12,8 +12,8 @@
 ```
 Phase 1 ████████████████████ 100%  ✅ Infrastructure & Ingestion
 Phase 2 ████████████████████ 100%  ✅ Couche Sémantique dbt
-Phase 3 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Backend API FastAPI         ← ICI
-Phase 4 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ Interface de Chat React
+Phase 3 ████████████████████ 100%  ✅ Backend API FastAPI
+Phase 4 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Interface de Chat React      ← ICI
 Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ RAG & Feedback Loop
 ```
 
@@ -68,33 +68,39 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 
 ---
 
-## Phase 3 — Backend API FastAPI 🔄 À DÉMARRER
+## Phase 3 — Backend API FastAPI ✅ TERMINÉE
 
-**Prérequis** : `manifest.json` ✅ (Phase 2 terminée)
+**Validé** : 2026-05-31 · **59/59 tests PASS** en 1.11s
 **Spec** : [specs/002-backend-api/spec.md](specs/002-backend-api/spec.md)
-**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md) — **54 tâches · 52 cas de test**
+**Tasks** : [specs/002-backend-api/tasks.md](specs/002-backend-api/tasks.md)
 
 **Déploiement** : Scénario B — instance unique, 3 pharmacies, isolation via PostgreSQL RLS
 
 | Module / Endpoint | Statut | Tests |
 |---|---|---|
-| Socle : lifespan + exceptions + middleware + RLS | ⬜ | — |
-| `core/auth.py` — API Key → pharmacy_id | ⬜ | 4 cas 🔴 auth |
-| `core/sql_validator.py` | ⬜ | TDD — 13 cas 🔴 |
-| `core/dbt_parser.py` | ⬜ | 6 cas unitaires |
-| `core/llm.py` — timeout + prompts versionnés | ⬜ | 4 cas |
-| `core/database.py` — pool + RLS setter | ⬜ | — |
-| `GET /api/v1/schema` | ⬜ | 3 cas intégration |
-| `POST /api/v1/chat` | ⬜ | 4 cas intégration |
-| `POST /api/v1/execute` — paginé + RLS vérifié | ⬜ | 7 cas intégration 🔴 |
-| `POST /api/v1/interpret` | ⬜ | 3 cas intégration |
-| `POST /api/v1/query` ← endpoint principal | ⬜ | 5 cas intégration 🔴 |
-| `GET /api/v1/suggestions` | ⬜ | 3 cas intégration |
-| `POST /api/v1/feedback` — genbi_write | ⬜ | — |
+| Socle : lifespan + exceptions + middleware + RLS | ✅ | — |
+| `core/auth.py` — API Key → pharmacy_id + rate limit | ✅ | 5 cas ✅ |
+| `core/sql_validator.py` — TDD | ✅ | 13 cas ✅ |
+| `core/dbt_parser.py` | ✅ | 6 cas ✅ |
+| `core/llm.py` — asyncio.wait_for + prompts versionnés | ✅ | 4 cas ✅ |
+| `core/database.py` — pool readonly + pool write + RLS setter | ✅ | — |
+| `GET /api/v1/schema` | ✅ | 4 cas ✅ |
+| `POST /api/v1/chat` | ✅ | 4 cas ✅ |
+| `POST /api/v1/execute` — paginé + RLS vérifié | ✅ | 7 cas ✅ |
+| `POST /api/v1/interpret` | ✅ | 3 cas ✅ |
+| `POST /api/v1/query` ← pipeline complet | ✅ | 5 cas ✅ |
+| `GET /api/v1/suggestions` | ✅ | 3 cas ✅ |
+| `POST /api/v1/feedback` — genbi_write (INSERT+SELECT RETURNING) | ✅ | 5 cas ✅ |
+| `GET /api/health` — enrichi (db+ollama+rls+manifest) | ✅ | — |
+
+**Isolation RLS validée E2E** : Bourguiba 1 617 ventes · Almadies 1 530 ventes · Nation isolée ✅
+**X-Request-ID** : UUID dans chaque réponse ✅ · Logs JSON structurés ✅
+
+**Gotcha découvert** : PostgreSQL `RETURNING` requiert SELECT — `GRANT INSERT,SELECT ON raw.feedback` (pas INSERT seul).
 
 ---
 
-## Phase 4 — Interface de Chat React ⏳ EN ATTENTE
+## Phase 4 — Interface de Chat React 🔄 PROCHAINE ÉTAPE
 
 **Prérequis** : Phases 2 + 3
 **Spec** : [specs/003-frontend-chat/spec.md](specs/003-frontend-chat/spec.md)
@@ -147,7 +153,7 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 |---|---|
 | I. Souveraineté des données — LLM local, 0 appel externe | ✅ |
 | II. Sémantique-First — manifest.json comme seule source du prompt | ⏳ Phase 2 |
-| III. Sécurité — `genbi_readonly` SELECT-only + TDD sur `sql_validator` | ✅ / ⏳ Phase 3 |
+| III. Sécurité — `genbi_readonly` SELECT-only + TDD `sql_validator` + RLS PostgreSQL | ✅ |
 | IV. Open-Source & Vendor-Agnostic | ✅ |
 | V. Simplicité incrémentale — MVP par user story | ✅ |
 

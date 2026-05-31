@@ -3,7 +3,19 @@
 **Input** : `specs/002-backend-api/spec.md`
 **Constitution** : `.specify/memory/constitution.md`
 **Prérequis** : `dbt_project/target/manifest.json` généré (Phase 2 terminée)
-**Mise à jour** : 2026-05-29 — Scénario B (multi-pharmacie), auth API Key, RLS PostgreSQL, maintenabilité
+**Mise à jour** : 2026-05-31 — ✅ PHASE TERMINÉE — 59/59 tests PASS
+
+## ✅ Résultat final
+
+| Métrique | Valeur |
+|---|---|
+| Tests PASS | **59/59** en 1.11s |
+| Endpoints livrés | `/chat` `/execute` `/schema` `/interpret` `/query` `/suggestions` `/feedback` `/health` `/ping` |
+| Isolation RLS | Bourguiba 1 617 ventes · Almadies 1 530 ventes · Nation isolée |
+| Commits | T001-T015 · T016-T025 · T026-T032 · T033-T037 · T038-T048 · T049-T054 |
+| Gotcha clé | `RETURNING` requiert SELECT — `GRANT INSERT,SELECT ON raw.feedback` |
+
+---
 
 ---
 

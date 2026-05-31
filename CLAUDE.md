@@ -47,33 +47,38 @@ raw.*  →  staging.*  →  marts.*
 8. **API Keys dans `.env`** — jamais dans le code source. `core/auth.py` lit `os.environ`. 3 clés : une par pharmacie (Bourguiba / Almadies / Nation).
 9. **Lifespan FastAPI** — `manifest.json` + pool DB chargés une seule fois au démarrage. Jamais dans les routes.
 10. **Prompts versionnés** — `core/prompts/v1_sql_generation.txt`. Changer le comportement LLM = changer le fichier `.txt`, pas le code Python.
+11. **`RETURNING` requiert SELECT** — `GRANT INSERT,SELECT ON raw.feedback TO genbi_write` (pas INSERT seul). PostgreSQL exige SELECT sur les colonnes retournées par RETURNING.
+12. **Tests d'intégration dans Docker** — `docker exec genbi_backend python -m pytest tests/ -v`. Le venv local est Python 3.9 ; le container Python 3.11. Utiliser `Optional[X]` et `asyncio.wait_for` pour compatibilité 3.9.
+13. **`genbi_write` créé manuellement** — `init.sql` s'exécute seulement au 1er démarrage. Si le container existe déjà, appliquer les grants via `docker exec genbi_postgres psql`.
 
 ## État d'avancement
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
   - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
 - ✅ Phase 2 — dbt sémantique — validé 2026-05-29
   - 19 modèles · 149 tests PASS · manifest.json 1.0 MB · staging (views) + marts (tables)
-- 🔄 Phase 3 — Backend FastAPI — **PROCHAINE ÉTAPE** — 54 tâches · 52 cas de test
-  - Scénario B : 1 instance · 3 pharmacies · isolation PostgreSQL RLS
-  - Auth : API Key par pharmacie (header `X-API-Key`) · rate limit 10req/min
+- ✅ Phase 3 — Backend FastAPI — validé 2026-05-31 — **59/59 tests PASS**
   - 7 endpoints : `/chat` `/execute` `/query` `/interpret` `/schema` `/suggestions` `/feedback`
-  - Maintenabilité : lifespan · domain exceptions · logging JSON · request_id · pagination · prompts versionnés
-- ⏳ Phase 4 — Frontend React (chat + visualisations) + tests Vitest + Playwright E2E
+  - Scénario B : 1 instance · 3 pharmacies · isolation RLS (Bourguiba 1617 vs Almadies 1530 ventes)
+  - genbi_readonly (lectures) + genbi_write (INSERT,SELECT raw.feedback) + RETURNING clause
+  - asyncio.wait_for (compat Python 3.9 venv) · Optional[] · conftest manifest path auto-résolu
+- 🔄 Phase 4 — Frontend React (chat + visualisations) + tests Vitest + Playwright E2E — **PROCHAINE ÉTAPE**
 - ⏳ Phase 5 — RAG ChromaDB + feedback loop + JWT/RBAC
 
 ## Structure des fichiers clés
 ```
 CLAUDE.md                               ← ce fichier
 DASHBOARD.md                            ← supervision temps réel
-specs/002-backend-api/spec.md           ← spécification Phase 3
-specs/002-backend-api/tasks.md          ← 54 tâches Phase 3
+specs/002-backend-api/spec.md           ← spécification Phase 3 (terminée)
+specs/002-backend-api/tasks.md          ← 54 tâches Phase 3 (toutes ✅)
 docker-compose.yml                      ← orchestration complète
 data/postgres-init/init.sql             ← schémas DB + users + RLS policies
 airflow/dags/ingest_pharmacy_data.py    ← pipeline d'ingestion
-genbi_backend/main.py                   ← API FastAPI (lifespan + routers + exception handlers)
+genbi_backend/main.py                   ← API FastAPI (lifespan + 7 routers + exception handlers)
 genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
 genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware
-genbi_frontend/src/App.jsx              ← interface React
+genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/
+genbi_backend/tests/                    ← unit/ + integration/ — 59 tests PASS
+genbi_frontend/src/App.jsx              ← interface React (Phase 4)
 dbt_project/                            ← couche sémantique (Phase 2 terminée)
 dbt_project/target/manifest.json        ← généré localement, requis pour le backend
 ```
