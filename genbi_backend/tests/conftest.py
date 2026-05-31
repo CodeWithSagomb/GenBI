@@ -32,3 +32,11 @@ def auth_almadies() -> dict:
 @pytest.fixture
 def auth_nation() -> dict:
     return {"X-API-Key": "pk_nation_dev"}
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Réinitialise le rate limiter avant chaque test — isolation garantie."""
+    from core.auth import reset_rate_limit
+    reset_rate_limit()
+    yield

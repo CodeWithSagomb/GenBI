@@ -11,6 +11,7 @@ from core.exceptions import (
 from core.auth import get_current_pharmacy
 from core.middleware import RequestIDMiddleware, LoggingMiddleware, configure_logging
 from api.v1.chat.router import router as chat_router
+from api.v1.execute.router import router as execute_router
 from api.v1.schema.router import router as schema_router
 
 
@@ -80,6 +81,7 @@ async def rate_limit_handler(_: Request, exc: RateLimitError):
 
 
 app.include_router(chat_router)
+app.include_router(execute_router)
 app.include_router(schema_router)
 
 
