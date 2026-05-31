@@ -1,6 +1,7 @@
 import asyncio
 import json
 from pathlib import Path
+from typing import Optional
 
 import litellm
 
@@ -34,7 +35,7 @@ def build_insight_prompt(question: str, results: dict) -> str:
     return template.format(question=question, results=results_str)
 
 
-async def generate_sql(schema: str, question: str, timeout: int | None = None) -> str:
+async def generate_sql(schema: str, question: str, timeout: Optional[int] = None) -> str:
     """Appelle Ollama pour générer un SELECT SQL.
 
     temperature=0.0 pour le déterminisme.
@@ -43,14 +44,16 @@ async def generate_sql(schema: str, question: str, timeout: int | None = None) -
     timeout_s = timeout if timeout is not None else settings.LLM_SQL_TIMEOUT
     prompt = build_sql_prompt(schema, question)
     try:
-        async with asyncio.timeout(timeout_s):
-            response = await litellm.acompletion(
+        response = await asyncio.wait_for(
+            litellm.acompletion(
                 model=f"ollama/{settings.OLLAMA_MODEL}",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 api_base=settings.OLLAMA_BASE_URL,
-            )
-    except TimeoutError:
+            ),
+            timeout=float(timeout_s),
+        )
+    except (asyncio.TimeoutError, TimeoutError):
         raise LLMTimeoutError(
             f"Ollama n'a pas répondu en {timeout_s}s. Réessayez dans quelques instants."
         )
@@ -58,7 +61,7 @@ async def generate_sql(schema: str, question: str, timeout: int | None = None) -
 
 
 async def generate_insight(
-    question: str, results: dict, timeout: int | None = None
+    question: str, results: dict, timeout: Optional[int] = None
 ) -> str:
     """Appelle Ollama pour rédiger un insight en français.
 
@@ -68,14 +71,16 @@ async def generate_insight(
     timeout_s = timeout if timeout is not None else settings.LLM_INSIGHT_TIMEOUT
     prompt = build_insight_prompt(question, results)
     try:
-        async with asyncio.timeout(timeout_s):
-            response = await litellm.acompletion(
+        response = await asyncio.wait_for(
+            litellm.acompletion(
                 model=f"ollama/{settings.OLLAMA_MODEL}",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 api_base=settings.OLLAMA_BASE_URL,
-            )
-    except TimeoutError:
+            ),
+            timeout=float(timeout_s),
+        )
+    except (asyncio.TimeoutError, TimeoutError):
         raise LLMTimeoutError(
             f"Ollama n'a pas répondu en {timeout_s}s. Réessayez dans quelques instants."
         )

@@ -1,5 +1,6 @@
 from collections import defaultdict
 from time import time
+from typing import Optional
 from fastapi import Header
 from config import settings
 from core.exceptions import AuthError, RateLimitError
@@ -30,7 +31,7 @@ def _check_rate_limit(api_key: str) -> None:
     _request_log[api_key].append(now)
 
 
-def get_current_pharmacy(x_api_key: str | None = Header(None)) -> int:
+def get_current_pharmacy(x_api_key: Optional[str] = Header(None)) -> int:
     """Valide la clé API et retourne le pharmacy_id associé.
 
     Header optionnel pour retourner 401 (pas 422) quand la clé est absente.
@@ -44,7 +45,7 @@ def get_current_pharmacy(x_api_key: str | None = Header(None)) -> int:
     return pharmacy_id
 
 
-def reset_rate_limit(api_key: str | None = None) -> None:
+def reset_rate_limit(api_key: Optional[str] = None) -> None:
     """Réinitialise le rate limiter. Réservé aux tests."""
     if api_key:
         _request_log.pop(api_key, None)

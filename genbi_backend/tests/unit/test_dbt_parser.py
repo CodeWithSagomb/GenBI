@@ -1,10 +1,19 @@
 """Tests unitaires — core/dbt_parser.py"""
 import tempfile
 import os
+from pathlib import Path
 from core.exceptions import ManifestNotFoundError
 
 
-MANIFEST = "/app/dbt_project/target/manifest.json"
+def _resolve_manifest() -> str:
+    docker = Path("/app/dbt_project/target/manifest.json")
+    if docker.exists():
+        return str(docker)
+    local = Path(__file__).parent.parent.parent.parent / "dbt_project" / "target" / "manifest.json"
+    return str(local)
+
+
+MANIFEST = _resolve_manifest()
 
 
 def _load(path: str = MANIFEST) -> str:

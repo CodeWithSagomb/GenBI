@@ -1,6 +1,13 @@
+import os
 import pytest
 from pathlib import Path
 from fastapi.testclient import TestClient
+
+# Résolution du manifest : Docker (/app/...) ou local (../dbt_project/...)
+_docker_manifest = Path("/app/dbt_project/target/manifest.json")
+_local_manifest = Path(__file__).parent.parent.parent / "dbt_project" / "target" / "manifest.json"
+if not _docker_manifest.exists() and _local_manifest.exists():
+    os.environ.setdefault("DBT_MANIFEST_PATH", str(_local_manifest))
 
 
 @pytest.fixture(scope="session")

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from core.exceptions import (
-    SQLValidationError, LLMTimeoutError, ManifestNotFoundError,
+    GenBIException, SQLValidationError, LLMTimeoutError, ManifestNotFoundError,
     DatabaseError, AuthError, RateLimitError,
 )
 from core.auth import get_current_pharmacy
@@ -13,6 +13,9 @@ from core.middleware import RequestIDMiddleware, LoggingMiddleware, configure_lo
 from api.v1.chat.router import router as chat_router
 from api.v1.execute.router import router as execute_router
 from api.v1.schema.router import router as schema_router
+from api.v1.interpret.router import router as interpret_router
+from api.v1.query.router import router as query_router
+from api.v1.suggestions.router import router as suggestions_router
 
 
 @asynccontextmanager
@@ -79,10 +82,17 @@ async def auth_handler(_: Request, exc: AuthError):
 async def rate_limit_handler(_: Request, exc: RateLimitError):
     return JSONResponse(status_code=429, content={"error": str(exc)})
 
+@app.exception_handler(GenBIException)
+async def genbi_handler(_: Request, exc: GenBIException):
+    return JSONResponse(status_code=400, content={"error": str(exc)})
+
 
 app.include_router(chat_router)
 app.include_router(execute_router)
 app.include_router(schema_router)
+app.include_router(interpret_router)
+app.include_router(query_router)
+app.include_router(suggestions_router)
 
 
 @app.get("/", include_in_schema=False)
