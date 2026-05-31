@@ -3,7 +3,7 @@
 > Fichier de référence unique. Mettre à jour après chaque session de travail.
 
 **Dernière mise à jour** : 2026-05-31
-**Phase active** : Phase 4 — Interface de Chat React
+**Phase active** : Phase 5 — RAG ChromaDB + Feedback Loop
 
 ---
 
@@ -13,8 +13,8 @@
 Phase 1 ████████████████████ 100%  ✅ Infrastructure & Ingestion
 Phase 2 ████████████████████ 100%  ✅ Couche Sémantique dbt
 Phase 3 ████████████████████ 100%  ✅ Backend API FastAPI
-Phase 4 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Interface de Chat React      ← ICI
-Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ RAG & Feedback Loop
+Phase 4 ████████████████████ 100%  ✅ Interface de Chat React
+Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 RAG & Feedback Loop          ← ICI
 ```
 
 ---
@@ -100,21 +100,28 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  ⏳ R
 
 ---
 
-## Phase 4 — Interface de Chat React 🔄 PROCHAINE ÉTAPE
+## Phase 4 — Interface de Chat React ✅ TERMINÉE
 
-**Prérequis** : Phases 2 + 3
+**Validé** : 2026-05-31 · **26/26 Vitest PASS · 5/5 Playwright E2E PASS**
 **Spec** : [specs/003-frontend-chat/spec.md](specs/003-frontend-chat/spec.md)
-**Tasks** : [specs/003-frontend-chat/tasks.md](specs/003-frontend-chat/tasks.md) — **33 tâches**
+**Tasks** : [specs/003-frontend-chat/tasks.md](specs/003-frontend-chat/tasks.md) — 33/33 ✅
 
 | Composant | Statut | Tests |
 |---|---|---|
-| `services/api.js` | ⬜ | — |
-| `hooks/useChat.js` | ⬜ | 5 cas Vitest |
-| `ChatWindow.jsx` | ⬜ | 5 cas Vitest |
-| `SQLDisplay.jsx` | ⬜ | 5 cas Vitest |
-| `DataTable.jsx` | ⬜ | 4 cas Vitest |
-| `ChartRouter.jsx` | ⬜ | 5 cas Vitest |
-| Flux chat complet | ⬜ | 3 scénarios Playwright E2E |
+| `services/api.js` | ✅ | — |
+| `hooks/useChat.js` | ✅ | 5 cas ✅ |
+| `hooks/useSchema.js` | ✅ | — |
+| `ChatWindow.jsx` | ✅ | 5 cas ✅ |
+| `SQLDisplay.jsx` | ✅ | 5 cas ✅ |
+| `DataTable.jsx` | ✅ | 4 cas ✅ |
+| `ChartRouter.jsx` | ✅ | 5 cas ✅ |
+| Flux chat complet | ✅ | 3 scénarios Playwright ✅ |
+| Affichage graphique | ✅ | 2 scénarios Playwright ✅ |
+
+**Gotchas découverts Phase 4 :**
+- Alpine ARM64 : `npx playwright install` → binaire glibc incompatible → `apk add chromium` + `launchOptions.executablePath`
+- `toLocaleString('fr-FR')` Node 20 → ` ` (espace insécable) → formateur regex avec espace ASCII
+- Vitest ramasse `tests/e2e/` → exclure explicitement dans `vite.config.js`
 
 ---
 

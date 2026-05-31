@@ -61,8 +61,10 @@ raw.*  →  staging.*  →  marts.*
   - Scénario B : 1 instance · 3 pharmacies · isolation RLS (Bourguiba 1617 vs Almadies 1530 ventes)
   - genbi_readonly (lectures) + genbi_write (INSERT,SELECT raw.feedback) + RETURNING clause
   - asyncio.wait_for (compat Python 3.9 venv) · Optional[] · conftest manifest path auto-résolu
-- 🔄 Phase 4 — Frontend React (chat + visualisations) + tests Vitest + Playwright E2E — **PROCHAINE ÉTAPE**
-- ⏳ Phase 5 — RAG ChromaDB + feedback loop + JWT/RBAC
+- ✅ Phase 4 — Frontend React — validé 2026-05-31 — **26/26 Vitest + 5/5 Playwright PASS**
+  - ChatWindow · SQLDisplay (mode édition) · DataTable · ChartRouter (LineChart/BarChart auto)
+  - Alpine ARM64 : apk add chromium (binaire Playwright glibc incompatible musl)
+- 🔄 Phase 5 — RAG ChromaDB + feedback loop + JWT/RBAC — **PROCHAINE ÉTAPE**
 
 ## Structure des fichiers clés
 ```
