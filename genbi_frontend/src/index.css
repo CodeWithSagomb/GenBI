@@ -227,3 +227,268 @@ body {
 .text-glow {
   filter: drop-shadow(0 0 8px var(--secondary));
 }
+
+/* ─── Chat layout ─── */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1;
+  padding-bottom: 1rem;
+}
+
+/* ─── Message bubbles ─── */
+.message-bubble {
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+.message-bubble--user {
+  background: var(--primary-glow);
+  border: 1px solid HSLA(263, 70%, 55%, 0.3);
+  align-self: flex-end;
+  max-width: 80%;
+  font-weight: 500;
+}
+
+.message-bubble--ai {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ─── Loading indicator ─── */
+.chat-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.chat-loading__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--secondary);
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+/* ─── Error ─── */
+.chat-error {
+  color: HSL(0, 80%, 65%);
+}
+
+/* ─── Insight ─── */
+.chat-insight {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+/* ─── Query input ─── */
+.query-input-wrapper {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  margin-top: auto;
+}
+
+.query-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.query-input::placeholder {
+  color: var(--text-muted);
+}
+
+.send-button {
+  padding: 0.5rem 1.25rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.send-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.send-button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* ─── SQL display ─── */
+.sql-display {
+  background: HSL(222, 47%, 6%);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sql-display__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.sql-display__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sql-display__edit-btn {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.sql-display__edit-btn:hover {
+  color: var(--text-main);
+  border-color: var(--border-focus);
+}
+
+.sql-display__code {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  color: HSL(190, 90%, 70%);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sql-display__editor {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sql-display__textarea {
+  width: 100%;
+  background: HSL(222, 47%, 4%);
+  border: 1px solid var(--border-focus);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: monospace;
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  resize: vertical;
+  outline: none;
+}
+
+.sql-display__editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.sql-display__cancel-btn {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sql-display__run-btn {
+  background: var(--primary);
+  border: none;
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ─── DataTable ─── */
+.datatable__wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+}
+
+.datatable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.datatable__th {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  background: HSL(222, 47%, 6%);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.datatable__row:nth-child(even) {
+  background: HSL(222, 47%, 7%);
+}
+
+.datatable__td {
+  padding: 0.6rem 1rem;
+  color: var(--text-main);
+  border-bottom: 1px solid HSLA(217, 32%, 20%, 0.2);
+}
+
+.datatable__empty {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ─── Charts ─── */
+.chart-wrapper {
+  width: 100%;
+  padding: 0.5rem 0;
+}
