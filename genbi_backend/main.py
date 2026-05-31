@@ -10,6 +10,7 @@ from core.exceptions import (
 )
 from core.auth import get_current_pharmacy
 from core.middleware import RequestIDMiddleware, LoggingMiddleware, configure_logging
+from api.v1.schema.router import router as schema_router
 
 
 @asynccontextmanager
@@ -75,6 +76,9 @@ async def auth_handler(_: Request, exc: AuthError):
 @app.exception_handler(RateLimitError)
 async def rate_limit_handler(_: Request, exc: RateLimitError):
     return JSONResponse(status_code=429, content={"error": str(exc)})
+
+
+app.include_router(schema_router)
 
 
 @app.get("/", include_in_schema=False)
