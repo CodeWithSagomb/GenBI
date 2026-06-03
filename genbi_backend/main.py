@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from config import settings
 from core.exceptions import (
     GenBIException, SQLValidationError, LLMTimeoutError, ManifestNotFoundError,
-    DatabaseError, AuthError, RateLimitError,
+    DatabaseError, AuthError, RateLimitError, ForbiddenError,
 )
 from core.auth import get_current_pharmacy
 from core.middleware import RequestIDMiddleware, LoggingMiddleware, configure_logging
@@ -21,14 +21,24 @@ from api.v1.admin.router import router as admin_router
 from api.v1.auth.router import router as auth_jwt_router
 
 
+_DEV_JWT_SECRET = "dev_secret_change_in_production"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialise manifest + pool DB + ChromaDB au démarrage — libère à l'arrêt."""
     configure_logging()
 
+    import logging
     import chromadb
     from core.dbt_parser import load_manifest, count_models
     from core.database import create_pool, create_write_pool
+
+    if settings.JWT_SECRET_KEY == _DEV_JWT_SECRET:
+        logging.getLogger("genbi").warning(
+            "⚠️  JWT_SECRET_KEY est la valeur par défaut de développement. "
+            "Définir JWT_SECRET_KEY dans genbi_backend/.env avant de déployer en production."
+        )
 
     app.state.manifest = load_manifest(settings.DBT_MANIFEST_PATH)
     app.state.manifest_model_count = count_models(settings.DBT_MANIFEST_PATH)
@@ -84,6 +94,10 @@ async def database_handler(_: Request, exc: DatabaseError):
 @app.exception_handler(AuthError)
 async def auth_handler(_: Request, exc: AuthError):
     return JSONResponse(status_code=401, content={"error": str(exc)})
+
+@app.exception_handler(ForbiddenError)
+async def forbidden_handler(_: Request, exc: ForbiddenError):
+    return JSONResponse(status_code=403, content={"error": str(exc)})
 
 @app.exception_handler(RateLimitError)
 async def rate_limit_handler(_: Request, exc: RateLimitError):

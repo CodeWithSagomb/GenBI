@@ -24,8 +24,8 @@ test.describe('Flux login (T530)', () => {
   test('sans token → page login visible', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('button', { name: /connexion/i })).toBeVisible()
-    await expect(page.getByLabelText(/email/i)).toBeVisible()
-    await expect(page.getByLabelText(/mot de passe/i)).toBeVisible()
+    await expect(page.getByLabel(/email/i)).toBeVisible()
+    await expect(page.getByLabel(/mot de passe/i)).toBeVisible()
   })
 
   test('login réussi → accès au chat', async ({ page }) => {

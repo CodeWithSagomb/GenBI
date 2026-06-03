@@ -125,10 +125,16 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 
 
 ---
 
-## Phase 5 — RAG & Feedback Loop ⏳ BACKLOG
+## Phase 5 — RAG + Feedback Loop + JWT/RBAC 🔄 EN COURS
 
 **Spec** : [specs/004-rag-feedback/spec.md](specs/004-rag-feedback/spec.md)
-**Tasks** : À créer après Phase 4
+**Tasks** : [specs/004-rag-feedback/tasks.md](specs/004-rag-feedback/tasks.md) — 0/30 ✅
+
+| Track | Tâches | Statut |
+|---|---|---|
+| Track 1 — UX Conversation (T501–T507) | 7 tâches | ⏳ À démarrer |
+| Track 2 — RAG ChromaDB (T508–T517) | 10 tâches | ⏳ À démarrer |
+| Track 3 — JWT/RBAC (T518–T530) | 13 tâches | ⏳ À démarrer |
 
 ---
 

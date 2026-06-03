@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test'
 const SCHEMA_MOCK = { schema: 'SELECT * FROM marts.fct_sales' }
 
 test.describe('Affichage graphiques', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))
+  })
+
   test('une question sur les ventes par mois affiche un graphique en ligne', async ({ page }) => {
     await page.route('**/api/v1/schema', (r) => r.fulfill({ status: 200, body: JSON.stringify(SCHEMA_MOCK) }))
     await page.route('**/api/v1/chat', (r) =>

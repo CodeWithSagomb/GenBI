@@ -21,3 +21,6 @@ class RateLimitError(GenBIException):
 
 class RAGError(GenBIException):
     pass
+
+class ForbiddenError(GenBIException):
+    pass

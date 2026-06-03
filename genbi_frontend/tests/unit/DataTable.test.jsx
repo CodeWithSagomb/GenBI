@@ -33,3 +33,18 @@ test('tableau vide affiche message', () => {
   render(<DataTable columns={COLS} rows={[]} />)
   expect(screen.getByText(/aucun résultat/i)).toBeInTheDocument()
 })
+
+test('badge visible si rowCount > rows.length', () => {
+  render(<DataTable columns={COLS} rows={ROWS} rowCount={847} />)
+  expect(screen.getByText(/100.*847|premiers.*résultats.*sur/i)).toBeInTheDocument()
+})
+
+test('pas de badge si rowCount === rows.length', () => {
+  render(<DataTable columns={COLS} rows={ROWS} rowCount={ROWS.length} />)
+  expect(screen.queryByText(/premiers résultats/i)).not.toBeInTheDocument()
+})
+
+test('pas de badge si rowCount absent', () => {
+  render(<DataTable columns={COLS} rows={ROWS} />)
+  expect(screen.queryByText(/premiers résultats/i)).not.toBeInTheDocument()
+})

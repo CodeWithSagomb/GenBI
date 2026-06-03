@@ -67,3 +67,18 @@ test('affiche erreur dans le message ai concerné', () => {
   render(<ChatWindow />)
   expect(screen.getByText('Erreur serveur')).toBeInTheDocument()
 })
+
+test('scroll vers le bas quand un nouveau message apparaît', () => {
+  const scrollIntoView = vi.fn()
+  window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+
+  const { rerender } = render(<ChatWindow />)
+
+  hooks.useChat.mockReturnValue({
+    ...defaultHook,
+    messages: [{ id: 0, role: 'user', content: 'Nouvelle question' }],
+  })
+  rerender(<ChatWindow />)
+
+  expect(scrollIntoView).toHaveBeenCalled()
+})

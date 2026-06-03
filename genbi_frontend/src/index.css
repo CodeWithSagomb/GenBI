@@ -487,6 +487,14 @@ body {
   padding: 2rem;
 }
 
+.datatable__truncated {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+  padding: 0.4rem 1rem;
+  border-top: 1px solid var(--panel-border);
+}
+
 /* ─── Feedback buttons ─── */
 .feedback-buttons {
   display: flex;

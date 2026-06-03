@@ -3,7 +3,7 @@ from time import time
 from typing import Optional
 from fastapi import Header
 from config import settings
-from core.exceptions import AuthError, RateLimitError
+from core.exceptions import AuthError, ForbiddenError, RateLimitError
 from core.security import decode_access_token
 
 RATE_LIMIT = 10   # requêtes max
@@ -48,7 +48,7 @@ def get_current_pharmacy(
         payload = decode_access_token(token)  # lève AuthError si invalide
         pharmacy_id = payload.get("pharmacy_id")
         if pharmacy_id is None:
-            raise AuthError("Token JWT sans pharmacy_id (rôle admin non autorisé ici).")
+            raise ForbiddenError("Accès réservé aux pharmaciens. Le rôle admin n'a pas accès à cet endpoint.")
         return int(pharmacy_id)
 
     # ── Mode X-API-Key (dev / backward-compat) ────────────────────────────────

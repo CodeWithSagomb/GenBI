@@ -13,6 +13,7 @@ const EXECUTE_MOCK = {
 const INTERPRET_MOCK = { insight: 'Votre CA est en bonne progression.' }
 
 async function mockAllRoutes(page) {
+  await page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))
   await page.route('**/api/v1/schema', (r) => r.fulfill({ status: 200, body: JSON.stringify(SCHEMA_MOCK) }))
   await page.route('**/api/v1/chat', (r) => r.fulfill({ status: 200, body: JSON.stringify(CHAT_MOCK) }))
   await page.route('**/api/v1/execute', (r) => r.fulfill({ status: 200, body: JSON.stringify(EXECUTE_MOCK) }))
@@ -24,6 +25,7 @@ const EXECUTE_MOCK_1 = { columns: ['ca'], rows: [[15000000]], row_count: 1, limi
 const EXECUTE_MOCK_2 = { columns: ['produit', 'total'], rows: [['Paracétamol', 500]], row_count: 1, limit: 100, offset: 0 }
 
 async function mockMultiTurnRoutes(page) {
+  await page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))
   await page.route('**/api/v1/schema', (r) => r.fulfill({ status: 200, body: JSON.stringify(SCHEMA_MOCK) }))
   await page.route('**/api/v1/interpret', (r) => r.fulfill({ status: 200, body: JSON.stringify(INTERPRET_MOCK) }))
 
@@ -57,6 +59,7 @@ test.describe('Flux chat complet', () => {
   })
 
   test('une erreur API affiche un message lisible', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))
     await page.route('**/api/v1/schema', (r) => r.fulfill({ status: 200, body: JSON.stringify(SCHEMA_MOCK) }))
     await page.route('**/api/v1/chat', (r) =>
       r.fulfill({ status: 500, body: JSON.stringify({ detail: 'Erreur serveur simulée' }) })
@@ -72,6 +75,7 @@ test.describe('Flux chat complet', () => {
   })
 
   test('une question vide ne déclenche pas de requête', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))
     await page.route('**/api/v1/schema', (r) => r.fulfill({ status: 200, body: JSON.stringify(SCHEMA_MOCK) }))
 
     let chatCalled = false

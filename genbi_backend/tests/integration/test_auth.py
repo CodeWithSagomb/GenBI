@@ -43,3 +43,45 @@ def test_rate_limit_depasse_retourne_429(client):
 
     # Reset pour ne pas polluer les autres tests
     reset_rate_limit(test_key)
+
+
+# ─── Admin JWT sur endpoints protégés ────────────────────────────────────────
+
+def _admin_token() -> str:
+    from core.security import create_access_token
+    return create_access_token({
+        "sub": "admin@genbi.sn",
+        "user_id": 4,
+        "pharmacy_id": None,
+        "role": "admin",
+    })
+
+
+def test_admin_jwt_sur_ping_retourne_403(client):
+    """Admin sans pharmacy_id → 403 Forbidden, pas 401 (ne pas déclencher logout)."""
+    r = client.get(PING, headers={"Authorization": f"Bearer {_admin_token()}"})
+    assert r.status_code == 403
+    assert "error" in r.json()
+
+
+def test_admin_jwt_sur_chat_retourne_403(client):
+    r = client.post(
+        "/api/v1/chat",
+        json={"question": "test"},
+        headers={"Authorization": f"Bearer {_admin_token()}"},
+    )
+    assert r.status_code == 403
+
+
+def test_pharmacist_jwt_sur_ping_retourne_200(client):
+    """JWT pharmacien valide → 200 (vérification que le chemin JWT normal marche)."""
+    from core.security import create_access_token
+    tok = create_access_token({
+        "sub": "bourguiba@pharma.sn",
+        "user_id": 1,
+        "pharmacy_id": 1,
+        "role": "pharmacist",
+    })
+    r = client.get(PING, headers={"Authorization": f"Bearer {tok}"})
+    assert r.status_code == 200
+    assert r.json()["pharmacy_id"] == 1

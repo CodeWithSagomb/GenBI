@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useChat } from '../../hooks/useChat'
 import { QueryInput } from './QueryInput'
 import { MessageBubble } from './MessageBubble'
@@ -11,6 +11,11 @@ import { chatApi } from '../../services/api'
 export function ChatWindow() {
   const { messages, status, sendQuestion, setFeedback } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   async function handleReexecute(messageId, editedSql) {
     try {
@@ -31,6 +36,7 @@ export function ChatWindow() {
     return {
       columns: override?.columns ?? msg.columns ?? [],
       rows: override?.rows ?? msg.rows ?? [],
+      rowCount: override?.row_count ?? msg.row_count ?? null,
     }
   }
 
@@ -61,6 +67,7 @@ export function ChatWindow() {
                 <DataTable
                   columns={getDisplayData(msg).columns}
                   rows={getDisplayData(msg).rows}
+                  rowCount={getDisplayData(msg).rowCount}
                 />
               </>
             )}
@@ -79,6 +86,7 @@ export function ChatWindow() {
         </div>
       )}
 
+      <div ref={bottomRef} />
       <QueryInput onSubmit={sendQuestion} disabled={status === 'loading'} />
     </div>
   )

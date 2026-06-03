@@ -18,12 +18,14 @@ function formatHeader(col) {
   return col.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
-export function DataTable({ columns, rows }) {
+export function DataTable({ columns, rows, rowCount }) {
   if (!rows || rows.length === 0) {
     return (
       <p className="datatable__empty">Aucun résultat trouvé.</p>
     )
   }
+
+  const isTruncated = rowCount != null && rowCount > rows.length
 
   return (
     <div className="datatable__wrapper" data-testid="results-table">
@@ -45,6 +47,11 @@ export function DataTable({ columns, rows }) {
           ))}
         </tbody>
       </table>
+      {isTruncated && (
+        <p className="datatable__truncated">
+          {rows.length} premiers résultats sur {rowCount.toLocaleString('fr-FR')} au total
+        </p>
+      )}
     </div>
   )
 }
