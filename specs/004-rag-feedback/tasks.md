@@ -1,7 +1,7 @@
 # Tasks — Phase 5 : RAG + Feedback Loop + JWT/RBAC
 
-**Dernière mise à jour** : 2026-05-31
-**Statut global** : 29 / 30 ✅ — T507/T530 (E2E Playwright) écrits, à exécuter dans Docker
+**Dernière mise à jour** : 2026-06-03
+**Statut global** : 30 / 30 ✅ — T507/T530 exécutés et PASS dans Docker
 
 ---
 
@@ -16,7 +16,7 @@
 ### Tests Track 1
 - [x] **T505** — Tests Vitest `useChat.test.js` (6 tests)
 - [x] **T506** — Tests Vitest `FeedbackButtons.test.jsx` (5 tests)
-- [x] **T507** — E2E Playwright : conversation multi-tours (écrit dans `chat-flow.spec.js`)
+- [x] **T507** — E2E Playwright : conversation multi-tours (`chat-flow.spec.js` — 2 tests PASS)
 
 ---
 
@@ -63,7 +63,7 @@
 - [x] **T527** — `src/services/api.js` : Bearer token + authApi.login + logout 401
 - [x] **T528** — `src/App.jsx` : routing login/chat + bouton logout
 - [x] **T529** — 4 tests Vitest `LoginPage.test.jsx`
-- [x] **T530** — E2E Playwright flux login (écrit dans `login-flow.spec.js`)
+- [x] **T530** — E2E Playwright flux login (`login-flow.spec.js` — 4 tests PASS)
 
 ---
 
@@ -71,7 +71,8 @@
 
 | Track | Tâches | Tests | Statut |
 |---|---|---|---|
-| Track 1 — UX Conversation | T501–T507 | 33 frontend Vitest | ✅ |
+| Track 1 — UX Conversation | T501–T507 | Vitest + 2 E2E Playwright | ✅ |
 | Track 2 — RAG ChromaDB | T508–T517 | 13 backend (8u+5i) | ✅ |
-| Track 3 — JWT/RBAC | T518–T530 | 23 backend (10u+9i) + 4 frontend | ✅ |
-| **Total** | **30 tâches** | **111 backend + 37 frontend** | **✅** |
+| Track 3 — JWT/RBAC | T518–T530 | 23 backend (10u+9i) + 4 frontend + 4 E2E | ✅ |
+| **Stabilisation A1–A5** | fixes prod | 3 backend + 7 frontend + 6 E2E | ✅ |
+| **Total** | **30 tâches** | **114 backend + 44 Vitest + 11 Playwright = 169** | **✅** |

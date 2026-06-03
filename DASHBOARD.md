@@ -2,8 +2,8 @@
 
 > Fichier de référence unique. Mettre à jour après chaque session de travail.
 
-**Dernière mise à jour** : 2026-05-31
-**Phase active** : Phase 5 — RAG ChromaDB + Feedback Loop
+**Dernière mise à jour** : 2026-06-03
+**Phase active** : Démo-prêt ✅ — toutes phases terminées · 169/169 tests PASS
 
 ---
 
@@ -14,7 +14,8 @@ Phase 1 ████████████████████ 100%  ✅ I
 Phase 2 ████████████████████ 100%  ✅ Couche Sémantique dbt
 Phase 3 ████████████████████ 100%  ✅ Backend API FastAPI
 Phase 4 ████████████████████ 100%  ✅ Interface de Chat React
-Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 RAG & Feedback Loop          ← ICI
+Phase 5 ████████████████████ 100%  ✅ RAG + Feedback Loop + JWT/RBAC
+Stab.   ████████████████████ 100%  ✅ A1–A5 — 169/169 tests PASS
 ```
 
 ---
@@ -125,16 +126,35 @@ Phase 5 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 
 
 ---
 
-## Phase 5 — RAG + Feedback Loop + JWT/RBAC 🔄 EN COURS
+## Phase 5 — RAG + Feedback Loop + JWT/RBAC ✅ TERMINÉE
 
+**Validé** : 2026-06-03 · **114 backend + 44 Vitest + 11 Playwright = 169/169 PASS**
 **Spec** : [specs/004-rag-feedback/spec.md](specs/004-rag-feedback/spec.md)
-**Tasks** : [specs/004-rag-feedback/tasks.md](specs/004-rag-feedback/tasks.md) — 0/30 ✅
+**Tasks** : [specs/004-rag-feedback/tasks.md](specs/004-rag-feedback/tasks.md) — 30/30 ✅
 
 | Track | Tâches | Statut |
 |---|---|---|
-| Track 1 — UX Conversation (T501–T507) | 7 tâches | ⏳ À démarrer |
-| Track 2 — RAG ChromaDB (T508–T517) | 10 tâches | ⏳ À démarrer |
-| Track 3 — JWT/RBAC (T518–T530) | 13 tâches | ⏳ À démarrer |
+| Track 1 — UX Conversation (T501–T507) | 7 tâches · messages[] · FeedbackButtons · scroll auto | ✅ |
+| Track 2 — RAG ChromaDB (T508–T517) | 10 tâches · ChromaDB · nomic-embed-text · few-shot | ✅ |
+| Track 3 — JWT/RBAC (T518–T530) | 13 tâches · bcrypt · python-jose · LoginPage | ✅ |
+
+**Stabilisation A1–A5 (2026-06-03)**
+
+| Fix | Problème | Solution |
+|---|---|---|
+| A1 — Admin JWT | Token admin → 401 → boucle auto-logout | `ForbiddenError` → 403 ; frontend garde session |
+| A2 — Auto-scroll | Nouveaux messages hors écran | `useRef` + `scrollIntoView` dans `ChatWindow` |
+| A3 — JWT Secret | Clé dev hardcodée en prod | Warning lifespan + clé dans `genbi_backend/.env` |
+| A4 — Pagination badge | Résultats tronqués sans avertissement | `DataTable` prop `rowCount` + badge |
+| A5 — E2E Playwright | 8/11 tests en échec | IPv4 fix + token injection + `getByLabel` |
+
+**Gotchas Phase 5 :**
+- `passlib 1.7.4` incompatible `bcrypt 5.0.0` → `import bcrypt` directement
+- `get_auth_conn` : connexion readonly SANS RLS, réservée à `/auth/login`
+- `scrollIntoView` absent JSDOM → mock global dans `tests/setup.js`
+- `data/chromadb/` bloqué par `.gitignore data/*` → exceptions `!data/chromadb/`
+- Playwright : `localhost` résout IPv6 `::1`, Vite écoute IPv4 uniquement → `127.0.0.1`
+- `page.getByLabelText` n'existe pas → `page.getByLabel` (API Playwright native)
 
 ---
 

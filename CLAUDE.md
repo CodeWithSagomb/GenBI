@@ -50,6 +50,11 @@ raw.*  →  staging.*  →  marts.*
 11. **`RETURNING` requiert SELECT** — `GRANT INSERT,SELECT ON raw.feedback TO genbi_write` (pas INSERT seul). PostgreSQL exige SELECT sur les colonnes retournées par RETURNING.
 12. **Tests d'intégration dans Docker** — `docker exec genbi_backend python -m pytest tests/ -v`. Le venv local est Python 3.9 ; le container Python 3.11. Utiliser `Optional[X]` et `asyncio.wait_for` pour compatibilité 3.9.
 13. **`genbi_write` créé manuellement** — `init.sql` s'exécute seulement au 1er démarrage. Si le container existe déjà, appliquer les grants via `docker exec genbi_postgres psql`.
+14. **passlib 1.7.4 incompatible bcrypt 5.0.0** — `bcrypt.__about__` supprimé en v5. Utiliser `import bcrypt` directement, pas `passlib.context.CryptContext`.
+15. **`get_auth_conn`** — connexion readonly SANS RLS ni `pharmacy_id`, réservée à `/auth/login`. `get_db_conn` nécessite `get_current_pharmacy` — ne pas l'utiliser avant authentification.
+16. **Admin JWT → 403 pas 401** — token JWT avec `pharmacy_id: None` (rôle admin) lève `ForbiddenError` → HTTP 403. Le frontend supprime le token uniquement sur 401, garde la session sur 403.
+17. **Playwright : `localhost` = IPv6** — dans le container Alpine, `localhost` résout `::1` mais Vite écoute uniquement IPv4. `playwright.config.js` utilise `http://127.0.0.1:5173`.
+18. **E2E chat : injecter le token** — tests Playwright accédant au chat doivent appeler `page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))` avant `page.goto('/')`, sinon la LoginPage s'affiche.
 
 ## État d'avancement
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
@@ -64,12 +69,12 @@ raw.*  →  staging.*  →  marts.*
 - ✅ Phase 4 — Frontend React — validé 2026-05-31 — **26/26 Vitest + 5/5 Playwright PASS**
   - ChatWindow · SQLDisplay (mode édition) · DataTable · ChartRouter (LineChart/BarChart auto)
   - Alpine ARM64 : apk add chromium (binaire Playwright glibc incompatible musl)
-- ✅ Phase 5 — RAG + Feedback Loop + JWT/RBAC — validé 2026-05-31 — **111/111 backend + 37/37 frontend PASS**
+- ✅ Phase 5 — RAG + Feedback Loop + JWT/RBAC — validé 2026-06-03 — **114/114 backend + 44/44 Vitest + 11/11 Playwright = 169 PASS**
   - RAG few-shot : ChromaDB PersistentClient · nomic-embed-text · isolation par pharmacie · best-effort
   - Feedback loop : rating "good" → index ChromaDB · rating "bad" → ignoré · 5 tests intégration
   - JWT/RBAC : bcrypt (direct, pas passlib) · python-jose · raw.users (4 users test) · /auth/login|me|refresh
-  - Frontend : LoginPage · App.jsx routing login↔chat · Bearer token · logout automatique si 401
-  - Gotcha : passlib 1.7.4 incompatible bcrypt 5.0.0 → utiliser `import bcrypt` directement
+  - Frontend : LoginPage · App.jsx routing login↔chat · Bearer token · auto-logout 401 · session conservée si 403
+  - Stabilisation : ForbiddenError 403 (admin) · scroll auto · badge pagination · E2E 11/11
   - core/auth.py : accepte Bearer JWT (prod) ET X-API-Key (rétrocompat tests Phase 3)
 
 ## Structure des fichiers clés
@@ -85,7 +90,7 @@ genbi_backend/main.py                   ← API FastAPI (lifespan + 7 routers + 
 genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
 genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware, rag, security, column_classifier
 genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/, auth/, admin/
-genbi_backend/tests/                    ← unit/ + integration/ — 111 tests PASS
+genbi_backend/tests/                    ← unit/ + integration/ — 114 tests PASS
 genbi_frontend/src/App.jsx              ← interface React (Phase 4-5) — routing login/chat
 genbi_frontend/src/components/auth/     ← LoginPage.jsx
 dbt_project/                            ← couche sémantique (Phase 2 terminée)
