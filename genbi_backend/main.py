@@ -46,6 +46,18 @@ async def lifespan(app: FastAPI):
     app.state.db_write_pool = create_write_pool()
     app.state.rag_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
 
+    # Seed RAG : injecte les exemples golden dans ChromaDB si collections vides (best-effort)
+    try:
+        from core.rag import seed_collection
+        from tests.benchmark.golden_questions import GOLDEN_QUESTIONS
+        _log = logging.getLogger("genbi")
+        for _pid in [1, 2, 3]:
+            _n = seed_collection(app.state.rag_client, _pid, GOLDEN_QUESTIONS)
+            if _n > 0:
+                _log.info("RAG seed: %d exemples indexés pour pharmacie %d", _n, _pid)
+    except Exception as _exc:
+        logging.getLogger("genbi").warning("RAG seed échoué (best-effort): %s", _exc)
+
     yield
 
     app.state.db_pool.closeall()

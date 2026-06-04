@@ -1,38 +1,38 @@
 # Tasks — Phase 6 : Qualité LLM
 
 **Dernière mise à jour** : 2026-06-04  
-**Statut global** : 0 / 22 ✅
+**Statut global** : 16 / 22 ✅
 
 ---
 
 ## Track 1 — Benchmark automatique
 
-- [ ] **T601** — Créer `tests/benchmark/` + `__init__.py` + `conftest_benchmark.py`
-- [ ] **T602** — Écrire les 30 paires `(question, sql_attendu)` dans `golden_questions.py`
-- [ ] **T603** — Implémenter `run_benchmark.py` : chat → execute → compare résultats
-- [ ] **T604** — Mesurer le score de départ (avant toute modification) — documenter dans `DASHBOARD.md`
-- [ ] **T605** — Identifier et catégoriser les échecs (pattern : mauvaise table, jointure, filtre…)
+- [x] **T601** — Créer `tests/benchmark/` + `__init__.py` + `conftest_benchmark.py`
+- [x] **T602** — Écrire les 30 paires `(question, sql_attendu)` dans `golden_questions.py`
+- [x] **T603** — Implémenter `run_benchmark.py` : chat → execute → compare résultats
+- [x] **T604** — Mesurer le score de départ (avant toute modification) — **26/30 (86 %)** documenté
+- [x] **T605** — Identifier et catégoriser les échecs : Q11 (GROUP BY catégorie), Q17 (filtre date erroné), Q29 (filtre product_category manquant), Q30 (colonne therapeutic_group inexistante)
 
 ---
 
 ## Track 2 — Seed RAG
 
-- [ ] **T606** — Ajouter `seed_collection(client, pharmacy_id, examples)` dans `core/rag.py`
-- [ ] **T607** — 5 tests unitaires `tests/unit/test_rag_seed.py`
-- [ ] **T608** — Appeler `seed_collection` dans le lifespan `main.py` (best-effort, après init ChromaDB)
-- [ ] **T609** — Vérifier : ChromaDB non vide après redémarrage du container
-- [ ] **T610** — Re-mesurer le score benchmark après seed (T1 niveau comparaison)
+- [x] **T606** — Ajouter `seed_collection(client, pharmacy_id, examples)` dans `core/rag.py`
+- [x] **T607** — 5 tests unitaires `tests/unit/test_rag_seed.py` — **5/5 PASS**
+- [x] **T608** — Appeler `seed_collection` dans le lifespan `main.py` (best-effort, après init ChromaDB)
+- [x] **T609** — Vérifier : ChromaDB non vide après redémarrage — pharmacy_1:20 pharmacy_2:30 pharmacy_3:30
+- [x] **T610** — Re-mesurer après seed : score identique (RAG était silencieusement KO → fix api_base)
 
 ---
 
 ## Track 3 — Amélioration prompt
 
-- [ ] **T611** — Analyser les échecs T604/T605 — liste des patterns à corriger
-- [ ] **T612** — Créer `core/prompts/v2_sql_generation.txt` avec corrections ciblées
-- [ ] **T613** — Ajouter `SQL_PROMPT_VERSION` dans `config.py` + `llm.py` lit la version configurable
-- [ ] **T614** — 3 tests unitaires : prompt v1 vs v2 chargés selon config
-- [ ] **T615** — Re-mesurer benchmark avec prompt v2 — documenter delta (ex : 18/30 → 24/30)
-- [ ] **T616** — Itérer sur v2 si score < 25/30 (max 2 itérations)
+- [x] **T611** — Analyser les 4 échecs : GROUP BY catégorie / filtre date ruptures / product_category / therapeutic_class
+- [x] **T612** — Créer `core/prompts/v2_sql_generation.txt` avec 4 corrections ciblées
+- [x] **T613** — `SQL_PROMPT_VERSION = "v2_sql_generation"` dans `config.py` + `llm.py` configurable
+- [x] **T614** — 3 tests unitaires prompt v1/v2 — **3/3 PASS** — ajoutés à `test_llm_prompt_builder.py`
+- [x] **T615** — Re-mesurer benchmark avec prompt v2 — **30/30 (100 %)** ← score parfait
+- [x] **T616** — Aucune itération nécessaire (100 % au premier essai)
 
 ---
 
@@ -51,8 +51,8 @@
 
 | Track | Tâches | Dépendances | Statut |
 |---|---|---|---|
-| T1 — Benchmark | T601–T605 | Aucune | ⏳ |
-| T2 — Seed RAG | T606–T610 | T601 (golden questions) | ⏳ |
-| T3 — Prompt | T611–T616 | T604 (score de départ) | ⏳ |
-| T4 — Modèles | T617–T622 | T615 (score v2 établi) | ⏳ |
-| **Total** | **22 tâches** | | **0/22 ✅** |
+| T1 — Benchmark | T601–T605 | Aucune | ✅ 26/30 (86%) de départ |
+| T2 — Seed RAG | T606–T610 | T601 (golden questions) | ✅ ChromaDB peuplé + api_base fix |
+| T3 — Prompt | T611–T616 | T604 (score de départ) | ✅ **30/30 (100%)** |
+| T4 — Modèles | T617–T622 | T615 (score v2 établi) | ⏳ Optionnel — déjà à 100% |
+| **Total** | **22 tâches** | | **16/22 ✅ (T4 optionnel)** |

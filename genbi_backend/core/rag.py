@@ -4,6 +4,8 @@ from typing import Optional
 
 import litellm
 
+from config import settings
+
 logger = logging.getLogger(__name__)
 
 _EMBED_MODEL = "ollama/nomic-embed-text"
@@ -18,7 +20,7 @@ def get_collection(client, pharmacy_id: int):
 
 
 def _embed(text: str) -> Optional[list[float]]:
-    response = litellm.embedding(_EMBED_MODEL, input=[text])
+    response = litellm.embedding(_EMBED_MODEL, input=[text], api_base=settings.OLLAMA_BASE_URL)
     return response.data[0]["embedding"]
 
 
@@ -36,6 +38,25 @@ def index_example(client, pharmacy_id: int, question: str, sql: str) -> None:
         )
     except Exception as exc:
         logger.warning("RAG index_example failed (best-effort): %s", exc)
+
+
+def seed_collection(client, pharmacy_id: int, examples: list[dict]) -> int:
+    """Injecte les exemples golden dans ChromaDB si la collection est vide.
+
+    Chaque exemple doit avoir les clés 'question' et 'golden_sql'.
+    Retourne le nombre d'exemples indexés (0 si la collection était déjà peuplée).
+    """
+    col = get_collection(client, pharmacy_id)
+    if col.count() > 0:
+        return 0
+    count = 0
+    for ex in examples:
+        try:
+            index_example(client, pharmacy_id, ex["question"], ex["golden_sql"])
+            count += 1
+        except Exception as exc:
+            logger.warning("RAG seed skipped (best-effort): %s", exc)
+    return count
 
 
 def retrieve_examples(client, pharmacy_id: int, question: str, n: int = 3) -> list[dict]:

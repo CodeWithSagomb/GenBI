@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Admin — secret pour les opérations de maintenance (vide = endpoint désactivé)
     ADMIN_SECRET: str = ""
 
+    # Prompt LLM — version active pour la génération SQL (versionné dans core/prompts/)
+    SQL_PROMPT_VERSION: str = "v2_sql_generation"
+
     APP_ENV: str = "development"
     DEBUG: bool = True
 

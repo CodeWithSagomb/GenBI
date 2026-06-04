@@ -46,7 +46,7 @@ def build_sql_prompt(schema: str, question: str, examples: list | None = None) -
     Si `examples` est fourni (paires Question→SQL issues du RAG), un bloc
     <examples> est injecté dans le prompt pour guider le LLM.
     """
-    template = load_prompt("v1_sql_generation")
+    template = load_prompt(settings.SQL_PROMPT_VERSION)
     examples_block = ""
     if examples:
         lines = "\n".join(

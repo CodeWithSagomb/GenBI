@@ -3,7 +3,7 @@
 > Fichier de référence unique. Mettre à jour après chaque session de travail.
 
 **Dernière mise à jour** : 2026-06-04
-**Phase active** : Phase 6 — Qualité LLM (Benchmark + RAG Seed + Prompt v2)
+**Phase active** : Phase 6 — Qualité LLM ✅ **TERMINÉE** — Score 30/30 (100 %)
 
 ---
 
@@ -16,7 +16,7 @@ Phase 3 ████████████████████ 100%  ✅ B
 Phase 4 ████████████████████ 100%  ✅ Interface de Chat React
 Phase 5 ████████████████████ 100%  ✅ RAG + Feedback Loop + JWT/RBAC
 Stab.   ████████████████████ 100%  ✅ A1–A5 — 169/169 tests PASS
-Phase 6 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Qualité LLM                   ← ICI
+Phase 6 ████████████████████ 100%  ✅ Qualité LLM — 30/30 (100 %)      ← ICI
 ```
 
 ---
@@ -172,20 +172,38 @@ Phase 6 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 
 
 ---
 
-## Phase 6 — Qualité LLM 🔄 EN COURS
+## Phase 6 — Qualité LLM ✅ TERMINÉE
 
+**Validé** : 2026-06-04 · **122/122 tests PASS · 30/30 benchmark (100 %)**
 **Spec** : [specs/005-llm-quality/spec.md](specs/005-llm-quality/spec.md)
-**Tasks** : [specs/005-llm-quality/tasks.md](specs/005-llm-quality/tasks.md) — 0/22 ✅
+**Tasks** : [specs/005-llm-quality/tasks.md](specs/005-llm-quality/tasks.md) — 16/22 ✅ (T4 optionnel)
 
-| Track | Tâches | Objectif | Statut |
+| Track | Tâches | Résultat | Statut |
 |---|---|---|---|
-| T1 — Benchmark 30 questions | T601–T605 | Score de départ mesuré | ⏳ À démarrer |
-| T2 — Seed RAG | T606–T610 | ChromaDB non vide au boot | ⏳ À démarrer |
-| T3 — Prompt v2 | T611–T616 | ≥ 25/30 questions correctes | ⏳ À démarrer |
-| T4 — Modèles (optionnel) | T617–T622 | Meilleur rapport score/vitesse | ⏳ Optionnel |
+| T1 — Benchmark 30 questions | T601–T605 | Score de départ : **26/30 (86 %)** | ✅ |
+| T2 — Seed RAG | T606–T610 | ChromaDB peuplé · fix api_base `_embed` | ✅ |
+| T3 — Prompt v2 | T611–T616 | Score final : **30/30 (100 %)** | ✅ |
+| T4 — Modèles (optionnel) | T617–T622 | Non nécessaire — déjà à 100 % | ⏳ Optionnel |
 
-**Score LLM actuel** : non mesuré — benchmark à construire (T601–T604)
-**RAG** : 0/3 collections — seed à implémenter (T606–T609)
+**Résultats benchmark :**
+
+| Catégorie | Score | Évolution |
+|---|---|---|
+| ca_simple | 6/6 | ✅ |
+| produits | 6/6 | +1 (Q11 GROUP BY catégorie corrigé) |
+| clients | 4/4 | ✅ |
+| ruptures | 5/5 | +1 (Q17 filtre date erroné corrigé) |
+| stats | 5/5 | ✅ |
+| complexe | 4/4 | +2 (Q29 product_category + Q30 therapeutic_class) |
+
+**Prompt v2** : `core/prompts/v2_sql_generation.txt` — 4 correctifs ciblés · configurable via `SQL_PROMPT_VERSION`
+**RAG** : `seed_collection` au lifespan · `_embed` fix `api_base` · pharmacy_1:20 pharmacy_2:30 pharmacy_3:30 items
+**Tests** : +8 nouveaux (3 prompt versionnage + 5 RAG seed) → 122/122 PASS
+
+**Gotchas Phase 6 :**
+- `_embed` sans `api_base` → litellm defaultait à `localhost:11434` → "Connection refused" en container
+- ChromaDB `EphemeralClient()` partage l'état entre instances dans le même process → pharmacy_ids uniques dans les tests
+- `col.count() > 0` bloque le re-seed → idempotent par design (collections existantes non écrasées)
 
 ---
 

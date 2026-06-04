@@ -1,12 +1,12 @@
-"""Tests unitaires — core/llm.py (prompt builder + timeout).
+"""Tests unitaires — core/llm.py (prompt builder + timeout + versionnage).
 
 Les appels Ollama réels ne sont pas testés ici (lents, réseau requis).
-On teste : construction des prompts + gestion du timeout.
+On teste : construction des prompts, gestion du timeout, versionnage v1/v2.
 """
 import pytest
 from unittest.mock import patch
 
-from core.llm import build_sql_prompt, build_insight_prompt, generate_sql, _clean_sql
+from core.llm import build_sql_prompt, build_insight_prompt, generate_sql, _clean_sql, load_prompt
 from core.exceptions import LLMTimeoutError
 
 
@@ -80,3 +80,38 @@ async def test_timeout_leve_llm_timeout_error():
     with patch("litellm.acompletion", new=raises_timeout):
         with pytest.raises(LLMTimeoutError):
             await generate_sql("schema", "question")
+
+
+# ── Versionnage prompt (T614) ─────────────────────────────────────────────────
+
+def test_load_prompt_v1_contient_regles_de_base():
+    """v1 est chargeable et contient la règle ruptures."""
+    prompt = load_prompt("v1_sql_generation")
+    assert "fct_missed_sales" in prompt
+    assert "sale_month" in prompt
+
+
+def test_load_prompt_v2_contient_correctifs_cibles():
+    """v2 contient les 4 corrections : therapeutic_class, product_category, seed ruptures, groupement."""
+    prompt = load_prompt("v2_sql_generation")
+    assert "therapeutic_class" in prompt
+    assert "therapeutic_group" in prompt      # mentionné pour dire de NE PAS l'utiliser
+    assert "product_category" in prompt
+    assert "'Médicament'" in prompt
+    assert "'Parapharmacie'" in prompt
+    assert "GROUP BY pd.product_category" in prompt
+
+
+def test_build_sql_prompt_utilise_version_configurable():
+    """build_sql_prompt doit charger la version définie dans settings.SQL_PROMPT_VERSION."""
+    with patch("core.llm.settings") as mock_settings:
+        mock_settings.SQL_PROMPT_VERSION = "v1_sql_generation"
+        prompt_v1 = build_sql_prompt("schema_test", "question_test")
+
+    with patch("core.llm.settings") as mock_settings:
+        mock_settings.SQL_PROMPT_VERSION = "v2_sql_generation"
+        prompt_v2 = build_sql_prompt("schema_test", "question_test")
+
+    # v2 doit contenir des éléments absents de v1
+    assert "GROUP BY pd.product_category" not in prompt_v1
+    assert "GROUP BY pd.product_category" in prompt_v2
