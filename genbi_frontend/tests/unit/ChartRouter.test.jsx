@@ -39,11 +39,11 @@ test('retourne null pour données vides', () => {
   expect(container.firstChild).toBeNull()
 })
 
-test('détecte colonne date correctement — "mois" fallback en BarChart', () => {
+test('détecte colonne "mois" comme temporelle → LineChart', () => {
   const { container } = render(
     <ChartRouter columns={['mois', 'ca']} rows={[['2026-02', 500000], ['2026-03', 600000]]} />
   )
-  expect(container.querySelector('[data-chart-type="bar"]')).not.toBeNull()
+  expect(container.querySelector('[data-chart-type="line"]')).not.toBeNull()
 })
 
 test('BarChart avec product_id : utilise commercial_name comme label', () => {

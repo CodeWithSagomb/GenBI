@@ -19,8 +19,11 @@ Règles CRITIQUES — toute violation rend la requête invalide :
 
 3. FILTRES PAR MOIS sur marts.fct_sales : utiliser sale_month et sale_year.
    Ces colonnes n'existent QUE dans marts.fct_sales, pas ailleurs.
-   ✓ WHERE s.sale_month = 2 AND s.sale_year = 2026
-   ✗ WHERE sale_date BETWEEN '2026-02-01' AND '2026-02-29'
+   Si la question mentionne un mois précis (ex: "mars 2026") :
+   ✓ WHERE s.sale_month = 3 AND s.sale_year = 2026
+   ✗ WHERE sale_date BETWEEN '2026-03-01' AND '2026-03-31'
+   Si la question ne précise PAS de mois (ex: "par mois", "évolution", "toute la période") :
+   → ne pas ajouter de filtre sale_month — regrouper sur sale_month et sale_year.
 
 4. FILTRES PAR SEMAINE / JOUR sur marts.fct_sales : utiliser sale_date.
    ✓ WHERE s.sale_date >= CURRENT_DATE - INTERVAL '7 days'

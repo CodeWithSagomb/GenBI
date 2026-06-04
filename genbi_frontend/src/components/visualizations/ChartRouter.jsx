@@ -2,7 +2,7 @@ import { SalesLineChart } from './SalesLineChart'
 import { RankingBarChart } from './RankingBarChart'
 
 function isDateColumn(name) {
-  return /date|jour|semaine/i.test(name)
+  return /date|jour|semaine|mois|month/i.test(name)
 }
 
 function detectChartType(columns, rows) {
@@ -56,7 +56,9 @@ export function ChartRouter({ columns, rows }) {
   const data = buildData(columns, rows)
 
   if (type === 'line') {
-    return <SalesLineChart data={data} xKey={columns[0]} yKey={columns[1]} />
+    const keys = pickChartKeys(columns, rows)
+    const yKey = keys ? keys.yKey : columns[1]
+    return <SalesLineChart data={data} xKey={columns[0]} yKey={yKey} />
   }
 
   const keys = pickChartKeys(columns, rows)
