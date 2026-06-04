@@ -35,14 +35,24 @@ Règles CRITIQUES — toute violation rend la requête invalide :
 
 6. RUPTURES DE STOCK — règle exacte, ne pas dévier :
    La table marts.fct_missed_sales liste les demandes non servies.
-   Colonnes disponibles : missed_sale_id, pharmacy_id, product_id, missed_date, requested_quantity.
+   Colonnes disponibles : missed_sale_id, pharmacy_id, product_id, missed_date, missed_date_day,
+     missed_year, missed_month, requested_quantity, client_type.
    Elle ne possède PAS sale_month, sale_year, sale_id ni quantity.
+   Ne JAMAIS joindre fct_sales pour obtenir des informations temporelles — utiliser missed_month/missed_year.
    Pour lister les produits en rupture :
      SELECT DISTINCT ms.product_id, pd.commercial_name
      FROM marts.fct_missed_sales ms
      JOIN marts.dim_products pd ON ms.product_id = pd.product_id
-   Ajouter un filtre temporel seulement si la question précise une période (utiliser missed_date).
-   Si la question ne précise pas de période, ne pas ajouter de WHERE temporel.
+   Pour compter les ruptures par mois :
+     SELECT missed_month AS mois, COUNT(*) AS nb_ruptures
+     FROM marts.fct_missed_sales
+     GROUP BY missed_month ORDER BY missed_month
+   Pour les 5 produits avec le plus de ruptures :
+     SELECT pd.commercial_name, COUNT(*) AS nb_ruptures
+     FROM marts.fct_missed_sales ms
+     JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+     GROUP BY pd.commercial_name ORDER BY nb_ruptures DESC LIMIT 5
+   Ajouter un filtre temporel seulement si la question précise une période (utiliser missed_date ou missed_month).
 
 7. ANNÉES : respecter l'année EXACTE de la question. Contexte : données Fév–Mai 2026.
 
