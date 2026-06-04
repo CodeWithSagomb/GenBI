@@ -57,6 +57,12 @@ raw.*  →  staging.*  →  marts.*
 18. **E2E chat : injecter le token** — tests Playwright accédant au chat doivent appeler `page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))` avant `page.goto('/')`, sinon la LoginPage s'affiche.
 
 ## État d'avancement
+- 🔄 Phase 6 — Qualité LLM — **en cours** — 0/22 tâches
+  - T1 Benchmark : 30 questions golden + score pytest
+  - T2 Seed RAG : ChromaDB pré-alimenté au démarrage
+  - T3 Prompt v2 : corrections ciblées sur les échecs du benchmark
+  - T4 Modèles : comparaison qwen2.5-coder:7b vs alternatives (optionnel)
+  - Spec : specs/005-llm-quality/spec.md · Tasks : specs/005-llm-quality/tasks.md
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
   - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
 - ✅ Phase 2 — dbt sémantique — validé 2026-05-29

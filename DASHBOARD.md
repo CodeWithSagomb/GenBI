@@ -2,8 +2,8 @@
 
 > Fichier de référence unique. Mettre à jour après chaque session de travail.
 
-**Dernière mise à jour** : 2026-06-03
-**Phase active** : Démo-prêt ✅ — toutes phases terminées · 169/169 tests PASS
+**Dernière mise à jour** : 2026-06-04
+**Phase active** : Phase 6 — Qualité LLM (Benchmark + RAG Seed + Prompt v2)
 
 ---
 
@@ -16,6 +16,7 @@ Phase 3 ████████████████████ 100%  ✅ B
 Phase 4 ████████████████████ 100%  ✅ Interface de Chat React
 Phase 5 ████████████████████ 100%  ✅ RAG + Feedback Loop + JWT/RBAC
 Stab.   ████████████████████ 100%  ✅ A1–A5 — 169/169 tests PASS
+Phase 6 ░░░░░░░░░░░░░░░░░░░░   0%  🔄 Qualité LLM                   ← ICI
 ```
 
 ---
@@ -168,6 +169,23 @@ Stab.   ████████████████████ 100%  ✅ A
 | Ollama (natif) | 11434 | ✅ 2 modèles |
 | Backend FastAPI | 8000 | ✅ healthy → http://localhost:8000/api/health |
 | Frontend React | 5173 | ✅ up → http://localhost:5173 |
+
+---
+
+## Phase 6 — Qualité LLM 🔄 EN COURS
+
+**Spec** : [specs/005-llm-quality/spec.md](specs/005-llm-quality/spec.md)
+**Tasks** : [specs/005-llm-quality/tasks.md](specs/005-llm-quality/tasks.md) — 0/22 ✅
+
+| Track | Tâches | Objectif | Statut |
+|---|---|---|---|
+| T1 — Benchmark 30 questions | T601–T605 | Score de départ mesuré | ⏳ À démarrer |
+| T2 — Seed RAG | T606–T610 | ChromaDB non vide au boot | ⏳ À démarrer |
+| T3 — Prompt v2 | T611–T616 | ≥ 25/30 questions correctes | ⏳ À démarrer |
+| T4 — Modèles (optionnel) | T617–T622 | Meilleur rapport score/vitesse | ⏳ Optionnel |
+
+**Score LLM actuel** : non mesuré — benchmark à construire (T601–T604)
+**RAG** : 0/3 collections — seed à implémenter (T606–T609)
 
 ---
 
