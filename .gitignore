@@ -12,6 +12,9 @@ data/*
 # Répertoire ChromaDB : données ignorées, dossier tracké via .gitkeep
 !data/chromadb/
 !data/chromadb/.gitkeep
+# Contenu ChromaDB généré au runtime (SQLite + collections UUID)
+data/chromadb/*.sqlite3
+data/chromadb/*/
 
 # --- APACHE AIRFLOW ---
 airflow/logs/
@@ -37,7 +40,12 @@ genbi_frontend/node_modules/
 genbi_frontend/dist/
 genbi_frontend/dist-ssr/
 genbi_frontend/*.local
+genbi_frontend/.env
 genbi_frontend/.env.local
 genbi_frontend/.env.development.local
 genbi_frontend/.env.test.local
 genbi_frontend/.env.production.local
+genbi_frontend/test-results/
+
+# --- CLAUDE CODE ---
+.claude/projects/
