@@ -57,11 +57,11 @@ raw.*  →  staging.*  →  marts.*
 18. **E2E chat : injecter le token** — tests Playwright accédant au chat doivent appeler `page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))` avant `page.goto('/')`, sinon la LoginPage s'affiche.
 
 ## État d'avancement
-- 🔄 Phase 6 — Qualité LLM — **en cours** — 0/22 tâches
-  - T1 Benchmark : 30 questions golden + score pytest
-  - T2 Seed RAG : ChromaDB pré-alimenté au démarrage
-  - T3 Prompt v2 : corrections ciblées sur les échecs du benchmark
-  - T4 Modèles : comparaison qwen2.5-coder:7b vs alternatives (optionnel)
+- ✅ Phase 6 — Qualité LLM — validé 2026-06-04 — **16/22 tâches (T4 optionnel)**
+  - T1 Benchmark : 30 questions golden · score départ 26/30 (86 %)
+  - T2 Seed RAG : ChromaDB peuplé au démarrage · fix api_base `_embed`
+  - T3 Prompt v2 : 4 correctifs ciblés · **score final 30/30 (100 %)**
+  - T4 Modèles : optionnel — déjà à 100 %, non nécessaire
   - Spec : specs/005-llm-quality/spec.md · Tasks : specs/005-llm-quality/tasks.md
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
   - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
@@ -76,6 +76,7 @@ raw.*  →  staging.*  →  marts.*
   - ChatWindow · SQLDisplay (mode édition) · DataTable · ChartRouter (LineChart/BarChart auto)
   - Alpine ARM64 : apk add chromium (binaire Playwright glibc incompatible musl)
 - ✅ Phase 5 — RAG + Feedback Loop + JWT/RBAC — validé 2026-06-03 — **114/114 backend + 44/44 Vitest + 11/11 Playwright = 169 PASS**
+  - Phase 6 a ajouté +8 tests → **122/122 backend PASS** (total général : 177/177)
   - RAG few-shot : ChromaDB PersistentClient · nomic-embed-text · isolation par pharmacie · best-effort
   - Feedback loop : rating "good" → index ChromaDB · rating "bad" → ignoré · 5 tests intégration
   - JWT/RBAC : bcrypt (direct, pas passlib) · python-jose · raw.users (4 users test) · /auth/login|me|refresh
@@ -96,7 +97,7 @@ genbi_backend/main.py                   ← API FastAPI (lifespan + 7 routers + 
 genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
 genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware, rag, security, column_classifier
 genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/, auth/, admin/
-genbi_backend/tests/                    ← unit/ + integration/ — 114 tests PASS
+genbi_backend/tests/                    ← unit/ + integration/ + benchmark/ — 122 tests PASS
 genbi_frontend/src/App.jsx              ← interface React (Phase 4-5) — routing login/chat
 genbi_frontend/src/components/auth/     ← LoginPage.jsx
 dbt_project/                            ← couche sémantique (Phase 2 terminée)
