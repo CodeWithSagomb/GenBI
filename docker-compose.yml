@@ -118,8 +118,6 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_NAME=genbi
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres_admin_123
       - DB_READONLY_USER=genbi_readonly
       - DB_READONLY_PASSWORD=genbi_secure_readonly_123
       - OLLAMA_BASE_URL=http://host.docker.internal:11434 # Connecté à l'Ollama natif du Mac pour le GPU Metal

@@ -18,7 +18,12 @@ Règles CRITIQUES — toute violation rend la requête invalide :
 2. COLONNES : utiliser uniquement les colonnes documentées ci-dessous par table.
    marts.fct_sales       : sale_id, pharmacy_id, client_id, sale_month, sale_year, sale_date,
                            total_amount_fcfa, client_type, payment_method, is_anonymous,
-                           nb_products_in_cart, total_units_sold
+                           nb_products_in_cart, total_units_sold, insurer_id,
+                           patient_share_fcfa, insurer_share_fcfa
+                           ← payment_method valeurs : 'Espèces', 'Wave', 'Orange Money', 'Tiers-Payant'
+                           ← client_type valeurs : 'Passant', 'Assuré'
+                           ← "tiers-payant" dans la question → WHERE s.payment_method = 'Tiers-Payant'
+                           ← "assurés" dans la question → WHERE s.client_type = 'Assuré'
    staging.stg_raw__sale_details : sale_id, product_id, quantity, unit_price_fcfa, total_line_amount_fcfa
    marts.dim_products    : product_id, commercial_name, therapeutic_class, product_category
                            ← therapeutic_class (ex: 'Antipaludéen', 'Antibiotique', 'Antalgique')
@@ -27,6 +32,17 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    marts.dim_clients     : client_id, client_type, full_name, is_chronic, loyalty_points
    marts.fct_missed_sales: missed_sale_id, pharmacy_id, product_id, missed_date, missed_date_day,
                            missed_month, missed_year, requested_quantity, client_type
+   marts.dim_stocks      : stock_id, product_id, commercial_name, therapeutic_class, batch_number,
+                           expiration_date, quantity_in_stock, safety_stock_threshold,
+                           shelf_location, days_until_expiry,
+                           expiry_status ('OK', 'Attention (< 90j)', 'Critique (< 30j)', 'Expiré'),
+                           is_below_safety_threshold (boolean)
+   marts.fct_purchases   : purchase_id, pharmacy_id, wholesaler_name, order_date, delivery_date,
+                           product_id, quantity_ordered, quantity_received, purchase_price_fcfa
+   marts.fct_wholesaler_returns : return_id, pharmacy_id, wholesaler_name, return_date,
+                           product_id, batch_number, quantity_returned, credit_note_amount_fcfa, status
+   marts.dim_insurers    : insurer_id, insurer_name, default_coverage_rate
+   marts.dim_pharmacies  : pharmacy_id, pharmacy_name, city, district
 
 3. FILTRES PAR MOIS sur marts.fct_sales : utiliser sale_month et sale_year.
    Ces colonnes n'existent QUE dans marts.fct_sales, pas ailleurs.
@@ -43,6 +59,9 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    Joindre : staging.stg_raw__sale_details (sale_id, product_id, quantity)
           → marts.dim_products (product_id, commercial_name, therapeutic_class, product_category)
           → marts.fct_sales (sale_id) pour le filtre temporel.
+
+   IMPORTANT : staging.stg_raw__sale_details N'A PAS de colonne sale_date, sale_month, sale_year.
+   Toujours filtrer par date/mois/année via marts.fct_sales (alias s), jamais via sd.
 
    GROUPEMENT — règle exacte :
    "par catégorie de produit" / "par catégorie"
@@ -65,10 +84,13 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    Classe thérapeutique :
      → WHERE pd.therapeutic_class = 'Antipaludéen'   (antipaludéens)
      → WHERE pd.therapeutic_class = 'Antibiotique'   (antibiotiques)
-     Exemple : SELECT DISTINCT pd.commercial_name
-               FROM staging.stg_raw__sale_details sd
-               JOIN marts.dim_products pd ON sd.product_id = pd.product_id
-               WHERE pd.therapeutic_class = 'Antipaludéen'
+     Exemple (liste produits, sans filtre temporel) :
+       SELECT DISTINCT pd.commercial_name
+       FROM marts.fct_sales s
+       JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
+       JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+       WHERE pd.therapeutic_class = 'Antibiotique'
+       ORDER BY pd.commercial_name
 
 6. RUPTURES DE STOCK — règle exacte, ne pas dévier :
    La table marts.fct_missed_sales liste les demandes non servies.
@@ -95,8 +117,56 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    Ajouter un filtre temporel SEULEMENT si la question précise une période
    (ex: "en mars", "en 2026") → WHERE missed_month = 3 ou missed_year = 2026.
 
-7. ANNÉES : respecter l'année EXACTE de la question. Contexte : données Fév–Mai 2026.
+7. STOCKS & PÉREMPTIONS — utiliser marts.dim_stocks directement (NE PAS passer par fct_sales).
+   La table marts.dim_stocks contient déjà commercial_name, is_below_safety_threshold et expiry_status.
+   Ne JAMAIS utiliser l'alias pd pour dim_stocks — utiliser sk ou st.
 
-8. OPÉRATIONS INTERDITES : DELETE, DROP, INSERT, UPDATE, TRUNCATE, CREATE, ALTER.
+   Produits sous seuil de sécurité :
+     SELECT sk.commercial_name, sk.quantity_in_stock, sk.safety_stock_threshold
+     FROM marts.dim_stocks sk
+     WHERE sk.is_below_safety_threshold = TRUE
+     ORDER BY sk.quantity_in_stock ASC
 
-9. FORMAT : SQL brut uniquement, sans bloc markdown, sans commentaire, sans point-virgule final.
+   Lots expirant avant une date :
+     SELECT sk.commercial_name, sk.batch_number, sk.expiration_date,
+            sk.quantity_in_stock, sk.days_until_expiry
+     FROM marts.dim_stocks sk
+     WHERE sk.expiration_date <= '2026-06-30'
+     ORDER BY sk.expiration_date ASC
+
+   Lots avec alerte de péremption :
+     SELECT sk.commercial_name, sk.batch_number, sk.expiry_status, sk.days_until_expiry
+     FROM marts.dim_stocks sk
+     WHERE sk.expiry_status IN ('Critique (< 30j)', 'Attention (< 90j)')
+     ORDER BY sk.days_until_expiry ASC
+
+8. ASSUREURS — utiliser marts.dim_insurers.
+   Ne JAMAIS utiliser l'alias i pour dim_insurers — utiliser ins.
+   JOIN toujours depuis marts.fct_sales sur insurer_id.
+   Exemple :
+     SELECT ins.insurer_name, COUNT(s.sale_id) AS nb_transactions, SUM(s.insurer_share_fcfa) AS montant
+     FROM marts.fct_sales s
+     JOIN marts.dim_insurers ins ON s.insurer_id = ins.insurer_id
+     WHERE s.insurer_id IS NOT NULL
+     GROUP BY ins.insurer_name ORDER BY montant DESC
+
+9. APPROVISIONNEMENTS — utiliser marts.fct_purchases. Alias obligatoire : fp.
+   La colonne wholesaler_name est DANS fct_purchases (pas de table séparée). NE PAS joindre dim_pharmacies.
+   NE PAS utiliser sale_year ni YEAR() — fct_purchases n'a PAS ces colonnes.
+   Pour filtrer par année utiliser : EXTRACT(YEAR FROM fp.order_date) = 2026
+   Taux de service = quantity_received / quantity_ordered.
+   Exemple taux de service (SANS filtre de date sauf si précisé) :
+     SELECT fp.wholesaler_name,
+            ROUND(100.0 * SUM(fp.quantity_received) / NULLIF(SUM(fp.quantity_ordered), 0), 1) AS taux_service_pct
+     FROM marts.fct_purchases fp
+     GROUP BY fp.wholesaler_name ORDER BY taux_service_pct DESC
+   Exemple valeur achats :
+     SELECT fp.wholesaler_name, SUM(fp.purchase_price_fcfa * fp.quantity_received) AS valeur_achat
+     FROM marts.fct_purchases fp
+     GROUP BY fp.wholesaler_name ORDER BY valeur_achat DESC
+
+10. ANNÉES : respecter l'année EXACTE de la question. Contexte : données Fév–Mai 2026.
+
+11. OPÉRATIONS INTERDITES : DELETE, DROP, INSERT, UPDATE, TRUNCATE, CREATE, ALTER.
+
+12. FORMAT : SQL brut uniquement, sans bloc markdown, sans commentaire, sans point-virgule final.

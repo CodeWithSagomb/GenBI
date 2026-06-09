@@ -46,7 +46,7 @@ raw.*  →  staging.*  →  marts.*
 7. **dbt installé localement** — dbt-postgres 1.10.0, PAS dans Docker. Lancer depuis `dbt_project/`. `dbt test` → PASS=149 WARN=0.
 8. **API Keys dans `.env`** — jamais dans le code source. `core/auth.py` lit `os.environ`. 3 clés : une par pharmacie (Bourguiba / Almadies / Nation).
 9. **Lifespan FastAPI** — `manifest.json` + pool DB chargés une seule fois au démarrage. Jamais dans les routes.
-10. **Prompts versionnés** — `core/prompts/v1_sql_generation.txt`. Changer le comportement LLM = changer le fichier `.txt`, pas le code Python.
+10. **Prompts versionnés** — `core/prompts/v2_sql_generation.txt` (version active). Changer le comportement LLM = changer le fichier `.txt`, pas le code Python.
 11. **`RETURNING` requiert SELECT** — `GRANT INSERT,SELECT ON raw.feedback TO genbi_write` (pas INSERT seul). PostgreSQL exige SELECT sur les colonnes retournées par RETURNING.
 12. **Tests d'intégration dans Docker** — `docker exec genbi_backend python -m pytest tests/ -v`. Le venv local est Python 3.9 ; le container Python 3.11. Utiliser `Optional[X]` et `asyncio.wait_for` pour compatibilité 3.9.
 13. **`genbi_write` créé manuellement** — `init.sql` s'exécute seulement au 1er démarrage. Si le container existe déjà, appliquer les grants via `docker exec genbi_postgres psql`.
@@ -57,6 +57,12 @@ raw.*  →  staging.*  →  marts.*
 18. **E2E chat : injecter le token** — tests Playwright accédant au chat doivent appeler `page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))` avant `page.goto('/')`, sinon la LoginPage s'affiche.
 
 ## État d'avancement
+- ✅ Session stabilisation — validé 2026-06-09 — **34/36 tests manuels (94 %)**
+  - 36 questions testées sur 8 blocs : ventes, produits, stocks, ruptures, appros, assureurs, multi-pharmacie, sécurité SQL
+  - RLS vérifié : Pharma1=16 364 700 FCFA · Pharma2=16 279 550 FCFA · Pharma3=14 776 400 FCFA (valeurs distinctes ✅)
+  - Correctif prompt Rule 5 : `stg_raw__sale_details` n'a pas `sale_date` — filtres temporels forcés via `fct_sales`
+  - Timeouts augmentés : `LLM_SQL_TIMEOUT` 30s→60s · `LLM_INSIGHT_TIMEOUT` 20s→45s
+  - Frontend validé manuellement sur les 3 comptes pharmacie
 - ✅ Phase 6 — Qualité LLM — validé 2026-06-04 — **16/22 tâches (T4 optionnel)**
   - T1 Benchmark : 30 questions golden · score départ 26/30 (86 %)
   - T2 Seed RAG : ChromaDB peuplé au démarrage · fix api_base `_embed`
@@ -64,7 +70,7 @@ raw.*  →  staging.*  →  marts.*
   - T4 Modèles : optionnel — déjà à 100 %, non nécessaire
   - Spec : specs/005-llm-quality/spec.md · Tasks : specs/005-llm-quality/tasks.md
 - ✅ Phase 1 — Infra Docker + DAG pharmacie — validé 2026-05-28
-  - 30 produits · 4 716 ventes · 11 604 lignes · 61 lots · Fév–Mai 2026 · 45M FCFA CA
+  - 30 produits · 4 860 ventes · 12 207 lignes · 61 lots · Fév–Mai 2026 · ~47M FCFA CA total
 - ✅ Phase 2 — dbt sémantique — validé 2026-05-29
   - 19 modèles · 149 tests PASS · manifest.json 1.0 MB · staging (views) + marts (tables)
 - ✅ Phase 3 — Backend FastAPI — validé 2026-05-31 — **59/59 tests PASS**
