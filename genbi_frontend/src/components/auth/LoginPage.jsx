@@ -25,7 +25,7 @@ export function LoginPage({ onLogin }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-title">GenBI</h1>
+        <h1 className="login-title">RuwaGenBI</h1>
         <p className="login-subtitle">Connectez-vous à votre pharmacie</p>
 
         <form onSubmit={handleSubmit} className="login-form">

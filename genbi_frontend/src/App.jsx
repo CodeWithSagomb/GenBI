@@ -33,7 +33,7 @@ function App() {
       <header className="app-header">
         <div className="logo-section">
           <Sparkles className="logo-icon text-glow" />
-          <span className="logo-text">GenBI</span>
+          <span className="logo-text">RuwaGenBI</span>
         </div>
 
         {/* Navigation */}
