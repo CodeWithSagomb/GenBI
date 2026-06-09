@@ -24,6 +24,54 @@
   --warning-glow: HSLA(35, 90%, 55%, 0.15);
 }
 
+/* ─── Light mode overrides ─────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-dark:       HSL(220, 28%, 95%);
+  --panel-bg:      HSLA(0, 0%, 100%, 0.80);
+  --panel-border:  HSLA(217, 20%, 78%, 0.70);
+  --border-focus:  HSLA(263, 70%, 55%, 0.35);
+
+  --primary:       HSL(263, 60%, 50%);
+  --primary-glow:  HSLA(263, 60%, 50%, 0.18);
+  --secondary:     HSL(190, 80%, 38%);
+  --secondary-glow:HSLA(190, 80%, 38%, 0.15);
+
+  --text-main:     HSL(222, 35%, 14%);
+  --text-muted:    HSL(222, 15%, 48%);
+  --accent-green:  HSL(142, 55%, 32%);
+
+  --danger:        HSL(0, 65%, 48%);
+  --danger-light:  HSL(0, 65%, 40%);
+  --danger-glow:   HSLA(0, 65%, 48%, 0.10);
+  --warning:       HSL(35, 80%, 40%);
+  --warning-light: HSL(35, 80%, 34%);
+  --warning-glow:  HSLA(35, 80%, 40%, 0.10);
+}
+
+[data-theme="light"] body {
+  background-color: var(--bg-dark);
+}
+
+[data-theme="light"] .bg-glow {
+  opacity: 0.06;
+}
+
+[data-theme="light"] .app-nav {
+  background: HSLA(220, 20%, 88%, 0.70);
+}
+
+[data-theme="light"] .app-nav__btn:hover {
+  background: HSLA(220, 20%, 78%, 0.60);
+}
+
+[data-theme="light"] .logo-text {
+  background: linear-gradient(135deg, var(--text-main) 30%, var(--text-muted) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -68,10 +116,11 @@ body {
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem 2rem 0;
 }
 
 /* Header section with status tracker */
@@ -79,7 +128,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 5rem;
+  flex-shrink: 0;
+  margin-bottom: 1.25rem;
   padding: 1rem 1.5rem;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
@@ -126,6 +176,26 @@ body {
 .status-icon {
   width: 12px;
   height: 12px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--text-main);
+  background: var(--primary-glow);
+  border-color: var(--border-focus);
 }
 
 /* Welcome Hero section */
@@ -240,9 +310,15 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   max-width: 860px;
   width: 100%;
   margin: 0 auto;
+  padding-bottom: 2rem;
+}
+
+.chat-main--dashboard {
+  max-width: 100%;
 }
 
 .chat-window {

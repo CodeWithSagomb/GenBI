@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare, Sun, Moon } from 'lucide-react'
 import { ChatWindow } from './components/chat/ChatWindow'
 import { DashboardPage } from './components/dashboard/DashboardPage'
 import { LoginPage } from './components/auth/LoginPage'
@@ -9,6 +9,12 @@ function App() {
     () => !!localStorage.getItem('genbi_token')
   )
   const [page, setPage] = useState('dashboard')
+  const [theme, setTheme] = useState(() => localStorage.getItem('genbi_theme') || 'dark')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('genbi_theme', theme)
+  }, [theme])
 
   function handleLogout() {
     localStorage.removeItem('genbi_token')
@@ -54,6 +60,14 @@ function App() {
             <span>Connecté</span>
           </div>
           <button
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+            className="theme-toggle"
+            aria-label="Changer le thème"
+            title={theme === 'dark' ? 'Mode jour' : 'Mode nuit'}
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+          <button
             onClick={handleLogout}
             className="sql-display__edit-btn"
             aria-label="Se déconnecter"
@@ -64,7 +78,7 @@ function App() {
         </div>
       </header>
 
-      <main className="chat-main">
+      <main className={`chat-main${page === 'dashboard' ? ' chat-main--dashboard' : ''}`}>
         {page === 'dashboard' ? <DashboardPage /> : <ChatWindow />}
       </main>
     </div>
