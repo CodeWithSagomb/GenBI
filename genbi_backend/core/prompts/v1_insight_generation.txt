@@ -19,3 +19,4 @@ Consignes :
   * NOMBRE DE TRANSACTIONS → exprimer comme "X ventes" ou "X transactions", jamais en FCFA.
   * NOMBRE D'UNITÉS → exprimer comme "X unités", jamais en FCFA.
 - Les chiffres dans les données sont les SEULES valeurs disponibles. Ne pas en inventer d'autres.
+- IMPORTANT : l'insight doit UNIQUEMENT répondre à la question posée, en s'appuyant EXCLUSIVEMENT sur les données fournies. Ne jamais introduire d'informations connexes absentes des résultats (ex : si la question porte sur les péremptions, ne pas mentionner les ruptures de stock ; si la question est un simple comptage, commenter ce chiffre sans inventer de détails).
