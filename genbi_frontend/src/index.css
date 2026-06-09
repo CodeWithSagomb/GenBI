@@ -15,6 +15,13 @@
   --text-main: HSL(210, 40%, 98%);
   --text-muted: HSL(215, 20%, 65%);
   --accent-green: HSL(142, 70%, 45%);
+
+  --danger: HSL(0, 70%, 55%);
+  --danger-light: HSL(0, 70%, 65%);
+  --danger-glow: HSLA(0, 70%, 55%, 0.15);
+  --warning: HSL(35, 90%, 55%);
+  --warning-light: HSL(35, 90%, 70%);
+  --warning-glow: HSLA(35, 90%, 55%, 0.15);
 }
 
 * {
@@ -730,8 +737,8 @@ body {
 
 .kpi-card--primary  { border-left: 3px solid var(--primary); }
 .kpi-card--secondary{ border-left: 3px solid var(--secondary); }
-.kpi-card--danger   { border-left: 3px solid HSL(0, 70%, 55%); }
-.kpi-card--warning  { border-left: 3px solid HSL(35, 90%, 55%); }
+.kpi-card--danger   { border-left: 3px solid var(--danger); }
+.kpi-card--warning  { border-left: 3px solid var(--warning); }
 .kpi-card--ok       { border-left: 3px solid var(--accent-green); }
 
 .kpi-card__header {
@@ -759,7 +766,7 @@ body {
 
 .kpi-card__unit  { font-size: 0.85rem; font-weight: 400; color: var(--text-muted); }
 .kpi-card__loading { font-size: 1.5rem; color: var(--text-muted); }
-.kpi-card__error   { font-size: 0.85rem; color: HSL(0, 70%, 65%); }
+.kpi-card__error   { font-size: 0.85rem; color: var(--danger-light); }
 
 /* Charts */
 .dashboard__charts {
@@ -804,8 +811,8 @@ body {
   backdrop-filter: blur(12px);
 }
 
-.alert-card--danger  { border-top: 2px solid HSL(0, 70%, 55%); }
-.alert-card--warning { border-top: 2px solid HSL(35, 90%, 55%); }
+.alert-card--danger  { border-top: 2px solid var(--danger); }
+.alert-card--warning { border-top: 2px solid var(--warning); }
 
 .alert-card__header {
   display: flex;
@@ -821,8 +828,8 @@ body {
   flex-shrink: 0;
 }
 
-.alert-card--danger  .alert-card__dot { background: HSL(0, 70%, 55%); }
-.alert-card--warning .alert-card__dot { background: HSL(35, 90%, 55%); }
+.alert-card--danger  .alert-card__dot { background: var(--danger); }
+.alert-card--warning .alert-card__dot { background: var(--warning); }
 
 .alert-card__title {
   font-size: 0.85rem;
@@ -832,8 +839,8 @@ body {
 }
 
 .alert-card__badge {
-  background: HSLA(0, 70%, 55%, 0.15);
-  color: HSL(0, 70%, 70%);
+  background: var(--danger-glow);
+  color: var(--danger-light);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.1rem 0.5rem;
@@ -841,14 +848,14 @@ body {
 }
 
 .alert-card--warning .alert-card__badge {
-  background: HSLA(35, 90%, 55%, 0.15);
-  color: HSL(35, 90%, 70%);
+  background: var(--warning-glow);
+  color: var(--warning-light);
 }
 
 .alert-card__body { padding: 0.5rem 0; max-height: 240px; overflow-y: auto; }
 .alert-card__state { padding: 0.75rem 1.2rem; font-size: 0.85rem; color: var(--text-muted); }
 .alert-card__state--ok    { color: var(--accent-green); }
-.alert-card__state--error { color: HSL(0, 70%, 65%); }
+.alert-card__state--error { color: var(--danger-light); }
 
 .alert-table__wrapper { overflow-x: auto; }
 

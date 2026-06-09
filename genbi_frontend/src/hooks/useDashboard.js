@@ -14,7 +14,8 @@ const SQL = {
 
   topProduits: `
     SELECT pd.commercial_name AS produit, SUM(sd.quantity) AS quantite_vendue
-    FROM staging.stg_raw__sale_details sd
+    FROM marts.fct_sales s
+    JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
     JOIN marts.dim_products pd ON sd.product_id = pd.product_id
     GROUP BY pd.commercial_name
     ORDER BY quantite_vendue DESC
@@ -47,7 +48,7 @@ function useQuery(sql) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const fetch = useCallback(async () => {
+  const run = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -60,9 +61,9 @@ function useQuery(sql) {
     }
   }, [sql])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { run() }, [run])
 
-  return { data, loading, error, refetch: fetch }
+  return { data, loading, error, refetch: run }
 }
 
 export function useDashboard() {
