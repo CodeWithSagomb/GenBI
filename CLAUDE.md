@@ -122,3 +122,43 @@ dbt_project/target/manifest.json        ← généré localement, requis pour le
 - **FastAPI** : tests unitaires (`tests/unit/`) + intégration (`tests/integration/`) via pytest + httpx
 - **React** : composants avec Vitest + RTL ; flux E2E avec Playwright
 - Commandes : `pytest tests/ -v` (backend) · `npm run test` (frontend) · `npm run test:e2e` (E2E)
+
+## Workflow Git
+
+### Branches
+```
+main      ← production stable — jamais touché directement
+develop   ← intégration continue — base de tout nouveau travail
+  feat/   ← nouvelles fonctionnalités
+  fix/    ← corrections de bugs
+  docs/   ← documentation uniquement
+```
+
+### Règle absolue
+Ne JAMAIS pusher directement sur `main`. Un hook pre-push le bloque.
+
+### Cycle de travail
+```bash
+# 1. Toujours partir de develop
+git checkout develop && git pull origin develop
+
+# 2. Créer une branche pour la feature
+git checkout -b feat/dashboard-kpis
+
+# 3. Travailler, commiter
+git add <fichiers> && git commit -m "feat: ..."
+
+# 4. Pousser et ouvrir une PR vers develop
+git push origin feat/dashboard-kpis
+
+# 5. Quand develop est stable → PR develop → main
+```
+
+### Convention des commits
+```
+feat:  nouvelle fonctionnalité
+fix:   correction de bug
+docs:  documentation uniquement
+chore: maintenance (deps, config, refactor mineur)
+test:  ajout ou modification de tests
+```
