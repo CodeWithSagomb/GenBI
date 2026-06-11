@@ -50,7 +50,12 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    ✓ WHERE s.sale_month = 3 AND s.sale_year = 2026
    ✗ WHERE sale_date BETWEEN '2026-03-01' AND '2026-03-31'
    Si la question ne précise PAS de mois (ex: "par mois", "évolution", "toute la période") :
-   → ne pas ajouter de filtre sale_month — regrouper sur sale_month et sale_year.
+   → ne pas ajouter de filtre WHERE du tout — regrouper sur sale_month uniquement.
+   Exemple (CA par mois, SANS filtre de période) :
+     SELECT sale_month AS mois, SUM(total_amount_fcfa) AS ca_total
+     FROM marts.fct_sales
+     GROUP BY sale_month
+     ORDER BY sale_month
 
 4. FILTRES PAR SEMAINE / JOUR sur marts.fct_sales : utiliser sale_date.
    ✓ WHERE s.sale_date >= CURRENT_DATE - INTERVAL '7 days'
@@ -73,8 +78,19 @@ Règles CRITIQUES — toute violation rend la requête invalide :
                JOIN marts.dim_products pd ON sd.product_id = pd.product_id
                GROUP BY pd.product_category ORDER BY ca_total DESC
 
-   "par produit" / "par médicament" / top N produits
+   "par produit" / "par médicament" / "les plus vendus" / "top N produits"
      → GROUP BY pd.commercial_name
+     → "les plus vendus" = SUM(sd.quantity) — NE PAS utiliser total_line_amount_fcfa pour classer par volume
+     → NE PAS ajouter de filtre temporel sauf si la question précise une période
+
+     Exemple (top 5 produits les plus vendus en quantité, sans filtre temporel) :
+       SELECT pd.commercial_name AS produit, SUM(sd.quantity) AS quantite_vendue
+       FROM marts.fct_sales s
+       JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
+       JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+       GROUP BY pd.commercial_name
+       ORDER BY quantite_vendue DESC
+       LIMIT 5
 
    FILTRES SUR LES PRODUITS :
    "médicaments hors parapharmacie" / "médicaments" (excluant para)
@@ -93,15 +109,28 @@ Règles CRITIQUES — toute violation rend la requête invalide :
        ORDER BY pd.commercial_name
 
 6. RUPTURES DE STOCK — règle exacte, ne pas dévier :
-   La table marts.fct_missed_sales liste les demandes non servies.
+   La table marts.fct_missed_sales liste les demandes non servies (ventes manquées / ruptures de stock).
    Elle ne possède PAS sale_month, sale_year, sale_id ni quantity.
    Ne JAMAIS joindre fct_sales pour obtenir des informations temporelles — utiliser missed_month/missed_year.
+
+   Pour COMPTER le total de ruptures ("combien de ventes manquées", "nombre de ruptures") :
+     SELECT COUNT(*) AS total_ruptures
+     FROM marts.fct_missed_sales
 
    Pour lister les produits en rupture (sans filtre de date sauf si précisé) :
      SELECT DISTINCT pd.commercial_name
      FROM marts.fct_missed_sales ms
      JOIN marts.dim_products pd ON ms.product_id = pd.product_id
      ← NE PAS ajouter WHERE si la question ne précise pas de période
+
+   Pour lister les ruptures filtrées par classe thérapeutique ("quels antibiotiques en rupture", "antipaludéens en rupture") :
+     SELECT DISTINCT pd.commercial_name
+     FROM marts.fct_missed_sales ms
+     JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+     WHERE pd.therapeutic_class = 'Antibiotique'
+     ORDER BY pd.commercial_name
+     ← toujours passer par fct_missed_sales (ruptures), jamais par dim_stocks (stocks courants)
+     ← remplacer 'Antibiotique' par la classe demandée
 
    Pour compter les ruptures par mois :
      SELECT missed_month AS mois, COUNT(*) AS nb_ruptures
@@ -121,7 +150,17 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    La table marts.dim_stocks contient déjà commercial_name, is_below_safety_threshold et expiry_status.
    Ne JAMAIS utiliser l'alias pd pour dim_stocks — utiliser sk ou st.
 
-   Produits sous seuil de sécurité :
+   Pour COMPTER les produits sous seuil ("combien de produits", "nombre de produits") :
+     SELECT COUNT(*) AS nb_produits_sous_seuil
+     FROM marts.dim_stocks
+     WHERE is_below_safety_threshold = TRUE
+
+   Pour COMPTER les lots expirant dans moins de 30 jours :
+     SELECT COUNT(*) AS nb_lots_expirants
+     FROM marts.dim_stocks
+     WHERE days_until_expiry >= 0 AND days_until_expiry <= 30
+
+   Produits sous seuil de sécurité (liste détaillée) :
      SELECT sk.commercial_name, sk.quantity_in_stock, sk.safety_stock_threshold
      FROM marts.dim_stocks sk
      WHERE sk.is_below_safety_threshold = TRUE

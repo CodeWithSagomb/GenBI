@@ -1,7 +1,7 @@
-# GenBI — Guide de Collaboration Claude Code
+# RuwaGenBI — Guide de Collaboration Claude Code
 
 ## Projet en une phrase
-Plateforme de Business Intelligence Générative : les pharmaciens de Dakar interrogent leur entrepôt de données en langage naturel. LLM local (Ollama), zéro fuite de données.
+Plateforme de Business Intelligence Générative (anciennement GenBI) : les pharmaciens de Dakar interrogent leur entrepôt de données en langage naturel. LLM local (Ollama), zéro fuite de données.
 
 ## Stack & Ports
 | Service | Technologie | Port |
@@ -55,8 +55,32 @@ raw.*  →  staging.*  →  marts.*
 16. **Admin JWT → 403 pas 401** — token JWT avec `pharmacy_id: None` (rôle admin) lève `ForbiddenError` → HTTP 403. Le frontend supprime le token uniquement sur 401, garde la session sur 403.
 17. **Playwright : `localhost` = IPv6** — dans le container Alpine, `localhost` résout `::1` mais Vite écoute uniquement IPv4. `playwright.config.js` utilise `http://127.0.0.1:5173`.
 18. **E2E chat : injecter le token** — tests Playwright accédant au chat doivent appeler `page.addInitScript(() => localStorage.setItem('genbi_token', 'tok_e2e'))` avant `page.goto('/')`, sinon la LoginPage s'affiche.
+19. **dim_stocks sans pharmacy_id** — `raw.stocks` n'a pas de colonne `pharmacy_id` et `dim_stocks` n'a pas de RLS. Les stocks sont un catalogue partagé dans les données de seed. Si de vraies données per-pharmacie arrivent, ajouter `pharmacy_id` à `raw.stocks` + policy RLS sur `dim_stocks`.
+20. **postgres bypass RLS** — tester les requêtes de fiabilité avec `genbi_readonly`, pas `postgres`. L'utilisateur superuser ignore les RLS policies, ce qui donne des faux positifs.
+21. **Dashboard thème** — `localStorage.getItem('genbi_theme')` vaut `'dark'` ou `'light'`. Appliqué via `document.documentElement.setAttribute('data-theme', theme)` dans `App.jsx`. Les variables CSS light mode sont dans `[data-theme="light"]` dans `index.css`.
+22. **Hermes — modèle tool-calling** — `qwen2.5-coder:7b` génère des noms d'outils inventés (texte JSON brut) au lieu d'appeler les vrais outils. Utiliser `llama3.1:8b` dans `~/.hermes/config.yaml` — seul modèle Ollama testé qui implémente correctement le format OpenAI function-calling pour Hermes.
 
 ## État d'avancement
+- ✅ Phase 8 — Intégration Hermes — validé 2026-06-10 (80 %)
+  - Hermes Agent v0.16.0 dans `/Users/christsagombaye/Desktop/hermes-agent/`
+  - 3 outils : `ruwagenbi_schema` · `ruwagenbi_execute` · `ruwagenbi_query` (`tools/ruwagenbi_tools.py`)
+  - Toolset `ruwagenbi` déclaré dans `TOOLSETS` (toolsets.py) + dans `_HERMES_CORE_TOOLS`
+  - Lancement : `cd /Users/christsagombaye/Desktop/hermes-agent && venv/bin/hermes -t ruwagenbi`
+  - Modèle : `llama3.1:8b` (Ollama, 4.9 GB) — seul modèle local qui supporte le function-calling
+  - Config : `~/.hermes/config.yaml` (ollama_num_ctx: 65536) · Credentials : `~/.hermes/.env`
+  - **Validé** : CA total (16 364 700 FCFA ✅), lots expirants (30 ✅), RLS actif ✅
+  - **Limitations connues** : `ruwagenbi_query` uniquement (parallel tool calls sur schema+execute) · réponses parfois en anglais · verbosité llama3.1:8b
+  - **Pending** : corriger le prompt `/query` pour "top 5 produits" (retourne catégories au lieu de noms)
+- ✅ Phase 7 — Dashboard KPIs — validé 2026-06-09 — **PR #1 ouverte (feat/dashboard-kpis → develop)**
+  - 6 métriques pré-calculées via `/execute` (pas de LLM) : CA total, CA mensuel, top 5 produits, stocks sous seuil, lots expirants < 30j, ruptures
+  - Bug données corrigé : `topProduits` passait par `stg_raw__sale_details` sans RLS → maintenant JOIN via `fct_sales` (RLS actif)
+  - 3 corrections prompt : COUNT stocks sous seuil, COUNT ruptures, CA mensuel sans filtre temporel
+  - Bug insight corrigé : LLM ne mélange plus "ruptures" dans les réponses sur péremptions
+  - CSS : variables `--danger`/`--warning` dans `:root`, plus de couleurs hardcodées
+  - Header sticky : `app-container` height 100vh + overflow hidden
+  - Toggle jour/nuit : `data-theme` sur `<html>`, persisté en `localStorage` (`genbi_theme`)
+  - Renommage : affichage **RuwaGenBI** (header, login, onglet) — dossiers techniques inchangés
+  - 5 commits : `d8e1b58` → `d408580`
 - ✅ Session stabilisation — validé 2026-06-09 — **34/36 tests manuels (94 %)**
   - 36 questions testées sur 8 blocs : ventes, produits, stocks, ruptures, appros, assureurs, multi-pharmacie, sécurité SQL
   - RLS vérifié : Pharma1=16 364 700 FCFA · Pharma2=16 279 550 FCFA · Pharma3=14 776 400 FCFA (valeurs distinctes ✅)
@@ -104,8 +128,10 @@ genbi_backend/config.py                 ← configuration centralisée (BaseSett
 genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware, rag, security, column_classifier
 genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/, auth/, admin/
 genbi_backend/tests/                    ← unit/ + integration/ + benchmark/ — 122 tests PASS
-genbi_frontend/src/App.jsx              ← interface React (Phase 4-5) — routing login/chat
+genbi_frontend/src/App.jsx              ← interface React — routing login/dashboard/chat + toggle thème
+genbi_frontend/src/hooks/useDashboard.js← 6 requêtes SQL pré-définies via /execute (Phase 7)
 genbi_frontend/src/components/auth/     ← LoginPage.jsx
+genbi_frontend/src/components/dashboard/← DashboardPage.jsx · KPICard.jsx · AlertTable.jsx (Phase 7)
 dbt_project/                            ← couche sémantique (Phase 2 terminée)
 dbt_project/target/manifest.json        ← généré localement, requis pour le backend
 ```
