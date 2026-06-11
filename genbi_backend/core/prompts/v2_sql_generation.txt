@@ -78,8 +78,19 @@ Règles CRITIQUES — toute violation rend la requête invalide :
                JOIN marts.dim_products pd ON sd.product_id = pd.product_id
                GROUP BY pd.product_category ORDER BY ca_total DESC
 
-   "par produit" / "par médicament" / top N produits
+   "par produit" / "par médicament" / "les plus vendus" / "top N produits"
      → GROUP BY pd.commercial_name
+     → "les plus vendus" = SUM(sd.quantity) — NE PAS utiliser total_line_amount_fcfa pour classer par volume
+     → NE PAS ajouter de filtre temporel sauf si la question précise une période
+
+     Exemple (top 5 produits les plus vendus en quantité, sans filtre temporel) :
+       SELECT pd.commercial_name AS produit, SUM(sd.quantity) AS quantite_vendue
+       FROM marts.fct_sales s
+       JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
+       JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+       GROUP BY pd.commercial_name
+       ORDER BY quantite_vendue DESC
+       LIMIT 5
 
    FILTRES SUR LES PRODUITS :
    "médicaments hors parapharmacie" / "médicaments" (excluant para)
@@ -111,6 +122,15 @@ Règles CRITIQUES — toute violation rend la requête invalide :
      FROM marts.fct_missed_sales ms
      JOIN marts.dim_products pd ON ms.product_id = pd.product_id
      ← NE PAS ajouter WHERE si la question ne précise pas de période
+
+   Pour lister les ruptures filtrées par classe thérapeutique ("quels antibiotiques en rupture", "antipaludéens en rupture") :
+     SELECT DISTINCT pd.commercial_name
+     FROM marts.fct_missed_sales ms
+     JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+     WHERE pd.therapeutic_class = 'Antibiotique'
+     ORDER BY pd.commercial_name
+     ← toujours passer par fct_missed_sales (ruptures), jamais par dim_stocks (stocks courants)
+     ← remplacer 'Antibiotique' par la classe demandée
 
    Pour compter les ruptures par mois :
      SELECT missed_month AS mois, COUNT(*) AS nb_ruptures

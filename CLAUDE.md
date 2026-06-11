@@ -58,8 +58,19 @@ raw.*  →  staging.*  →  marts.*
 19. **dim_stocks sans pharmacy_id** — `raw.stocks` n'a pas de colonne `pharmacy_id` et `dim_stocks` n'a pas de RLS. Les stocks sont un catalogue partagé dans les données de seed. Si de vraies données per-pharmacie arrivent, ajouter `pharmacy_id` à `raw.stocks` + policy RLS sur `dim_stocks`.
 20. **postgres bypass RLS** — tester les requêtes de fiabilité avec `genbi_readonly`, pas `postgres`. L'utilisateur superuser ignore les RLS policies, ce qui donne des faux positifs.
 21. **Dashboard thème** — `localStorage.getItem('genbi_theme')` vaut `'dark'` ou `'light'`. Appliqué via `document.documentElement.setAttribute('data-theme', theme)` dans `App.jsx`. Les variables CSS light mode sont dans `[data-theme="light"]` dans `index.css`.
+22. **Hermes — modèle tool-calling** — `qwen2.5-coder:7b` génère des noms d'outils inventés (texte JSON brut) au lieu d'appeler les vrais outils. Utiliser `llama3.1:8b` dans `~/.hermes/config.yaml` — seul modèle Ollama testé qui implémente correctement le format OpenAI function-calling pour Hermes.
 
 ## État d'avancement
+- ✅ Phase 8 — Intégration Hermes — validé 2026-06-10 (80 %)
+  - Hermes Agent v0.16.0 dans `/Users/christsagombaye/Desktop/hermes-agent/`
+  - 3 outils : `ruwagenbi_schema` · `ruwagenbi_execute` · `ruwagenbi_query` (`tools/ruwagenbi_tools.py`)
+  - Toolset `ruwagenbi` déclaré dans `TOOLSETS` (toolsets.py) + dans `_HERMES_CORE_TOOLS`
+  - Lancement : `cd /Users/christsagombaye/Desktop/hermes-agent && venv/bin/hermes -t ruwagenbi`
+  - Modèle : `llama3.1:8b` (Ollama, 4.9 GB) — seul modèle local qui supporte le function-calling
+  - Config : `~/.hermes/config.yaml` (ollama_num_ctx: 65536) · Credentials : `~/.hermes/.env`
+  - **Validé** : CA total (16 364 700 FCFA ✅), lots expirants (30 ✅), RLS actif ✅
+  - **Limitations connues** : `ruwagenbi_query` uniquement (parallel tool calls sur schema+execute) · réponses parfois en anglais · verbosité llama3.1:8b
+  - **Pending** : corriger le prompt `/query` pour "top 5 produits" (retourne catégories au lieu de noms)
 - ✅ Phase 7 — Dashboard KPIs — validé 2026-06-09 — **PR #1 ouverte (feat/dashboard-kpis → develop)**
   - 6 métriques pré-calculées via `/execute` (pas de LLM) : CA total, CA mensuel, top 5 produits, stocks sous seuil, lots expirants < 30j, ruptures
   - Bug données corrigé : `topProduits` passait par `stg_raw__sale_details` sans RLS → maintenant JOIN via `fct_sales` (RLS actif)
