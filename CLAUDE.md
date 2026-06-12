@@ -59,9 +59,24 @@ raw.*  →  staging.*  →  marts.*
 20. **postgres bypass RLS** — tester les requêtes de fiabilité avec `genbi_readonly`, pas `postgres`. L'utilisateur superuser ignore les RLS policies, ce qui donne des faux positifs.
 21. **Dashboard thème** — `localStorage.getItem('genbi_theme')` vaut `'dark'` ou `'light'`. Appliqué via `document.documentElement.setAttribute('data-theme', theme)` dans `App.jsx`. Les variables CSS light mode sont dans `[data-theme="light"]` dans `index.css`.
 22. **Hermes — modèle tool-calling** — `qwen2.5-coder:7b` génère des noms d'outils inventés (texte JSON brut) au lieu d'appeler les vrais outils. Utiliser `llama3.1:8b` dans `~/.hermes/config.yaml` — seul modèle Ollama testé qui implémente correctement le format OpenAI function-calling pour Hermes.
+23. **`/api/v1/analyse` — exécution séquentielle obligatoire** — Ollama est mono-thread. `asyncio.gather` sur N sous-questions provoque des timeouts (le Nème appel dépasse 60s). Toujours exécuter les sous-questions en boucle `for/await`, jamais `asyncio.gather`.
+24. **`/api/v1/analyse` — `with_insight=False` pour composé** — les sous-analyses n'ont pas d'insight individuel (économise N appels LLM, réduit la latence de moitié). L'insight n'est généré que pour les questions simples (`is_compound=False`).
+25. **Mois — conversion dans `query_pipeline`** — `_humanize_months()` dans `api/v1/query/service.py` convertit les colonnes `mois`/`sale_month`/`missed_month` en noms français AVANT de retourner le résultat. S'applique à tous les endpoints qui appellent `query_pipeline` (query, analyse).
 
 ## État d'avancement
-- ✅ Phase 8 — Intégration Hermes — validé 2026-06-10 (80 %)
+- ✅ Phase 8b — `/api/v1/analyse` — validé 2026-06-12
+  - Endpoint POST `/api/v1/analyse` : questions simples ET composées via un seul appel
+  - Détection d'intention Python (regex) → 4 patterns : analyse complète · état stocks · ruptures · priorités commande
+  - Questions composées → sous-questions séquentielles (Ollama mono-thread) sans insight individuel
+  - Questions simples → `query_pipeline` complet avec insight
+  - Frontend : `useChat.js` câblé sur `/analyse` · `ChatWindow.jsx` rendu bifurqué simple/composé
+  - CSS : `.sub-analysis` + `.sub-analysis__title` pour l'affichage multi-blocs
+  - Fichiers : `api/v1/analyse/__init__.py` · `schemas.py` · `service.py` · `router.py`
+  - Fix mois : `_humanize_months()` dans `query_pipeline` — Février/Mars/Avril/Mai dans tableaux ET graphiques
+  - Fix insight ruptures : règle "ruptures ≠ ventes" dans `v1_insight_generation.txt`
+  - Fix RAG test : `range(64)` → `range(768)` dans `test_rag_flow.py` (dimension nomic-embed-text)
+  - **147/147 tests PASS**
+- ✅ Phase 8 — Intégration Hermes — validé 2026-06-10
   - Hermes Agent v0.16.0 dans `/Users/christsagombaye/Desktop/hermes-agent/`
   - 3 outils : `ruwagenbi_schema` · `ruwagenbi_execute` · `ruwagenbi_query` (`tools/ruwagenbi_tools.py`)
   - Toolset `ruwagenbi` déclaré dans `TOOLSETS` (toolsets.py) + dans `_HERMES_CORE_TOOLS`
@@ -69,8 +84,8 @@ raw.*  →  staging.*  →  marts.*
   - Modèle : `llama3.1:8b` (Ollama, 4.9 GB) — seul modèle local qui supporte le function-calling
   - Config : `~/.hermes/config.yaml` (ollama_num_ctx: 65536) · Credentials : `~/.hermes/.env`
   - **Validé** : CA total (16 364 700 FCFA ✅), lots expirants (30 ✅), RLS actif ✅
-  - **Limitations connues** : `ruwagenbi_query` uniquement (parallel tool calls sur schema+execute) · réponses parfois en anglais · verbosité llama3.1:8b
-  - **Pending** : corriger le prompt `/query` pour "top 5 produits" (retourne catégories au lieu de noms)
+  - **Limitations connues** : Hermes = outil dev/test — llama3.1:8b instable sur analyses multi-lignes
+  - **Interface principale** : frontend React (ChatWindow) via `/api/v1/analyse`
 - ✅ Phase 7 — Dashboard KPIs — validé 2026-06-09 — **PR #1 ouverte (feat/dashboard-kpis → develop)**
   - 6 métriques pré-calculées via `/execute` (pas de LLM) : CA total, CA mensuel, top 5 produits, stocks sous seuil, lots expirants < 30j, ruptures
   - Bug données corrigé : `topProduits` passait par `stg_raw__sale_details` sans RLS → maintenant JOIN via `fct_sales` (RLS actif)
@@ -126,9 +141,11 @@ airflow/dags/ingest_pharmacy_data.py    ← pipeline d'ingestion
 genbi_backend/main.py                   ← API FastAPI (lifespan + 7 routers + exception handlers)
 genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
 genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware, rag, security, column_classifier
-genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, suggestions/, feedback/, auth/, admin/
+genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, analyse/, suggestions/, feedback/, auth/, admin/
+genbi_backend/api/v1/analyse/           ← schemas.py · service.py (intent detection) · router.py
 genbi_backend/tests/                    ← unit/ + integration/ + benchmark/ — 122 tests PASS
 genbi_frontend/src/App.jsx              ← interface React — routing login/dashboard/chat + toggle thème
+genbi_frontend/src/hooks/useChat.js     ← appel unique /api/v1/analyse (simple + composé)
 genbi_frontend/src/hooks/useDashboard.js← 6 requêtes SQL pré-définies via /execute (Phase 7)
 genbi_frontend/src/components/auth/     ← LoginPage.jsx
 genbi_frontend/src/components/dashboard/← DashboardPage.jsx · KPICard.jsx · AlertTable.jsx (Phase 7)

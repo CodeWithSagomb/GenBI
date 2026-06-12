@@ -17,23 +17,21 @@ export function useChat() {
     setStatus('loading')
 
     try {
-      const { sql } = await chatApi.sendQuestion(q)
-      const { columns, rows, row_count } = await chatApi.executeSQL(sql)
-
-      let insight = null
-      try {
-        const res = await chatApi.interpret(q, { columns, rows })
-        insight = res.insight
-      } catch (_) {}
+      const result = await chatApi.analyse(q)
 
       setMessages(prev => [...prev, {
-        id: aiId, role: 'ai',
-        question: q, sql, columns, rows, row_count,
-        insight, error: null, feedback: null,
+        id: aiId,
+        role: 'ai',
+        question: q,
+        is_compound: result.is_compound,
+        sub_analyses: result.sub_analyses,
+        error: null,
+        feedback: null,
       }])
     } catch (err) {
       setMessages(prev => [...prev, {
-        id: aiId, role: 'ai',
+        id: aiId,
+        role: 'ai',
         error: err.message ?? 'Une erreur inattendue est survenue.',
         feedback: null,
       }])

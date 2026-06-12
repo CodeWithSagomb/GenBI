@@ -27,7 +27,7 @@ def mock_embed_integration():
     """Remplace _embed par un vecteur déterministe — aucun appel Ollama."""
     def fake_embed(text: str) -> list:
         h = abs(hash(text))
-        return [(h >> i & 1) * 1.0 for i in range(64)]
+        return [(h >> i & 1) * 1.0 for i in range(768)]
 
     with patch("core.rag._embed", side_effect=fake_embed):
         yield
