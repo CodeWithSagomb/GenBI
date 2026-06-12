@@ -589,4 +589,18 @@ GOLDEN_QUESTIONS = [
         "expected_rows": None,
         "expected_scalar": None,
     },
+
+    # ── Clients chroniques ────────────────────────────────────────────────────
+
+    {
+        "id": "Q44", "category": "clients",
+        "question": "combien de clients chroniques avons-nous ?",
+        "golden_sql": (
+            "SELECT COUNT(*) AS nb_clients_chroniques "
+            "FROM marts.dim_clients "
+            "WHERE is_chronic = TRUE"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
 ]

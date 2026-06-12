@@ -1,0 +1,141 @@
+# Catalogue sémantique GenBI — pharmacies au Sénégal
+# Structure : metrics | dimensions | filtres
+# Chaque entrée : id (unique), label, synonymes, sql/colonne(s), table(s), unite
+
+metrics:
+
+  - id: chiffre_affaires
+    label: Chiffre d'affaires
+    synonymes: [mon CA, le CA, notre CA, CA total, CA mensuel, CA par, CA de, revenu, recettes, chiffre d affaires, montant total, ventes total, total ventes]
+    sql: "SUM(total_amount_fcfa)"
+    table: marts.fct_sales
+    unite: FCFA
+
+  - id: nb_ventes
+    label: Nombre de ventes
+    synonymes: [nombre de ventes, nb ventes, transactions, combien de ventes ce, nombre transactions, ventes effectuees, nombre de transactions]
+    sql: "COUNT(*)"
+    table: marts.fct_sales
+    unite: ventes
+
+  - id: nb_ruptures
+    label: Ruptures de stock
+    synonymes: [ruptures, ventes manquees, stockout, manques, produits manquants, rupture de stock, ruptures de stock]
+    sql: "COUNT(*)"
+    table: marts.fct_missed_sales
+    unite: ruptures
+
+  - id: nb_sous_seuil
+    label: Produits sous seuil de sécurité
+    synonymes: [sous seuil, stock critique, stock faible, produits en alerte, alerte stock, seuil de securite, seuil de sécurité]
+    sql: "COUNT(*)"
+    table: marts.dim_stocks
+    filtre: "is_below_safety_threshold = TRUE"
+    unite: produits
+
+  - id: nb_lots_expirants
+    label: Lots expirant bientôt
+    synonymes: [peremptions, lots expires, perimes, perir, vont perir, bientot perimes, expiration, dates expiration, bientot expires, lots expirants, péremptions, périmés, produits perissables]
+    sql: "COUNT(*)"
+    table: marts.dim_stocks
+    filtre: "days_until_expiry >= 0 AND days_until_expiry <= 30"
+    unite: lots
+
+  - id: jours_restants
+    label: Jours de stock restants
+    synonymes: [jours restants, epuisement, dans combien de jours, prediction stock, duree stock, jours de stock, combien de jours, s epuiser, s'épuiser]
+    sql: "ROUND(sk.quantity_in_stock / NULLIF(AVG(sd.quantity), 0))"
+    tables: [marts.dim_stocks, staging.stg_raw__sale_details, marts.fct_sales]
+    unite: jours
+
+  - id: ca_tiers_payant
+    label: CA tiers-payant
+    synonymes: [tiers-payant, tiers payant, assurance, mutuelles, remboursements, part assurance, paiement assurance]
+    sql: "SUM(total_amount_fcfa)"
+    table: marts.fct_sales
+    filtre: "payment_method = 'Tiers-Payant'"
+    unite: FCFA
+
+  - id: taux_service
+    label: Taux de service fournisseur
+    synonymes: [taux de service, performance fournisseur, taux livraison, qualite fournisseur, taux service]
+    sql: "ROUND(100.0 * SUM(quantity_received) / NULLIF(SUM(quantity_ordered), 0), 1)"
+    table: marts.fct_purchases
+    unite: "%"
+
+  - id: valeur_achats
+    label: Valeur des achats
+    synonymes: [valeur achats, valeur des achats, valeur de mes achats, montant achats, montant des achats, cout achats, depenses fournisseurs, approvisionnements, valeur achat]
+    sql: "SUM(purchase_price_fcfa * quantity_received)"
+    table: marts.fct_purchases
+    unite: FCFA
+
+dimensions:
+
+  - id: par_mois
+    label: Par mois
+    synonymes: [par mois, mensuel, mensuelle, mois par mois, evolution mensuelle, chaque mois, par mois]
+    colonnes:
+      marts.fct_sales: sale_month
+      marts.fct_missed_sales: missed_month
+
+  - id: par_produit
+    label: Par produit
+    synonymes: [par produit, par medicament, produits, top produits, par article, par médicament]
+    colonne: marts.dim_products.commercial_name
+    jointure: staging.stg_raw__sale_details
+
+  - id: par_fournisseur
+    label: Par fournisseur
+    synonymes: [par fournisseur, grossiste, distributeur, par grossiste, fournisseurs]
+    colonne: marts.fct_purchases.wholesaler_name
+
+  - id: par_categorie
+    label: Par catégorie de produit
+    synonymes: [par categorie, categorie, medicament vs parapharmacie, type de produit, par catégorie]
+    colonne: marts.dim_products.product_category
+    jointure: staging.stg_raw__sale_details
+
+  - id: par_mode_paiement
+    label: Par mode de paiement
+    synonymes: [par paiement, mode de paiement, especes, Wave, Orange Money, paiement mobile, par mode]
+    colonne: marts.fct_sales.payment_method
+
+  - id: par_classe_therapeutique
+    label: Par classe thérapeutique
+    synonymes: [classe therapeutique, antibiotique, antipaludeen, antalgique, par classe, classe thérapeutique]
+    colonne: marts.dim_products.therapeutic_class
+    jointure: staging.stg_raw__sale_details
+
+filtres:
+
+  - id: clients_chroniques
+    label: Clients chroniques
+    synonymes: [chroniques, malades chroniques, patients chroniques, maladies chroniques, clients chroniques]
+    sql: "is_chronic = TRUE"
+    table: marts.dim_clients
+
+  - id: clients_assures
+    label: Clients assurés
+    synonymes: [assures, clients assures, avec assurance, couverture maladie, CNAM, assurés]
+    sql: "client_type = 'Assuré'"
+    table: marts.fct_sales
+
+  - id: annee_courante
+    label: Année courante (2026)
+    synonymes: [cette annee, en 2026, de l annee, annee 2026, cette année]
+    sql: "sale_year = 2026"
+    table: marts.fct_sales
+
+  - id: retours_fournisseurs
+    label: Retours fournisseurs
+    synonymes: [retours, retours fournisseurs, avoirs, credit note, produits retournes, retours fournisseur]
+    sql: "COUNT(*)"
+    table: marts.fct_wholesaler_returns
+    unite: retours
+
+  - id: clients_fideles
+    label: Clients fidèles
+    synonymes: [fidelite, clients fideles, points fidelite, loyalty, fidèles, fidélité]
+    sql: "loyalty_points"
+    table: marts.dim_clients

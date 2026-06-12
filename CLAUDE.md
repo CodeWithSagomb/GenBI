@@ -46,7 +46,7 @@ raw.*  →  staging.*  →  marts.*
 7. **dbt installé localement** — dbt-postgres 1.10.0, PAS dans Docker. Lancer depuis `dbt_project/`. `dbt test` → PASS=149 WARN=0.
 8. **API Keys dans `.env`** — jamais dans le code source. `core/auth.py` lit `os.environ`. 3 clés : une par pharmacie (Bourguiba / Almadies / Nation).
 9. **Lifespan FastAPI** — `manifest.json` + pool DB chargés une seule fois au démarrage. Jamais dans les routes.
-10. **Prompts versionnés** — `core/prompts/v2_sql_generation.txt` (version active). Changer le comportement LLM = changer le fichier `.txt`, pas le code Python.
+10. **Prompts versionnés** — `core/prompts/v3_sql_generation.txt` (version active depuis session 8b+). v3 = 39 lignes, tableau de correspondances QUESTION→TABLE en tête, few-shot examples AVANT la question. v2 conservé en backup. Changer le comportement LLM = changer le fichier `.txt`, pas le code Python.
 11. **`RETURNING` requiert SELECT** — `GRANT INSERT,SELECT ON raw.feedback TO genbi_write` (pas INSERT seul). PostgreSQL exige SELECT sur les colonnes retournées par RETURNING.
 12. **Tests d'intégration dans Docker** — `docker exec genbi_backend python -m pytest tests/ -v`. Le venv local est Python 3.9 ; le container Python 3.11. Utiliser `Optional[X]` et `asyncio.wait_for` pour compatibilité 3.9.
 13. **`genbi_write` créé manuellement** — `init.sql` s'exécute seulement au 1er démarrage. Si le container existe déjà, appliquer les grants via `docker exec genbi_postgres psql`.
@@ -62,6 +62,10 @@ raw.*  →  staging.*  →  marts.*
 23. **`/api/v1/analyse` — exécution séquentielle obligatoire** — Ollama est mono-thread. `asyncio.gather` sur N sous-questions provoque des timeouts (le Nème appel dépasse 60s). Toujours exécuter les sous-questions en boucle `for/await`, jamais `asyncio.gather`.
 24. **`/api/v1/analyse` — `with_insight=False` pour composé** — les sous-analyses n'ont pas d'insight individuel (économise N appels LLM, réduit la latence de moitié). L'insight n'est généré que pour les questions simples (`is_compound=False`).
 25. **Mois — conversion dans `query_pipeline`** — `_humanize_months()` dans `api/v1/query/service.py` convertit les colonnes `mois`/`sale_month`/`missed_month` en noms français AVANT de retourner le résultat. S'applique à tous les endpoints qui appellent `query_pipeline` (query, analyse).
+26. **ChromaDB IDs déterministes** — `core/rag.py` utilise `hashlib.sha1(question.encode()).hexdigest()[:16]` (pas `abs(hash(question))` qui change à chaque session Python). 44 exemples par pharmacie. Si des doublons réapparaissent, purger `./data/chromadb/` et redémarrer.
+27. **Schéma dbt compact pour le LLM** — `core/dbt_parser._format_for_llm()` génère une ligne par table (`schema.table: col1, col2, ...`) sans descriptions (~2600 chars vs 13200 avant). Les descriptions longues dégradent la qualité SQL de qwen2.5-coder:7b. Ne pas rajouter les descriptions.
+28. **`_clean_sql` défensif** — `core/llm._clean_sql()` supprime les commentaires SQL (apostrophes françaises dans `-- Note: c'est...`), extrait depuis le premier SELECT, et normalise les apostrophes dans les identifiants (`jours_jusqu'à_exp` → `jours_jusqu_à_exp`). Ne pas affaiblir ces nettoyages.
+29. **q2.5-coder:7b génère des alias français avec apostrophes** — ex: `AS jours_jusqu'à_expiration`. Cause `sqlglot.errors.TokenError`. Fix dans `_clean_sql` : `re.sub(r"(\w)'(\w)", r"\1_\2", raw)`.
 
 ## État d'avancement
 - ✅ Phase 8b — `/api/v1/analyse` — validé 2026-06-12

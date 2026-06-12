@@ -30,7 +30,12 @@ def load_manifest(manifest_path: str) -> str:
 
 
 def _format_for_llm(manifest: dict) -> str:
-    """Formate les modèles staging+marts en texte lisible par le LLM."""
+    """Formate les modèles staging+marts en texte compact pour le prompt LLM.
+
+    Format : une ligne par table — `schema.table: col1, col2, col3`
+    Les descriptions longues sont omises pour réduire la taille du contexte
+    et améliorer la qualité de génération SQL sur les modèles 7b.
+    """
     nodes = manifest.get("nodes", {})
     lines: list[str] = []
 
@@ -42,17 +47,9 @@ def _format_for_llm(manifest: dict) -> str:
             continue
 
         name = node.get("name", "")
-        description = node.get("description", "").strip()
-        columns = node.get("columns", {})
-
-        lines.append(f"Table: {schema}.{name}")
-        if description:
-            lines.append(f"  Description: {description}")
-        for col_name, col_info in columns.items():
-            col_desc = col_info.get("description", "").strip()
-            if col_desc:
-                lines.append(f"  - {col_name}: {col_desc}")
-        lines.append("")
+        columns = list(node.get("columns", {}).keys())
+        col_list = ", ".join(columns) if columns else "(aucune colonne documentée)"
+        lines.append(f"{schema}.{name}: {col_list}")
 
     return "\n".join(lines)
 

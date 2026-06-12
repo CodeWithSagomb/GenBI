@@ -1,4 +1,5 @@
 """RAG few-shot : index et retrouve des paires Question→SQL dans ChromaDB."""
+import hashlib
 import logging
 from typing import Optional
 
@@ -29,7 +30,7 @@ def index_example(client, pharmacy_id: int, question: str, sql: str) -> None:
     try:
         vector = _embed(question)
         col = get_collection(client, pharmacy_id)
-        doc_id = f"{pharmacy_id}_{abs(hash(question))}"
+        doc_id = f"{pharmacy_id}_{hashlib.sha1(question.encode()).hexdigest()[:16]}"
         col.upsert(
             ids=[doc_id],
             embeddings=[vector],

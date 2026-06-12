@@ -5,7 +5,7 @@ NE PAS utiliser de blocs markdown (``` ou ```sql). NE PAS terminer par un point-
 <schema_dbt>
 {schema}
 </schema_dbt>
-
+{semantic_context}
 <question>
 {question}
 </question>
@@ -30,6 +30,9 @@ Règles CRITIQUES — toute violation rend la requête invalide :
                            ← product_category  (DEUX valeurs uniquement : 'Médicament', 'Parapharmacie')
                            ← NE JAMAIS utiliser therapeutic_group (colonne inexistante)
    marts.dim_clients     : client_id, client_type, full_name, is_chronic, loyalty_points
+                           ← NE JAMAIS utiliser dim_customers (table inexistante) — toujours marts.dim_clients
+                           ← "clients chroniques" → SELECT COUNT(*) AS nb_clients_chroniques FROM marts.dim_clients WHERE is_chronic = TRUE
+                           ← "clients assurés" (nombre de clients) → SELECT COUNT(*) AS nb_clients_assures FROM marts.dim_clients WHERE client_type = 'Assuré'
    marts.fct_missed_sales: missed_sale_id, pharmacy_id, product_id, missed_date, missed_date_day,
                            missed_month, missed_year, requested_quantity, client_type
    marts.dim_stocks      : stock_id, product_id, commercial_name, therapeutic_class, batch_number,
@@ -51,7 +54,8 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    ✗ WHERE sale_date BETWEEN '2026-03-01' AND '2026-03-31'
    Si la question ne précise PAS de mois (ex: "par mois", "évolution", "toute la période") :
    → ne pas ajouter de filtre WHERE du tout — regrouper sur sale_month uniquement.
-   "quel est le CA par mois ?" / "CA mensuel" / "évolution du CA" / "CA par mois"
+
+   "quel est le CA par mois ?" / "quel est mon CA par mois ?" / "CA mensuel" / "évolution du CA" / "CA par mois"
    → SQL EXACT, aucune variation autorisée :
      SELECT sale_month AS mois, SUM(total_amount_fcfa) AS ca_total
      FROM marts.fct_sales
@@ -142,8 +146,9 @@ Règles CRITIQUES — toute violation rend la requête invalide :
      FROM marts.fct_missed_sales
      GROUP BY missed_month
      ORDER BY missed_month
-   ← NE JAMAIS omettre GROUP BY missed_month quand la question contient "par mois"
+   ← NE JAMAIS omettre GROUP BY missed_month pour les requêtes de ruptures par mois
    ← NE PAS ajouter WHERE sauf si la question précise une période
+   ← Cette règle s'applique UNIQUEMENT aux questions de ruptures — pas aux questions de CA
 
    Pour les 5 produits avec le plus de ruptures :
      SELECT pd.commercial_name, COUNT(*) AS nb_ruptures

@@ -69,6 +69,7 @@ async def _run_sub_query(
     pharmacy_id: int,
     with_insight: bool = False,
     rag_client=None,
+    semantic_catalog: dict | None = None,
 ) -> dict:
     """Exécute une sous-question sur une connexion dédiée du pool."""
     conn = pool.getconn()
@@ -81,6 +82,7 @@ async def _run_sub_query(
             with_insight=with_insight,
             rag_client=rag_client,
             pharmacy_id=pharmacy_id,
+            semantic_catalog=semantic_catalog,
         )
     except psycopg2.Error as e:
         conn.rollback()
@@ -101,6 +103,7 @@ async def analyse_pipeline(
     pool,
     pharmacy_id: int,
     rag_client=None,
+    semantic_catalog: dict | None = None,
 ) -> dict:
     """
     Route la question vers le bon pipeline :
@@ -111,7 +114,7 @@ async def analyse_pipeline(
     sub_questions = detect_sub_questions(question)
 
     if sub_questions is None:
-        result = await _run_sub_query(question, schema, pool, pharmacy_id, with_insight=True, rag_client=rag_client)
+        result = await _run_sub_query(question, schema, pool, pharmacy_id, with_insight=True, rag_client=rag_client, semantic_catalog=semantic_catalog)
         return {
             "question": question,
             "is_compound": False,
@@ -122,7 +125,7 @@ async def analyse_pipeline(
     sub_analyses = []
     for q in sub_questions:
         try:
-            result = await _run_sub_query(q, schema, pool, pharmacy_id, with_insight=False, rag_client=rag_client)
+            result = await _run_sub_query(q, schema, pool, pharmacy_id, with_insight=False, rag_client=rag_client, semantic_catalog=semantic_catalog)
             sub_analyses.append(result)
         except Exception as e:
             sub_analyses.append({

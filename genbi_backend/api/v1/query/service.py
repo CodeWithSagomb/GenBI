@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from core.llm import generate_sql, generate_insight
 from core.rag import retrieve_examples
+from core.semantic_layer import resolve_semantics
 from core.sql_validator import validate_sql
 from core.exceptions import DatabaseError
 from core.pagination import PageParams
@@ -48,17 +49,20 @@ async def query_pipeline(
     with_insight: bool = True,
     rag_client=None,
     pharmacy_id: int | None = None,
+    semantic_catalog: dict | None = None,
 ) -> dict:
     """Pipeline complet : question → SQL → exécution → insight (optionnel).
 
-    Si rag_client et pharmacy_id sont fournis, les exemples les plus proches
-    sont récupérés depuis ChromaDB et injectés dans le prompt SQL.
+    - rag_client + pharmacy_id  : exemples ChromaDB injectés dans le prompt
+    - semantic_catalog          : termes métier détectés → bloc <semantic_context>
     """
     examples: list = []
     if rag_client is not None and pharmacy_id is not None:
         examples = retrieve_examples(rag_client, pharmacy_id, question, n=3)
 
-    sql = await generate_sql(schema, question, examples or None)
+    semantic_context = resolve_semantics(question, semantic_catalog)
+
+    sql = await generate_sql(schema, question, examples or None, semantic_context)
     validate_sql(sql)
 
     paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
