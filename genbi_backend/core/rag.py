@@ -41,14 +41,12 @@ def index_example(client, pharmacy_id: int, question: str, sql: str) -> None:
 
 
 def seed_collection(client, pharmacy_id: int, examples: list[dict]) -> int:
-    """Injecte les exemples golden dans ChromaDB si la collection est vide.
+    """Upsert les exemples golden dans ChromaDB (idempotent).
 
     Chaque exemple doit avoir les clés 'question' et 'golden_sql'.
-    Retourne le nombre d'exemples indexés (0 si la collection était déjà peuplée).
+    Utilise upsert — safe à appeler à chaque démarrage même si la collection
+    existe déjà. Retourne le nombre d'exemples indexés avec succès.
     """
-    col = get_collection(client, pharmacy_id)
-    if col.count() > 0:
-        return 0
     count = 0
     for ex in examples:
         try:

@@ -404,4 +404,189 @@ GOLDEN_QUESTIONS = [
         "expected_rows": 2,
         "expected_scalar": None,
     },
+
+    # ── Prédiction de rupture ─────────────────────────────────────────────────
+
+    {
+        "id": "Q31", "category": "prediction",
+        "question": "Dans combien de jours mes stocks vont-ils s epuiser ?",
+        "golden_sql": (
+            "SELECT sk.commercial_name, "
+            "sk.quantity_in_stock, "
+            "ROUND(AVG(sd.quantity), 2) AS ventes_moy_par_jour, "
+            "ROUND(sk.quantity_in_stock / NULLIF(AVG(sd.quantity), 0)) AS jours_restants "
+            "FROM marts.dim_stocks sk "
+            "JOIN staging.stg_raw__sale_details sd ON sk.product_id = sd.product_id "
+            "JOIN marts.fct_sales s ON sd.sale_id = s.sale_id "
+            "WHERE s.sale_date >= CURRENT_DATE - INTERVAL '30 days' "
+            "GROUP BY sk.commercial_name, sk.quantity_in_stock "
+            "ORDER BY jours_restants ASC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q32", "category": "prediction",
+        "question": "Quels produits vont etre en rupture dans moins de 7 jours ?",
+        "golden_sql": (
+            "SELECT sk.commercial_name, "
+            "sk.quantity_in_stock, "
+            "ROUND(sk.quantity_in_stock / NULLIF(AVG(sd.quantity), 0)) AS jours_restants "
+            "FROM marts.dim_stocks sk "
+            "JOIN staging.stg_raw__sale_details sd ON sk.product_id = sd.product_id "
+            "JOIN marts.fct_sales s ON sd.sale_id = s.sale_id "
+            "WHERE s.sale_date >= CURRENT_DATE - INTERVAL '30 days' "
+            "GROUP BY sk.commercial_name, sk.quantity_in_stock "
+            "HAVING ROUND(sk.quantity_in_stock / NULLIF(AVG(sd.quantity), 0)) <= 7 "
+            "ORDER BY jours_restants ASC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+
+    # ── Tiers-payant & paiements ──────────────────────────────────────────────
+
+    {
+        "id": "Q33", "category": "paiements",
+        "question": "Quel est mon chiffre d affaires tiers-payant ?",
+        "golden_sql": (
+            "SELECT SUM(total_amount_fcfa) AS ca_tiers_payant "
+            "FROM marts.fct_sales "
+            "WHERE payment_method = 'Tiers-Payant'"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q34", "category": "paiements",
+        "question": "Quelle est la repartition de mon CA par mode de paiement ?",
+        "golden_sql": (
+            "SELECT payment_method, "
+            "SUM(total_amount_fcfa) AS ca_total, "
+            "COUNT(*) AS nb_ventes "
+            "FROM marts.fct_sales "
+            "GROUP BY payment_method "
+            "ORDER BY ca_total DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q35", "category": "paiements",
+        "question": "Combien de ventes ont ete payees par Wave ou Orange Money ?",
+        "golden_sql": (
+            "SELECT payment_method, COUNT(*) AS nb_ventes "
+            "FROM marts.fct_sales "
+            "WHERE payment_method IN ('Wave', 'Orange Money') "
+            "GROUP BY payment_method "
+            "ORDER BY nb_ventes DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+
+    # ── Clients chroniques & fidélité ─────────────────────────────────────────
+
+    {
+        "id": "Q36", "category": "clients_fidelite",
+        "question": "Combien de clients chroniques avons-nous ?",
+        "golden_sql": (
+            "SELECT COUNT(*) AS nb_clients_chroniques "
+            "FROM marts.dim_clients "
+            "WHERE is_chronic = TRUE"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q37", "category": "clients_fidelite",
+        "question": "Quels sont mes clients avec le plus de points de fidelite ?",
+        "golden_sql": (
+            "SELECT full_name, loyalty_points "
+            "FROM marts.dim_clients "
+            "WHERE is_anonymous = FALSE "
+            "ORDER BY loyalty_points DESC "
+            "LIMIT 10"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q38", "category": "clients_fidelite",
+        "question": "Quel est le CA genere par les clients assures ?",
+        "golden_sql": (
+            "SELECT SUM(total_amount_fcfa) AS ca_assures "
+            "FROM marts.fct_sales "
+            "WHERE client_type = 'Assuré'"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+
+    # ── Marge & rentabilité ───────────────────────────────────────────────────
+
+    {
+        "id": "Q39", "category": "marge",
+        "question": "Quelle est la valeur totale de mes achats par fournisseur ?",
+        "golden_sql": (
+            "SELECT fp.wholesaler_name, "
+            "SUM(fp.purchase_price_fcfa * fp.quantity_received) AS valeur_achat_fcfa "
+            "FROM marts.fct_purchases fp "
+            "GROUP BY fp.wholesaler_name "
+            "ORDER BY valeur_achat_fcfa DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q40", "category": "marge",
+        "question": "Quel est le taux de service de mes fournisseurs ?",
+        "golden_sql": (
+            "SELECT fp.wholesaler_name, "
+            "ROUND(100.0 * SUM(fp.quantity_received) / NULLIF(SUM(fp.quantity_ordered), 0), 1) AS taux_service_pct "
+            "FROM marts.fct_purchases fp "
+            "GROUP BY fp.wholesaler_name "
+            "ORDER BY taux_service_pct DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+
+    # ── Retours fournisseurs ──────────────────────────────────────────────────
+
+    {
+        "id": "Q41", "category": "retours",
+        "question": "Combien de retours fournisseurs avons-nous effectue ?",
+        "golden_sql": (
+            "SELECT COUNT(*) AS nb_retours "
+            "FROM marts.fct_wholesaler_returns"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q42", "category": "retours",
+        "question": "Quel est le montant total de mes avoirs fournisseurs ?",
+        "golden_sql": (
+            "SELECT SUM(credit_note_amount_fcfa) AS total_avoirs_fcfa "
+            "FROM marts.fct_wholesaler_returns"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q43", "category": "retours",
+        "question": "Quels produits avons-nous le plus retournes aux fournisseurs ?",
+        "golden_sql": (
+            "SELECT pd.commercial_name, "
+            "SUM(wr.quantity_returned) AS total_retourne "
+            "FROM marts.fct_wholesaler_returns wr "
+            "JOIN marts.dim_products pd ON wr.product_id = pd.product_id "
+            "GROUP BY pd.commercial_name "
+            "ORDER BY total_retourne DESC "
+            "LIMIT 10"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
 ]
