@@ -25,19 +25,68 @@ export function ChatWindow() {
   }
 
   async function handleFeedback(msg, rating) {
+    const sub = msg.sub_analyses?.[0]
+    if (!sub) return
     setFeedback(msg.id, rating)
     try {
-      await chatApi.sendFeedback(msg.question, msg.sql, rating)
+      await chatApi.sendFeedback(msg.question, sub.sql, rating)
     } catch (_) {}
   }
 
-  function getDisplayData(msg) {
+  function getSimpleDisplayData(msg) {
     const override = reexecuteResults[msg.id]
+    const sub = msg.sub_analyses?.[0] ?? {}
     return {
-      columns: override?.columns ?? msg.columns ?? [],
-      rows: override?.rows ?? msg.rows ?? [],
-      rowCount: override?.row_count ?? msg.row_count ?? null,
+      columns: override?.columns ?? sub.columns ?? [],
+      rows: override?.rows ?? sub.rows ?? [],
+      rowCount: override?.row_count ?? sub.row_count ?? null,
     }
+  }
+
+  function renderSimpleMessage(msg) {
+    const sub = msg.sub_analyses?.[0] ?? {}
+    const display = getSimpleDisplayData(msg)
+    return (
+      <>
+        {sub.insight && <p className="chat-insight">{sub.insight}</p>}
+        {sub.sql && (
+          <SQLDisplay
+            sql={sub.sql}
+            onReexecute={(sql) => handleReexecute(msg.id, sql)}
+          />
+        )}
+        <ChartRouter columns={display.columns} rows={display.rows} />
+        <DataTable
+          columns={display.columns}
+          rows={display.rows}
+          rowCount={display.rowCount}
+        />
+        <FeedbackButtons
+          feedback={msg.feedback}
+          onFeedback={(rating) => handleFeedback(msg, rating)}
+        />
+      </>
+    )
+  }
+
+  function renderCompoundMessage(msg) {
+    return (
+      <>
+        {msg.sub_analyses.map((sub, i) => (
+          <div key={i} className="sub-analysis">
+            <p className="sub-analysis__title">{sub.question}</p>
+            {sub.insight && <p className="chat-insight">{sub.insight}</p>}
+            {sub.columns?.length > 0 && (
+              <DataTable
+                columns={sub.columns}
+                rows={sub.rows}
+                rowCount={sub.row_count}
+              />
+            )}
+          </div>
+        ))}
+      </>
+    )
   }
 
   return (
@@ -51,30 +100,11 @@ export function ChatWindow() {
           <MessageBubble key={msg.id} role="ai">
             {msg.error ? (
               <span className="chat-error">{msg.error}</span>
+            ) : msg.is_compound ? (
+              renderCompoundMessage(msg)
             ) : (
-              <>
-                {msg.insight && <p className="chat-insight">{msg.insight}</p>}
-                {msg.sql && (
-                  <SQLDisplay
-                    sql={msg.sql}
-                    onReexecute={(sql) => handleReexecute(msg.id, sql)}
-                  />
-                )}
-                <ChartRouter
-                  columns={getDisplayData(msg).columns}
-                  rows={getDisplayData(msg).rows}
-                />
-                <DataTable
-                  columns={getDisplayData(msg).columns}
-                  rows={getDisplayData(msg).rows}
-                  rowCount={getDisplayData(msg).rowCount}
-                />
-              </>
+              renderSimpleMessage(msg)
             )}
-            <FeedbackButtons
-              feedback={msg.feedback}
-              onFeedback={(rating) => handleFeedback(msg, rating)}
-            />
           </MessageBubble>
         )
       ))}

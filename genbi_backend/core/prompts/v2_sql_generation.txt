@@ -51,11 +51,15 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    ✗ WHERE sale_date BETWEEN '2026-03-01' AND '2026-03-31'
    Si la question ne précise PAS de mois (ex: "par mois", "évolution", "toute la période") :
    → ne pas ajouter de filtre WHERE du tout — regrouper sur sale_month uniquement.
-   Exemple (CA par mois, SANS filtre de période) :
+   "quel est le CA par mois ?" / "CA mensuel" / "évolution du CA" / "CA par mois"
+   → SQL EXACT, aucune variation autorisée :
      SELECT sale_month AS mois, SUM(total_amount_fcfa) AS ca_total
      FROM marts.fct_sales
      GROUP BY sale_month
      ORDER BY sale_month
+   ← total_amount_fcfa est DANS fct_sales — NE JAMAIS joindre stg_raw__sale_details pour ce cas
+   ← NE JAMAIS omettre GROUP BY sale_month quand la question contient "par mois"
+   ← NE PAS ajouter WHERE sauf si la question précise un mois ou une année
 
 4. FILTRES PAR SEMAINE / JOUR sur marts.fct_sales : utiliser sale_date.
    ✓ WHERE s.sale_date >= CURRENT_DATE - INTERVAL '7 days'
@@ -132,10 +136,14 @@ Règles CRITIQUES — toute violation rend la requête invalide :
      ← toujours passer par fct_missed_sales (ruptures), jamais par dim_stocks (stocks courants)
      ← remplacer 'Antibiotique' par la classe demandée
 
-   Pour compter les ruptures par mois :
+   "combien de ruptures par mois ?" / "ruptures par mois" / "ruptures mensuelles"
+   → SQL EXACT, aucune variation autorisée :
      SELECT missed_month AS mois, COUNT(*) AS nb_ruptures
      FROM marts.fct_missed_sales
-     GROUP BY missed_month ORDER BY missed_month
+     GROUP BY missed_month
+     ORDER BY missed_month
+   ← NE JAMAIS omettre GROUP BY missed_month quand la question contient "par mois"
+   ← NE PAS ajouter WHERE sauf si la question précise une période
 
    Pour les 5 produits avec le plus de ruptures :
      SELECT pd.commercial_name, COUNT(*) AS nb_ruptures

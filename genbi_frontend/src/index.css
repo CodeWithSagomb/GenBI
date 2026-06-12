@@ -383,6 +383,28 @@ body {
   font-size: 0.95rem;
 }
 
+/* ─── Sous-analyse (questions composées) ─── */
+.sub-analysis {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.sub-analysis:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sub-analysis__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
 /* ─── Query input ─── */
 .query-input-wrapper {
   display: flex;
