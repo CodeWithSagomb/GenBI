@@ -168,6 +168,8 @@ models:
       - name: insurer_share_fcfa
         description: "Montant pris en charge par l'assureur ou l'IPM. Zéro si pas de tiers-payant."
         data_tests: [not_null]
+      - name: vat_amount_fcfa
+        description: "Montant de TVA collectée sur la vente (18% sur parapharmacie, 0% sur médicaments)."
       - name: nb_products_in_cart
         description: "Nombre de références produits différentes dans ce panier."
       - name: total_units_sold

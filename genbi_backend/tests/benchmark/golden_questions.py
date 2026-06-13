@@ -603,4 +603,114 @@ GOLDEN_QUESTIONS = [
         "expected_rows": 1,
         "expected_scalar": None,
     },
+
+    # ── Nouveaux domaines métier (Option A) ───────────────────────────────────
+
+    {
+        "id": "Q45", "category": "panier",
+        "question": "quel est mon panier moyen ?",
+        "golden_sql": (
+            "SELECT ROUND(AVG(nb_products_in_cart), 2) AS panier_moyen "
+            "FROM marts.fct_sales"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q46", "category": "assurance",
+        "question": "quelle est la part prise en charge par les assureurs ?",
+        "golden_sql": (
+            "SELECT "
+            "SUM(patient_share_fcfa) AS part_patient_fcfa, "
+            "SUM(insurer_share_fcfa) AS part_assureur_fcfa "
+            "FROM marts.fct_sales"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q47", "category": "temporel",
+        "question": "quels jours de la semaine vend-on le plus ?",
+        "golden_sql": (
+            "SELECT "
+            "CASE sale_dow "
+            "WHEN 0 THEN 'Dimanche' WHEN 1 THEN 'Lundi' WHEN 2 THEN 'Mardi' "
+            "WHEN 3 THEN 'Mercredi' WHEN 4 THEN 'Jeudi' WHEN 5 THEN 'Vendredi' "
+            "ELSE 'Samedi' END AS jour, "
+            "COUNT(*) AS nb_ventes "
+            "FROM marts.fct_sales "
+            "GROUP BY sale_dow "
+            "ORDER BY nb_ventes DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q48", "category": "tva",
+        "question": "quel est le montant de TVA collectée ?",
+        "golden_sql": (
+            "SELECT SUM(vat_amount_fcfa) AS total_tva_fcfa "
+            "FROM marts.fct_sales"
+        ),
+        "expected_rows": 1,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q49", "category": "produits",
+        "question": "quelle est la part des génériques dans mes ventes ?",
+        "golden_sql": (
+            "SELECT "
+            "CASE WHEN p.is_generic THEN 'Générique' ELSE 'Princeps' END AS type_produit, "
+            "SUM(sd.total_line_amount_fcfa) AS ca_total "
+            "FROM marts.fct_sales s "
+            "JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id "
+            "JOIN marts.dim_products p ON sd.product_id = p.product_id "
+            "GROUP BY p.is_generic "
+            "ORDER BY ca_total DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q50", "category": "produits",
+        "question": "quelle est la répartition local vs importé dans mes ventes ?",
+        "golden_sql": (
+            "SELECT p.origin AS origine, SUM(sd.total_line_amount_fcfa) AS ca_total "
+            "FROM marts.fct_sales s "
+            "JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id "
+            "JOIN marts.dim_products p ON sd.product_id = p.product_id "
+            "GROUP BY p.origin "
+            "ORDER BY ca_total DESC"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q51", "category": "clients",
+        "question": "qui sont mes clients avec le plus de points fidélité ?",
+        "golden_sql": (
+            "SELECT c.full_name, c.loyalty_points "
+            "FROM marts.dim_clients c "
+            "ORDER BY c.loyalty_points DESC "
+            "LIMIT 10"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
+    {
+        "id": "Q52", "category": "retours",
+        "question": "quels produits ai-je le plus retournés aux fournisseurs ?",
+        "golden_sql": (
+            "SELECT pd.commercial_name, "
+            "SUM(r.quantity_returned) AS quantite_retournee, "
+            "SUM(r.credit_note_amount_fcfa) AS avoir_fcfa "
+            "FROM marts.fct_wholesaler_returns r "
+            "JOIN marts.dim_products pd ON r.product_id = pd.product_id "
+            "GROUP BY pd.commercial_name "
+            "ORDER BY quantite_retournee DESC "
+            "LIMIT 10"
+        ),
+        "expected_rows": None,
+        "expected_scalar": None,
+    },
 ]

@@ -14,6 +14,13 @@ Clients assurés (nombre de clients)         → FROM marts.dim_clients WHERE cl
 Achats / approvisionnements                 → FROM marts.fct_purchases (wholesaler_name, purchase_price_fcfa, quantity_received)
 Retours fournisseurs / avoirs               → FROM marts.fct_wholesaler_returns
 Assureurs / répartition par assureur        → JOIN marts.dim_insurers ON s.insurer_id = ins.insurer_id
+Panier moyen / nb articles par vente        → AVG(nb_products_in_cart) FROM marts.fct_sales
+Part patient / part assureur (montants)     → patient_share_fcfa · insurer_share_fcfa FROM marts.fct_sales
+Ventes par jour / activité hebdomadaire     → sale_dow FROM marts.fct_sales  (0=Dim 1=Lun 2=Mar 3=Mer 4=Jeu 5=Ven 6=Sam)
+TVA collectée / montant TVA                 → SUM(vat_amount_fcfa) FROM marts.fct_sales
+Génériques vs princeps / part génériques    → dim_products.is_generic (TRUE=générique · FALSE=princeps)
+Locaux vs importés / origine produits       → dim_products.origin ('Local' · 'Importé') via JOIN stg_raw__sale_details
+Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 FILTRES TEMPORELS :
