@@ -39,6 +39,7 @@ FILTRES TEMPORELS :
 • fct_missed_sales      → missed_month / missed_year  (pas sale_month / sale_year)
 • fct_purchases         → order_date pour filtres temporels (pas sale_date)
 • stg_raw__sale_details → pas de sale_date — filtrer via JOIN sur marts.fct_sales.sale_id
+• dim_clients (par mois) → GROUP BY DATE_TRUNC('month', created_at) ORDER BY DATE_TRUNC('month', created_at)  — NE PAS utiliser EXTRACT(MONTH) seul (fusionne les années)
 
 RÈGLES TECHNIQUES :
 1. Préfixe schéma obligatoire  →  marts.fct_sales ✓   fct_sales ✗
