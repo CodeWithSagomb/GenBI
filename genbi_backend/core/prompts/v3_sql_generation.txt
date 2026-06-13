@@ -21,6 +21,15 @@ TVA collectée / montant TVA                 → SUM(vat_amount_fcfa) FROM marts
 Génériques vs princeps / part génériques    → dim_products.is_generic (TRUE=générique · FALSE=princeps)
 Locaux vs importés / origine produits       → dim_products.origin ('Local' · 'Importé') via JOIN stg_raw__sale_details
 Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
+Ventes par forme galénique / galénique      → dim_products.form (Comprimé · Sirop · Gélule…) via JOIN stg_raw__sale_details
+Ventes par laboratoire / labo fabricant     → dim_products.laboratory via JOIN stg_raw__sale_details
+Marge brute / prix achat vs prix vente      → JOIN marts.fct_purchases fp ON fp.product_id = dp.product_id + marts.dim_products dp  (NE PAS utiliser fct_sales — fct_sales n'a pas product_id)
+Délai livraison / délai grossiste           → order_date · delivery_date FROM marts.fct_purchases
+Approvisionnements par mois / achats mois   → order_date FROM marts.fct_purchases GROUP BY EXTRACT(MONTH)
+Ruptures par mois / évolution ruptures      → missed_year · missed_month FROM marts.fct_missed_sales
+Retours par grossiste / retours par mois    → wholesaler_name · return_date FROM marts.fct_wholesaler_returns
+Ventes anonymes / clients non identifiés    → is_anonymous FROM marts.fct_sales
+Nouveaux clients par mois / inscriptions    → created_at FROM marts.dim_clients
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 FILTRES TEMPORELS :
@@ -28,13 +37,16 @@ FILTRES TEMPORELS :
 • "ce mois"             → WHERE sale_month = EXTRACT(MONTH FROM CURRENT_DATE)::int AND sale_year = EXTRACT(YEAR FROM CURRENT_DATE)::int
 • "mars 2026" / mois précis → WHERE sale_month = 3 AND sale_year = 2026
 • fct_missed_sales      → missed_month / missed_year  (pas sale_month / sale_year)
+• fct_purchases         → order_date pour filtres temporels (pas sale_date)
 • stg_raw__sale_details → pas de sale_date — filtrer via JOIN sur marts.fct_sales.sale_id
 
 RÈGLES TECHNIQUES :
 1. Préfixe schéma obligatoire  →  marts.fct_sales ✓   fct_sales ✗
-2. Alias standards : fct_sales=s · dim_products=pd · dim_stocks=sk · fct_purchases=fp · dim_clients=c · dim_insurers=ins
+2. Alias standards : fct_sales=s · dim_products=pd · dim_stocks=sk · fct_purchases=fp · dim_clients=c · dim_insurers=ins · fct_wholesaler_returns=wr
 3. RLS actif : ne pas ajouter WHERE pharmacy_id (filtrage automatique)
 4. Colonnes : utiliser uniquement celles du schéma ci-dessous — ne rien inventer
+5. Marge : utiliser marts.fct_purchases (a product_id) — fct_sales N'A PAS product_id
+6. Produit par vente : passer par staging.stg_raw__sale_details sd JOIN marts.fct_sales s ON sd.sale_id = s.sale_id
 
 <schema_dbt>
 {schema}
