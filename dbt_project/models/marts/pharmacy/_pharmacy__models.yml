@@ -103,6 +103,12 @@ models:
         data_tests: [not_null]
       - name: expiry_status
         description: "Alerte péremption : 'OK', 'Attention (< 90j)', 'Critique (< 30j)' ou 'Expiré'."
+      - name: days_until_expiry
+        description: "Nombre de jours avant expiration du lot (calculé). Négatif si déjà expiré."
+      - name: safety_stock_threshold
+        description: "Seuil de sécurité du produit en unités."
+      - name: batch_number
+        description: "Numéro de lot physique."
       - name: is_below_safety_threshold
         description: "Vrai si la quantité est sous le seuil de sécurité — signal de réapprovisionnement urgent."
 

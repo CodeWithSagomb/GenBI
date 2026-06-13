@@ -9,7 +9,7 @@ export function RankingBarChart({ data, xKey, yKey }) {
         <BarChart
           data={data}
           layout="vertical"
-          margin={{ top: 8, right: 24, left: 80, bottom: 8 }}
+          margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
           <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
@@ -17,7 +17,7 @@ export function RankingBarChart({ data, xKey, yKey }) {
             type="category"
             dataKey={xKey}
             tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-            width={76}
+            width={140}
           />
           <Tooltip
             contentStyle={{ background: 'var(--panel-bg)', border: '1px solid var(--panel-border)' }}
