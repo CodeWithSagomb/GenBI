@@ -47,6 +47,20 @@ async def lifespan(app: FastAPI):
     app.state.db_write_pool = create_write_pool()
     app.state.rag_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
 
+    # Couche sémantique : charge le catalogue YAML (best-effort)
+    try:
+        from core.semantic_layer import load_catalog
+        app.state.semantic_catalog = load_catalog(settings.SEMANTIC_CATALOG_PATH)
+        logging.getLogger("genbi").info(
+            "Semantic catalog chargé : %d métriques, %d dimensions, %d filtres",
+            len(app.state.semantic_catalog.get("metrics", [])),
+            len(app.state.semantic_catalog.get("dimensions", [])),
+            len(app.state.semantic_catalog.get("filtres", [])),
+        )
+    except Exception as _exc:
+        app.state.semantic_catalog = None
+        logging.getLogger("genbi").warning("Semantic catalog non chargé (best-effort): %s", _exc)
+
     # Seed RAG : injecte les exemples golden dans ChromaDB si collections vides (best-effort)
     try:
         from core.rag import seed_collection

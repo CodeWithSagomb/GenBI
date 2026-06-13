@@ -19,7 +19,10 @@ async def query_endpoint(
     request: Request,
     page: PageParams = Depends(),
     conn=Depends(get_db_conn),
+    pharmacy_id: int = Depends(get_current_pharmacy),
 ):
     schema: str = request.app.state.manifest
-    result = await query_pipeline(body.question, schema, conn, page)
+    rag_client = getattr(request.app.state, "rag_client", None)
+    semantic_catalog = getattr(request.app.state, "semantic_catalog", None)
+    result = await query_pipeline(body.question, schema, conn, page, rag_client=rag_client, pharmacy_id=pharmacy_id, semantic_catalog=semantic_catalog)
     return QueryResponse(**result)

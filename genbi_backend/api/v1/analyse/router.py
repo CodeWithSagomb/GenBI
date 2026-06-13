@@ -19,5 +19,7 @@ async def analyse_endpoint(
 ):
     schema: str = request.app.state.manifest
     pool = request.app.state.db_pool
-    result = await analyse_pipeline(body.question, schema, pool, pharmacy_id)
+    rag_client = getattr(request.app.state, "rag_client", None)
+    semantic_catalog = getattr(request.app.state, "semantic_catalog", None)
+    result = await analyse_pipeline(body.question, schema, pool, pharmacy_id, rag_client=rag_client, semantic_catalog=semantic_catalog)
     return AnalyseResponse(**result)

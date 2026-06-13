@@ -39,7 +39,10 @@ class Settings(BaseSettings):
     ADMIN_SECRET: str = ""
 
     # Prompt LLM — version active pour la génération SQL (versionné dans core/prompts/)
-    SQL_PROMPT_VERSION: str = "v2_sql_generation"
+    SQL_PROMPT_VERSION: str = "v3_sql_generation"
+
+    # Couche sémantique — catalogue des termes métier de la pharmacie
+    SEMANTIC_CATALOG_PATH: str = "/app/core/semantic_catalog.yaml"
 
     APP_ENV: str = "development"
     DEBUG: bool = True

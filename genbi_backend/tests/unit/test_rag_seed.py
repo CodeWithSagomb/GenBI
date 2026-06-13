@@ -36,10 +36,11 @@ def test_seed_collection_vide_indexe_tous_les_exemples(chroma_client):
     assert n == len(SAMPLE_EXAMPLES)
 
 
-def test_seed_collection_deja_peuplee_retourne_zero(chroma_client):
+def test_seed_collection_idempotent_retourne_count(chroma_client):
+    """seed_collection est idempotent : un second appel upsert les mêmes exemples sans erreur."""
     seed_collection(chroma_client, pharmacy_id=20, examples=SAMPLE_EXAMPLES)
     n = seed_collection(chroma_client, pharmacy_id=20, examples=SAMPLE_EXAMPLES)
-    assert n == 0
+    assert n == len(SAMPLE_EXAMPLES)
 
 
 def test_seed_collection_exemples_retrouvables_apres_seed(chroma_client):

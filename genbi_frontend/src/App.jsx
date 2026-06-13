@@ -79,7 +79,8 @@ function App() {
       </header>
 
       <main className={`chat-main${page === 'dashboard' ? ' chat-main--dashboard' : ''}`}>
-        {page === 'dashboard' ? <DashboardPage /> : <ChatWindow />}
+        <div style={{ display: page === 'dashboard' ? 'contents' : 'none' }}><DashboardPage /></div>
+        <div style={{ display: page === 'chat' ? 'contents' : 'none' }}><ChatWindow /></div>
       </main>
     </div>
   )
