@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Trash2 } from 'lucide-react'
 import { useChat } from '../../hooks/useChat'
 import { QueryInput } from './QueryInput'
 import { MessageBubble } from './MessageBubble'
@@ -9,9 +10,14 @@ import { ChartRouter } from '../visualizations/ChartRouter'
 import { chatApi } from '../../services/api'
 
 export function ChatWindow() {
-  const { messages, status, sendQuestion, setFeedback } = useChat()
+  const { messages, status, sendQuestion, setFeedback, clearChat: clearChatState } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
   const bottomRef = useRef(null)
+
+  function clearChat() {
+    clearChatState()
+    setReexecuteResults({})
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -91,6 +97,17 @@ export function ChatWindow() {
 
   return (
     <div className="chat-window">
+      {messages.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            className="sql-display__edit-btn"
+            onClick={clearChat}
+            title="Effacer la conversation"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
       {messages.map(msg => (
         msg.role === 'user' ? (
           <MessageBubble key={msg.id} role="user">

@@ -46,5 +46,10 @@ export function useChat() {
     )
   }, [])
 
-  return { messages, status, sendQuestion, setFeedback }
+  const clearChat = useCallback(() => {
+    setMessages([])
+    nextId.current = 0
+  }, [])
+
+  return { messages, status, sendQuestion, setFeedback, clearChat }
 }
