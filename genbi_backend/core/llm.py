@@ -19,15 +19,26 @@ _PROMPTS_DIR = Path(__file__).parent / "prompts"
 def _clean_sql(raw: str) -> str:
     """Extrait le SQL pur d'une réponse LLM potentiellement enveloppée en markdown.
 
-    Supprime les blocs ```sql ... ``` ou ``` ... ```, puis les point-virgules
-    finaux afin d'éviter les faux positifs du validateur et les conflits avec
-    la pagination ajoutée en aval.
+    Supprime les blocs ```sql ... ```, les commentaires SQL (-- et /* */),
+    le texte avant le premier SELECT, et les point-virgules finaux.
     """
     raw = raw.strip()
     # Retire les blocs de code markdown
     raw = re.sub(r"^```(?:sql)?\s*", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\s*```\s*$", "", raw)
-    # Retire les point-virgules finaux
+    # Supprime les commentaires SQL — ils peuvent contenir des apostrophes françaises
+    # qui cassent le tokenizer sqlglot (ex: -- Note: c'est la table X)
+    raw = re.sub(r"--[^\n]*", "", raw)
+    raw = re.sub(r"/\*.*?\*/", "", raw, flags=re.DOTALL)
+    # Extrait uniquement depuis le premier SELECT (ignore le texte introductif)
+    select_match = re.search(r"\bSELECT\b", raw, re.IGNORECASE)
+    if select_match:
+        raw = raw[select_match.start():]
+    # Remplace les apostrophes françaises dans les identifiants SQL
+    # Ex: AS jours_jusqu'à_expiration → AS jours_jusqu_à_expiration
+    # Sûr : \w'\w ne matche pas les délimiteurs de chaînes SQL 'Tiers-Payant'
+    raw = re.sub(r"(\w)'(\w)", r"\1_\2", raw)
+    # Retire les point-virgules finaux et les espaces résiduels
     raw = raw.rstrip(";").strip()
     return raw
 
@@ -40,11 +51,17 @@ def load_prompt(name: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def build_sql_prompt(schema: str, question: str, examples: list | None = None) -> str:
+def build_sql_prompt(
+    schema: str,
+    question: str,
+    examples: list | None = None,
+    semantic_context: str = "",
+) -> str:
     """Construit le prompt pour la génération SQL.
 
-    Si `examples` est fourni (paires Question→SQL issues du RAG), un bloc
-    <examples> est injecté dans le prompt pour guider le LLM.
+    - examples        : paires Question→SQL issues du RAG (bloc <examples>)
+    - semantic_context: définitions détectées par la couche sémantique (bloc <semantic_context>)
+      Injecté uniquement si le template contient le placeholder — rétrocompatible v1.
     """
     template = load_prompt(settings.SQL_PROMPT_VERSION)
     examples_block = ""
@@ -53,7 +70,10 @@ def build_sql_prompt(schema: str, question: str, examples: list | None = None) -
             f"Question: {ex['question']}\nSQL: {ex['sql']}" for ex in examples
         )
         examples_block = f"\n<examples>\n{lines}\n</examples>"
-    return template.format(schema=schema, question=question, examples=examples_block)
+    fmt_kwargs = {"schema": schema, "question": question, "examples": examples_block}
+    if "{semantic_context}" in template:
+        fmt_kwargs["semantic_context"] = semantic_context
+    return template.format(**fmt_kwargs)
 
 
 def build_insight_prompt(question: str, results: dict) -> str:
@@ -74,6 +94,7 @@ async def generate_sql(
     schema: str,
     question: str,
     examples: list | None = None,
+    semantic_context: str = "",
     timeout: Optional[int] = None,
 ) -> str:
     """Appelle Ollama pour générer un SELECT SQL.
@@ -82,7 +103,7 @@ async def generate_sql(
     Lève LLMTimeoutError si Ollama ne répond pas dans le délai imparti.
     """
     timeout_s = timeout if timeout is not None else settings.LLM_SQL_TIMEOUT
-    prompt = build_sql_prompt(schema, question, examples)
+    prompt = build_sql_prompt(schema, question, examples, semantic_context)
     try:
         response = await asyncio.wait_for(
             litellm.acompletion(

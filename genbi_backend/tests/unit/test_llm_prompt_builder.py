@@ -102,6 +102,35 @@ def test_load_prompt_v2_contient_correctifs_cibles():
     assert "GROUP BY pd.product_category" in prompt
 
 
+# ── semantic_context ─────────────────────────────────────────────────────────
+
+def test_prompt_v2_avec_semantic_context_contient_bloc():
+    ctx = "<semantic_context>\nTermes détectés :\n- Chiffre d'affaires = SUM(total_amount_fcfa)\n</semantic_context>\n"
+    prompt = build_sql_prompt("schema", "question", semantic_context=ctx)
+    assert "<semantic_context>" in prompt
+    assert "Chiffre d'affaires" in prompt
+
+
+def test_prompt_v2_sans_semantic_context_pas_de_bloc():
+    prompt = build_sql_prompt("schema", "question", semantic_context="")
+    assert "<semantic_context>" not in prompt
+
+
+def test_semantic_context_positionne_avant_question():
+    ctx = "<semantic_context>\nTermes détectés :\n- CA\n</semantic_context>\n"
+    prompt = build_sql_prompt("schema", "ma question", semantic_context=ctx)
+    assert prompt.index("<semantic_context>") < prompt.index("ma question")
+
+
+def test_prompt_v1_avec_semantic_context_ne_plante_pas():
+    """v1 n'a pas {semantic_context} — l'injection conditionnelle doit éviter KeyError."""
+    with patch("core.llm.settings") as mock_settings:
+        mock_settings.SQL_PROMPT_VERSION = "v1_sql_generation"
+        prompt = build_sql_prompt("schema", "question", semantic_context="<semantic_context>test</semantic_context>")
+    assert "question" in prompt
+    assert "<semantic_context>" not in prompt
+
+
 def test_build_sql_prompt_utilise_version_configurable():
     """build_sql_prompt doit charger la version définie dans settings.SQL_PROMPT_VERSION."""
     with patch("core.llm.settings") as mock_settings:

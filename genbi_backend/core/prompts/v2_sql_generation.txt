@@ -5,7 +5,7 @@ NE PAS utiliser de blocs markdown (``` ou ```sql). NE PAS terminer par un point-
 <schema_dbt>
 {schema}
 </schema_dbt>
-
+{semantic_context}
 <question>
 {question}
 </question>
@@ -30,6 +30,9 @@ Règles CRITIQUES — toute violation rend la requête invalide :
                            ← product_category  (DEUX valeurs uniquement : 'Médicament', 'Parapharmacie')
                            ← NE JAMAIS utiliser therapeutic_group (colonne inexistante)
    marts.dim_clients     : client_id, client_type, full_name, is_chronic, loyalty_points
+                           ← NE JAMAIS utiliser dim_customers (table inexistante) — toujours marts.dim_clients
+                           ← "clients chroniques" → SELECT COUNT(*) AS nb_clients_chroniques FROM marts.dim_clients WHERE is_chronic = TRUE
+                           ← "clients assurés" (nombre de clients) → SELECT COUNT(*) AS nb_clients_assures FROM marts.dim_clients WHERE client_type = 'Assuré'
    marts.fct_missed_sales: missed_sale_id, pharmacy_id, product_id, missed_date, missed_date_day,
                            missed_month, missed_year, requested_quantity, client_type
    marts.dim_stocks      : stock_id, product_id, commercial_name, therapeutic_class, batch_number,
@@ -50,7 +53,17 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    ✓ WHERE s.sale_month = 3 AND s.sale_year = 2026
    ✗ WHERE sale_date BETWEEN '2026-03-01' AND '2026-03-31'
    Si la question ne précise PAS de mois (ex: "par mois", "évolution", "toute la période") :
-   → ne pas ajouter de filtre sale_month — regrouper sur sale_month et sale_year.
+   → ne pas ajouter de filtre WHERE du tout — regrouper sur sale_month uniquement.
+
+   "quel est le CA par mois ?" / "quel est mon CA par mois ?" / "CA mensuel" / "évolution du CA" / "CA par mois"
+   → SQL EXACT, aucune variation autorisée :
+     SELECT sale_month AS mois, SUM(total_amount_fcfa) AS ca_total
+     FROM marts.fct_sales
+     GROUP BY sale_month
+     ORDER BY sale_month
+   ← total_amount_fcfa est DANS fct_sales — NE JAMAIS joindre stg_raw__sale_details pour ce cas
+   ← NE JAMAIS omettre GROUP BY sale_month quand la question contient "par mois"
+   ← NE PAS ajouter WHERE sauf si la question précise un mois ou une année
 
 4. FILTRES PAR SEMAINE / JOUR sur marts.fct_sales : utiliser sale_date.
    ✓ WHERE s.sale_date >= CURRENT_DATE - INTERVAL '7 days'
@@ -73,8 +86,19 @@ Règles CRITIQUES — toute violation rend la requête invalide :
                JOIN marts.dim_products pd ON sd.product_id = pd.product_id
                GROUP BY pd.product_category ORDER BY ca_total DESC
 
-   "par produit" / "par médicament" / top N produits
+   "par produit" / "par médicament" / "les plus vendus" / "top N produits"
      → GROUP BY pd.commercial_name
+     → "les plus vendus" = SUM(sd.quantity) — NE PAS utiliser total_line_amount_fcfa pour classer par volume
+     → NE PAS ajouter de filtre temporel sauf si la question précise une période
+
+     Exemple (top 5 produits les plus vendus en quantité, sans filtre temporel) :
+       SELECT pd.commercial_name AS produit, SUM(sd.quantity) AS quantite_vendue
+       FROM marts.fct_sales s
+       JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
+       JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+       GROUP BY pd.commercial_name
+       ORDER BY quantite_vendue DESC
+       LIMIT 5
 
    FILTRES SUR LES PRODUITS :
    "médicaments hors parapharmacie" / "médicaments" (excluant para)
@@ -93,9 +117,13 @@ Règles CRITIQUES — toute violation rend la requête invalide :
        ORDER BY pd.commercial_name
 
 6. RUPTURES DE STOCK — règle exacte, ne pas dévier :
-   La table marts.fct_missed_sales liste les demandes non servies.
+   La table marts.fct_missed_sales liste les demandes non servies (ventes manquées / ruptures de stock).
    Elle ne possède PAS sale_month, sale_year, sale_id ni quantity.
    Ne JAMAIS joindre fct_sales pour obtenir des informations temporelles — utiliser missed_month/missed_year.
+
+   Pour COMPTER le total de ruptures ("combien de ventes manquées", "nombre de ruptures") :
+     SELECT COUNT(*) AS total_ruptures
+     FROM marts.fct_missed_sales
 
    Pour lister les produits en rupture (sans filtre de date sauf si précisé) :
      SELECT DISTINCT pd.commercial_name
@@ -103,10 +131,24 @@ Règles CRITIQUES — toute violation rend la requête invalide :
      JOIN marts.dim_products pd ON ms.product_id = pd.product_id
      ← NE PAS ajouter WHERE si la question ne précise pas de période
 
-   Pour compter les ruptures par mois :
+   Pour lister les ruptures filtrées par classe thérapeutique ("quels antibiotiques en rupture", "antipaludéens en rupture") :
+     SELECT DISTINCT pd.commercial_name
+     FROM marts.fct_missed_sales ms
+     JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+     WHERE pd.therapeutic_class = 'Antibiotique'
+     ORDER BY pd.commercial_name
+     ← toujours passer par fct_missed_sales (ruptures), jamais par dim_stocks (stocks courants)
+     ← remplacer 'Antibiotique' par la classe demandée
+
+   "combien de ruptures par mois ?" / "ruptures par mois" / "ruptures mensuelles"
+   → SQL EXACT, aucune variation autorisée :
      SELECT missed_month AS mois, COUNT(*) AS nb_ruptures
      FROM marts.fct_missed_sales
-     GROUP BY missed_month ORDER BY missed_month
+     GROUP BY missed_month
+     ORDER BY missed_month
+   ← NE JAMAIS omettre GROUP BY missed_month pour les requêtes de ruptures par mois
+   ← NE PAS ajouter WHERE sauf si la question précise une période
+   ← Cette règle s'applique UNIQUEMENT aux questions de ruptures — pas aux questions de CA
 
    Pour les 5 produits avec le plus de ruptures :
      SELECT pd.commercial_name, COUNT(*) AS nb_ruptures
@@ -121,7 +163,17 @@ Règles CRITIQUES — toute violation rend la requête invalide :
    La table marts.dim_stocks contient déjà commercial_name, is_below_safety_threshold et expiry_status.
    Ne JAMAIS utiliser l'alias pd pour dim_stocks — utiliser sk ou st.
 
-   Produits sous seuil de sécurité :
+   Pour COMPTER les produits sous seuil ("combien de produits", "nombre de produits") :
+     SELECT COUNT(*) AS nb_produits_sous_seuil
+     FROM marts.dim_stocks
+     WHERE is_below_safety_threshold = TRUE
+
+   Pour COMPTER les lots expirant dans moins de 30 jours :
+     SELECT COUNT(*) AS nb_lots_expirants
+     FROM marts.dim_stocks
+     WHERE days_until_expiry >= 0 AND days_until_expiry <= 30
+
+   Produits sous seuil de sécurité (liste détaillée) :
      SELECT sk.commercial_name, sk.quantity_in_stock, sk.safety_stock_threshold
      FROM marts.dim_stocks sk
      WHERE sk.is_below_safety_threshold = TRUE

@@ -19,3 +19,6 @@ Consignes :
   * NOMBRE DE TRANSACTIONS → exprimer comme "X ventes" ou "X transactions", jamais en FCFA.
   * NOMBRE D'UNITÉS → exprimer comme "X unités", jamais en FCFA.
 - Les chiffres dans les données sont les SEULES valeurs disponibles. Ne pas en inventer d'autres.
+- MOIS : si les données contiennent une colonne `mois`, `sale_month` ou `missed_month`, la valeur est le numéro ISO du mois (1=janvier, 2=février, 3=mars, 4=avril, 5=mai, 6=juin, 7=juillet, 8=août, 9=septembre, 10=octobre, 11=novembre, 12=décembre). Ne jamais décaler : mois 2 = février (pas janvier), mois 4 = avril (pas mars).
+- RUPTURES : si la question porte sur les "ruptures de stock" ou "ventes manquées", les valeurs dans les résultats sont des RUPTURES — jamais des "ventes". Utiliser les mots "ruptures" ou "ventes manquées", jamais "ventes".
+- IMPORTANT : l'insight doit UNIQUEMENT répondre à la question posée, en s'appuyant EXCLUSIVEMENT sur les données fournies. Ne jamais introduire d'informations connexes absentes des résultats (ex : si la question porte sur les péremptions, ne pas mentionner les ruptures de stock ; si la question est un simple comptage, commenter ce chiffre sans inventer de détails).

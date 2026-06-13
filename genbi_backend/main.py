@@ -19,6 +19,7 @@ from api.v1.suggestions.router import router as suggestions_router
 from api.v1.feedback.router import router as feedback_router
 from api.v1.admin.router import router as admin_router
 from api.v1.auth.router import router as auth_jwt_router
+from api.v1.analyse.router import router as analyse_router
 
 
 _DEV_JWT_SECRET = "dev_secret_change_in_production"
@@ -45,6 +46,20 @@ async def lifespan(app: FastAPI):
     app.state.db_pool = create_pool()
     app.state.db_write_pool = create_write_pool()
     app.state.rag_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
+
+    # Couche sémantique : charge le catalogue YAML (best-effort)
+    try:
+        from core.semantic_layer import load_catalog
+        app.state.semantic_catalog = load_catalog(settings.SEMANTIC_CATALOG_PATH)
+        logging.getLogger("genbi").info(
+            "Semantic catalog chargé : %d métriques, %d dimensions, %d filtres",
+            len(app.state.semantic_catalog.get("metrics", [])),
+            len(app.state.semantic_catalog.get("dimensions", [])),
+            len(app.state.semantic_catalog.get("filtres", [])),
+        )
+    except Exception as _exc:
+        app.state.semantic_catalog = None
+        logging.getLogger("genbi").warning("Semantic catalog non chargé (best-effort): %s", _exc)
 
     # Seed RAG : injecte les exemples golden dans ChromaDB si collections vides (best-effort)
     try:
@@ -129,6 +144,7 @@ app.include_router(suggestions_router)
 app.include_router(feedback_router)
 app.include_router(admin_router)
 app.include_router(auth_jwt_router)
+app.include_router(analyse_router)
 
 
 @app.get("/", include_in_schema=False)

@@ -60,6 +60,12 @@ export const chatApi = {
       method: 'POST',
       body: JSON.stringify({ question, sql_generated, rating, comment }),
     }),
+
+  analyse: (question) =>
+    request('/api/v1/analyse', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    }),
 }
 
 export const authApi = {
