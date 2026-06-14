@@ -370,6 +370,8 @@ body {
   background: var(--secondary);
   animation: pulse 1.2s infinite ease-in-out;
 }
+.chat-loading__dot:nth-child(2) { animation-delay: 0.2s; }
+.chat-loading__dot:nth-child(3) { animation-delay: 0.4s; }
 
 /* ─── Error ─── */
 .chat-error {
@@ -887,8 +889,39 @@ body {
 }
 
 .kpi-card__unit  { font-size: 0.85rem; font-weight: 400; color: var(--text-muted); }
-.kpi-card__loading { font-size: 1.5rem; color: var(--text-muted); }
-.kpi-card__error   { font-size: 0.85rem; color: var(--danger-light); }
+.kpi-card__error { font-size: 0.85rem; color: var(--danger-light); }
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.kpi-card__skeleton { display: flex; flex-direction: column; gap: 0.4rem; }
+.kpi-card__skeleton-value,
+.kpi-card__skeleton-unit {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--panel-border) 25%, color-mix(in srgb, var(--panel-border) 40%, transparent) 50%, var(--panel-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.kpi-card__skeleton-value { height: 2rem;  width: 60%; }
+.kpi-card__skeleton-unit  { height: 0.8rem; width: 35%; }
+
+.chart-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1rem 0;
+  opacity: 0.6;
+}
+
+.message-timestamp {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.55;
+  margin-top: 0.6rem;
+  text-align: right;
+}
 
 /* Charts */
 .dashboard__charts {

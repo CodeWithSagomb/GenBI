@@ -9,6 +9,14 @@ import { DataTable } from '../data/DataTable'
 import { ChartRouter } from '../visualizations/ChartRouter'
 import { chatApi } from '../../services/api'
 
+function formatTime(ts) {
+  if (!ts) return ''
+  const mins = Math.floor((Date.now() - ts) / 60000)
+  if (mins < 1) return 'À l\'instant'
+  if (mins < 60) return `il y a ${mins} min`
+  return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function ChatWindow() {
   const { messages, status, sendQuestion, setFeedback, clearChat: clearChatState } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
@@ -134,12 +142,17 @@ export function ChatWindow() {
             ) : (
               renderSimpleMessage(msg)
             )}
+            {msg.timestamp && (
+              <span className="message-timestamp">{formatTime(msg.timestamp)}</span>
+            )}
           </MessageBubble>
         )
       ))}
 
       {status === 'loading' && (
         <div data-testid="loading-indicator" className="chat-loading">
+          <span className="chat-loading__dot" />
+          <span className="chat-loading__dot" />
           <span className="chat-loading__dot" />
           <span>Analyse en cours…</span>
         </div>
