@@ -1,8 +1,13 @@
+import logging
 from datetime import date, datetime
 from decimal import Decimal
 
-from core.llm import generate_sql, generate_insight
+from config import settings
+
+logger = logging.getLogger(__name__)
+from core.llm import generate_sql, generate_insight, repair_sql
 from core.rag import retrieve_examples
+from core.schema_filter import filter_schema_for_question
 from core.semantic_layer import resolve_semantics
 from core.sql_validator import validate_sql
 from core.exceptions import DatabaseError
@@ -50,33 +55,60 @@ async def query_pipeline(
     rag_client=None,
     pharmacy_id: int | None = None,
     semantic_catalog: dict | None = None,
+    schema_embeddings: dict | None = None,
+    conversation_history: list | None = None,
 ) -> dict:
     """Pipeline complet : question → SQL → exécution → insight (optionnel).
 
     - rag_client + pharmacy_id  : exemples ChromaDB injectés dans le prompt
     - semantic_catalog          : termes métier détectés → bloc <semantic_context>
+    - conversation_history      : turns précédents pour le chat multi-tour (Phase 4)
     """
     examples: list = []
     if rag_client is not None and pharmacy_id is not None:
         examples = retrieve_examples(rag_client, pharmacy_id, question, n=3)
 
     semantic_context = resolve_semantics(question, semantic_catalog)
+    filtered_schema = filter_schema_for_question(schema, question, schema_embeddings)
 
-    sql = await generate_sql(schema, question, examples or None, semantic_context)
+    sql = await generate_sql(filtered_schema, question, examples or None, semantic_context, conversation_history)
     validate_sql(sql)
 
     paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
-    try:
-        with conn.cursor() as cur:
-            cur.execute(paginated)
-            columns = [desc[0] for desc in cur.description]
-            rows = [_serialize_row(row) for row in cur.fetchall()]
-    except psycopg2.Error as e:
-        raise DatabaseError(f"Erreur d'exécution SQL : {e}") from e
+    columns: list = []
+    rows: list = []
+    last_error: psycopg2.Error | None = None
+    for attempt in range(settings.SQL_MAX_REPAIR_ATTEMPTS + 1):
+        try:
+            with conn.cursor() as cur:
+                cur.execute(paginated)
+                columns = [desc[0] for desc in cur.description]
+                rows = [_serialize_row(row) for row in cur.fetchall()]
+            last_error = None
+            break
+        except psycopg2.Error as e:
+            last_error = e
+            conn.rollback()
+            if attempt < settings.SQL_MAX_REPAIR_ATTEMPTS:
+                logger.warning(
+                    "[SQL-REPAIR] tentative %d/%d — erreur: %s",
+                    attempt + 1, settings.SQL_MAX_REPAIR_ATTEMPTS, str(e).split("\n")[0],
+                )
+                sql = await repair_sql(schema, question, sql, str(e))
+                logger.info("[SQL-REPAIR] SQL réparé: %s", sql[:120])
+                validate_sql(sql)
+                paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
+    if last_error is not None:
+        raise DatabaseError(f"Erreur d'exécution SQL : {last_error}") from last_error
 
     rows = _humanize_months(columns, rows)
     results = {"columns": columns, "rows": rows}
-    insight = await generate_insight(question, results) if with_insight else ""
+    if with_insight and rows:
+        insight = await generate_insight(question, results)
+    elif with_insight and not rows:
+        insight = "Aucune donnée disponible pour cette période ou cette sélection."
+    else:
+        insight = ""
 
     return {
         "question": question,
