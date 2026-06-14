@@ -1,5 +1,6 @@
-import { RefreshCw, DollarSign, TrendingUp, Package, AlertTriangle, Clock, ShoppingCart } from 'lucide-react'
+import { RefreshCw, DollarSign, TrendingUp, Package, AlertTriangle, Clock, ShoppingCart, Zap } from 'lucide-react'
 import { useDashboard } from '../../hooks/useDashboard'
+import { useAlerts } from '../../hooks/useAlerts'
 import { KPICard } from './KPICard'
 import { AlertTable } from './AlertTable'
 import { RankingBarChart } from '../visualizations/RankingBarChart'
@@ -14,12 +15,37 @@ function buildChartData(columns, rows) {
   })
 }
 
+const SEVERITY_LABEL = { danger: 'Critique', warning: 'Attention', info: 'Info' }
+
+function AlertInsightCard({ alert }) {
+  const color = alert.severity === 'danger' ? 'var(--danger)'
+    : alert.severity === 'warning' ? 'var(--warning)'
+    : 'var(--secondary)'
+  return (
+    <div className="alert-insight-card" style={{ borderLeft: `3px solid ${color}` }}>
+      <div className="alert-insight-card__header">
+        <span className="alert-insight-card__badge" style={{ background: color }}>
+          {SEVERITY_LABEL[alert.severity] ?? alert.severity}
+        </span>
+        <span className="alert-insight-card__title">{alert.title}</span>
+        <span className="alert-insight-card__count">{alert.row_count} résultat{alert.row_count > 1 ? 's' : ''}</span>
+      </div>
+      {alert.row_count === 0 ? (
+        <p className="alert-insight-card__empty">Aucune alerte active.</p>
+      ) : (
+        <p className="alert-insight-card__insight">{alert.insight}</p>
+      )}
+    </div>
+  )
+}
+
 export function DashboardPage() {
   const {
     caTotal, caMensuel, topProduits,
     stocksAlerte, lotsPerimables, ruptures,
     isLoading, refetchAll,
   } = useDashboard()
+  const { alerts, loading: alertsLoading, refetch: refetchAlerts } = useAlerts()
 
   const caValue = caTotal.data?.rows?.[0]?.[0] ?? null
   const rupturesValue = ruptures.data?.rows?.[0]?.[0] ?? null
@@ -38,11 +64,11 @@ export function DashboardPage() {
         </div>
         <button
           className="dashboard__refresh"
-          onClick={refetchAll}
-          disabled={isLoading}
+          onClick={() => { refetchAll(); refetchAlerts() }}
+          disabled={isLoading || alertsLoading}
           title="Actualiser"
         >
-          <RefreshCw size={15} className={isLoading ? 'spin' : ''} />
+          <RefreshCw size={15} className={(isLoading || alertsLoading) ? 'spin' : ''} />
           Actualiser
         </button>
       </div>
@@ -134,6 +160,22 @@ export function DashboardPage() {
           error={lotsPerimables.error}
           severity="warning"
         />
+      </div>
+
+      {/* Alertes intelligentes — narration LLM */}
+      <div className="dashboard__section">
+        <h2 className="dashboard__section-title">
+          <Zap size={16} /> Alertes intelligentes
+        </h2>
+        {alertsLoading ? (
+          <p className="chart-card__state">Analyse en cours…</p>
+        ) : (
+          <div className="alert-insights">
+            {alerts.map(alert => (
+              <AlertInsightCard key={alert.id} alert={alert} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,7 +1,10 @@
+import logging
 from datetime import date, datetime
 from decimal import Decimal
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 from core.llm import generate_sql, generate_insight, repair_sql
 from core.rag import retrieve_examples
 from core.semantic_layer import resolve_semantics
@@ -82,7 +85,12 @@ async def query_pipeline(
             last_error = e
             conn.rollback()
             if attempt < settings.SQL_MAX_REPAIR_ATTEMPTS:
+                logger.warning(
+                    "[SQL-REPAIR] tentative %d/%d — erreur: %s",
+                    attempt + 1, settings.SQL_MAX_REPAIR_ATTEMPTS, str(e).split("\n")[0],
+                )
                 sql = await repair_sql(schema, question, sql, str(e))
+                logger.info("[SQL-REPAIR] SQL réparé: %s", sql[:120])
                 validate_sql(sql)
                 paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
     if last_error is not None:

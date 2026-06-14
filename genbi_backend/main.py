@@ -20,6 +20,7 @@ from api.v1.feedback.router import router as feedback_router
 from api.v1.admin.router import router as admin_router
 from api.v1.auth.router import router as auth_jwt_router
 from api.v1.analyse.router import router as analyse_router
+from api.v1.alerts.router import router as alerts_router
 
 
 _DEV_JWT_SECRET = "dev_secret_change_in_production"
@@ -145,6 +146,7 @@ app.include_router(feedback_router)
 app.include_router(admin_router)
 app.include_router(auth_jwt_router)
 app.include_router(analyse_router)
+app.include_router(alerts_router)
 
 
 @app.get("/", include_in_schema=False)

@@ -66,6 +66,8 @@ export const chatApi = {
       method: 'POST',
       body: JSON.stringify({ question }),
     }),
+
+  getAlerts: () => request('/api/v1/alerts'),
 }
 
 export const authApi = {
