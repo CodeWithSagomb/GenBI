@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # Prompt LLM — version active pour la génération SQL (versionné dans core/prompts/)
     SQL_PROMPT_VERSION: str = "v3_sql_generation"
 
+    # Auto-repair SQL (Phase 1 — MARS-SQL)
+    SQL_MAX_REPAIR_ATTEMPTS: int = 2
+    SQL_REPAIR_TIMEOUT: int = 30
+
     # Couche sémantique — catalogue des termes métier de la pharmacie
     SEMANTIC_CATALOG_PATH: str = "/app/core/semantic_catalog.yaml"
 

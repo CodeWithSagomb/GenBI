@@ -60,6 +60,35 @@ def test_query_sans_auth_retourne_401(client):
     assert r.status_code == 401
 
 
+def test_query_repare_sql_invalide(client, auth_bourguiba):
+    """Phase 1 — Auto-repair : generate_sql retourne SQL cassé au 1er appel,
+    repair_sql retourne SQL valide → la requête aboutit sans erreur 500."""
+    SQL_CASSE = "SELECT * FROM fct_sales"  # schema manquant → psycopg2.Error réel
+    call_count = {"n": 0}
+
+    async def generate_sql_mock(*args, **kwargs):
+        return SQL_CASSE
+
+    async def repair_sql_mock(*args, **kwargs):
+        call_count["n"] += 1
+        return SQL_MOCK  # SQL valide renvoyé par le LLM après repair
+
+    with (
+        patch("api.v1.query.service.generate_sql", new=AsyncMock(side_effect=generate_sql_mock)),
+        patch("api.v1.query.service.repair_sql", new=AsyncMock(side_effect=repair_sql_mock)),
+        patch("api.v1.query.service.generate_insight", new=AsyncMock(return_value=INSIGHT_MOCK)),
+    ):
+        r = client.post(
+            QUERY,
+            json={"question": "Combien de ventes ?"},
+            headers=auth_bourguiba,
+        )
+
+    assert r.status_code == 200
+    assert call_count["n"] == 1, "repair_sql doit être appelé exactement 1 fois"
+    assert r.json()["sql"] == SQL_MOCK
+
+
 def test_query_llm_timeout_retourne_504(client, auth_bourguiba):
     from core.exceptions import LLMTimeoutError
 

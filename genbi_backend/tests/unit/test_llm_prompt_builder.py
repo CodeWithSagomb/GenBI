@@ -6,7 +6,7 @@ On teste : construction des prompts, gestion du timeout, versionnage v1/v2.
 import pytest
 from unittest.mock import patch
 
-from core.llm import build_sql_prompt, build_insight_prompt, generate_sql, _clean_sql, load_prompt
+from core.llm import build_sql_prompt, build_insight_prompt, build_repair_prompt, generate_sql, _clean_sql, load_prompt
 from core.exceptions import LLMTimeoutError
 
 
@@ -130,6 +130,27 @@ def test_prompt_v1_avec_semantic_context_ne_plante_pas():
     assert "question" in prompt
     assert "<semantic_context>" not in prompt
 
+
+# ── Repair prompt (Phase 1 — MARS-SQL) ───────────────────────────────────────
+
+def test_repair_prompt_contient_failed_sql_et_error():
+    """Le prompt de réparation doit exposer le SQL raté et le message d'erreur au LLM."""
+    failed = "SELECT * FROM fct_sales"
+    error = 'relation "fct_sales" does not exist'
+    prompt = build_repair_prompt("schema", "Quel est mon CA ?", failed, error)
+    assert failed in prompt
+    assert error in prompt
+    assert "<failed_sql>" in prompt
+    assert "<error>" in prompt
+
+
+def test_repair_prompt_contient_schema_et_question():
+    prompt = build_repair_prompt("mon_schema", "ma question", "SELECT 1", "erreur")
+    assert "mon_schema" in prompt
+    assert "ma question" in prompt
+
+
+# ── build_sql_prompt version configurable ─────────────────────────────────────
 
 def test_build_sql_prompt_utilise_version_configurable():
     """build_sql_prompt doit charger la version définie dans settings.SQL_PROMPT_VERSION."""

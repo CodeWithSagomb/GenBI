@@ -121,6 +121,49 @@ async def generate_sql(
     return _clean_sql(response.choices[0].message.content)
 
 
+def build_repair_prompt(
+    schema: str, question: str, failed_sql: str, error_message: str
+) -> str:
+    """Construit le prompt de réparation SQL (Phase 1 — MARS-SQL)."""
+    template = load_prompt("v1_sql_repair")
+    return template.format(
+        schema=schema,
+        question=question,
+        failed_sql=failed_sql,
+        error_message=error_message,
+    )
+
+
+async def repair_sql(
+    schema: str,
+    question: str,
+    failed_sql: str,
+    error_message: str,
+    timeout: Optional[int] = None,
+) -> str:
+    """Demande au LLM de corriger un SQL qui a échoué (execution-feedback loop).
+
+    Lève LLMTimeoutError si Ollama ne répond pas dans le délai imparti.
+    """
+    timeout_s = timeout if timeout is not None else settings.SQL_REPAIR_TIMEOUT
+    prompt = build_repair_prompt(schema, question, failed_sql, error_message)
+    try:
+        response = await asyncio.wait_for(
+            litellm.acompletion(
+                model=f"ollama/{settings.OLLAMA_MODEL}",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                api_base=settings.OLLAMA_BASE_URL,
+            ),
+            timeout=float(timeout_s),
+        )
+    except (asyncio.TimeoutError, TimeoutError):
+        raise LLMTimeoutError(
+            f"Ollama n'a pas répondu en {timeout_s}s (repair). Réessayez dans quelques instants."
+        )
+    return _clean_sql(response.choices[0].message.content)
+
+
 async def generate_insight(
     question: str, results: dict, timeout: Optional[int] = None
 ) -> str:

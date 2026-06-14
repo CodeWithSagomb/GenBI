@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from core.llm import generate_sql, generate_insight
+from config import settings
+from core.llm import generate_sql, generate_insight, repair_sql
 from core.rag import retrieve_examples
 from core.semantic_layer import resolve_semantics
 from core.sql_validator import validate_sql
@@ -66,13 +67,26 @@ async def query_pipeline(
     validate_sql(sql)
 
     paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
-    try:
-        with conn.cursor() as cur:
-            cur.execute(paginated)
-            columns = [desc[0] for desc in cur.description]
-            rows = [_serialize_row(row) for row in cur.fetchall()]
-    except psycopg2.Error as e:
-        raise DatabaseError(f"Erreur d'exécution SQL : {e}") from e
+    columns: list = []
+    rows: list = []
+    last_error: psycopg2.Error | None = None
+    for attempt in range(settings.SQL_MAX_REPAIR_ATTEMPTS + 1):
+        try:
+            with conn.cursor() as cur:
+                cur.execute(paginated)
+                columns = [desc[0] for desc in cur.description]
+                rows = [_serialize_row(row) for row in cur.fetchall()]
+            last_error = None
+            break
+        except psycopg2.Error as e:
+            last_error = e
+            conn.rollback()
+            if attempt < settings.SQL_MAX_REPAIR_ATTEMPTS:
+                sql = await repair_sql(schema, question, sql, str(e))
+                validate_sql(sql)
+                paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
+    if last_error is not None:
+        raise DatabaseError(f"Erreur d'exécution SQL : {last_error}") from last_error
 
     rows = _humanize_months(columns, rows)
     results = {"columns": columns, "rows": rows}
