@@ -62,6 +62,6 @@ export function ChartRouter({ columns, rows }) {
   }
 
   const keys = pickChartKeys(columns, rows)
-  if (!keys) return null
+  if (!keys) return <p className="chart-empty">Visualisation non disponible pour ce résultat.</p>
   return <RankingBarChart data={data} xKey={keys.xKey} yKey={keys.yKey} />
 }

@@ -17,6 +17,18 @@ function buildChartData(columns, rows) {
 
 const SEVERITY_LABEL = { danger: 'Critique', warning: 'Attention', info: 'Info' }
 
+const MONTHS_SHORT = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
+
+function derivePeriod(rows) {
+  if (!rows || rows.length === 0) return null
+  const first = rows[0][0]
+  const last  = rows[rows.length - 1][0]
+  if (!first || !last) return null
+  const a = MONTHS_SHORT[first - 1]
+  const b = MONTHS_SHORT[last  - 1]
+  return a === b ? a : `${a}–${b}`
+}
+
 function AlertInsightCard({ alert }) {
   const color = alert.severity === 'danger' ? 'var(--danger)'
     : alert.severity === 'warning' ? 'var(--warning)'
@@ -60,7 +72,9 @@ export function DashboardPage() {
       <div className="dashboard__header">
         <div>
           <h1 className="dashboard__title">Tableau de bord</h1>
-          <p className="dashboard__subtitle">Vue d'ensemble — données Fév–Mai 2026</p>
+          <p className="dashboard__subtitle">
+            Vue d'ensemble{derivePeriod(caMensuel.data?.rows) ? ` — données ${derivePeriod(caMensuel.data?.rows)}` : ''}
+          </p>
         </div>
         <button
           className="dashboard__refresh"

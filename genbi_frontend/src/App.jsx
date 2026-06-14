@@ -3,6 +3,7 @@ import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare, Sun, Moon }
 import { ChatWindow } from './components/chat/ChatWindow'
 import { DashboardPage } from './components/dashboard/DashboardPage'
 import { LoginPage } from './components/auth/LoginPage'
+import { ToastProvider } from './hooks/useToast'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -26,6 +27,7 @@ function App() {
   }
 
   return (
+    <ToastProvider>
     <div className="app-container">
       <div className="bg-glow bg-glow-blue" />
       <div className="bg-glow bg-glow-purple" />
@@ -83,6 +85,7 @@ function App() {
         <div style={{ display: page === 'chat' ? 'contents' : 'none' }}><ChatWindow /></div>
       </main>
     </div>
+    </ToastProvider>
   )
 }
 

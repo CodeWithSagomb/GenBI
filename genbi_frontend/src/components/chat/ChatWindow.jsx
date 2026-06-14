@@ -9,14 +9,26 @@ import { DataTable } from '../data/DataTable'
 import { ChartRouter } from '../visualizations/ChartRouter'
 import { chatApi } from '../../services/api'
 
+function formatTime(ts) {
+  if (!ts) return ''
+  const mins = Math.floor((Date.now() - ts) / 60000)
+  if (mins < 1) return 'À l\'instant'
+  if (mins < 60) return `il y a ${mins} min`
+  return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function ChatWindow() {
   const { messages, status, sendQuestion, setFeedback, clearChat: clearChatState } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
+  const [reexecuteLoading, setReexecuteLoading] = useState({})
+  const [reexecuteErrors, setReexecuteErrors] = useState({})
   const bottomRef = useRef(null)
 
   function clearChat() {
     clearChatState()
     setReexecuteResults({})
+    setReexecuteLoading({})
+    setReexecuteErrors({})
   }
 
   useEffect(() => {
@@ -24,10 +36,16 @@ export function ChatWindow() {
   }, [messages])
 
   async function handleReexecute(messageId, editedSql) {
+    setReexecuteLoading(prev => ({ ...prev, [messageId]: true }))
+    setReexecuteErrors(prev => { const n = { ...prev }; delete n[messageId]; return n })
     try {
       const result = await chatApi.executeSQL(editedSql)
       setReexecuteResults(prev => ({ ...prev, [messageId]: result }))
-    } catch (_) {}
+    } catch (err) {
+      setReexecuteErrors(prev => ({ ...prev, [messageId]: err.message ?? 'Erreur d\'exécution SQL.' }))
+    } finally {
+      setReexecuteLoading(prev => { const n = { ...prev }; delete n[messageId]; return n })
+    }
   }
 
   async function handleFeedback(msg, rating) {
@@ -59,6 +77,8 @@ export function ChatWindow() {
           <SQLDisplay
             sql={sub.sql}
             onReexecute={(sql) => handleReexecute(msg.id, sql)}
+            isExecuting={!!reexecuteLoading[msg.id]}
+            reexecuteError={reexecuteErrors[msg.id]}
           />
         )}
         <ChartRouter columns={display.columns} rows={display.rows} />
@@ -122,12 +142,17 @@ export function ChatWindow() {
             ) : (
               renderSimpleMessage(msg)
             )}
+            {msg.timestamp && (
+              <span className="message-timestamp">{formatTime(msg.timestamp)}</span>
+            )}
           </MessageBubble>
         )
       ))}
 
       {status === 'loading' && (
         <div data-testid="loading-indicator" className="chat-loading">
+          <span className="chat-loading__dot" />
+          <span className="chat-loading__dot" />
           <span className="chat-loading__dot" />
           <span>Analyse en cours…</span>
         </div>
