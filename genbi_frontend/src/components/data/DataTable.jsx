@@ -1,5 +1,12 @@
+const FR_MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']
+
 function formatCell(value) {
   if (value === null || value === undefined) return '—'
+  // ISO timestamp → "Janvier 2026"
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const d = new Date(value)
+    if (!isNaN(d)) return `${FR_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+  }
   // PostgreSQL NUMERIC/DECIMAL arrive en string depuis JSON — convertir avant le test
   const num = Number(value)
   if (!isNaN(num) && String(value).trim() !== '') {

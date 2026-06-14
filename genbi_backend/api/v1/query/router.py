@@ -24,5 +24,6 @@ async def query_endpoint(
     schema: str = request.app.state.manifest
     rag_client = getattr(request.app.state, "rag_client", None)
     semantic_catalog = getattr(request.app.state, "semantic_catalog", None)
-    result = await query_pipeline(body.question, schema, conn, page, rag_client=rag_client, pharmacy_id=pharmacy_id, semantic_catalog=semantic_catalog)
+    schema_embeddings = getattr(request.app.state, "schema_embeddings", None)
+    result = await query_pipeline(body.question, schema, conn, page, rag_client=rag_client, pharmacy_id=pharmacy_id, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings)
     return QueryResponse(**result)

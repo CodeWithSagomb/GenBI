@@ -1,0 +1,8 @@
+Tu es expert SQL PostgreSQL.
+Le SQL suivant a échoué. Corrige UNIQUEMENT l'erreur signalée.
+Génère UNIQUEMENT le SELECT SQL corrigé — aucun texte, aucun markdown, sans point-virgule final.
+
+<schema_dbt>{schema}</schema_dbt>
+<question>{question}</question>
+<failed_sql>{failed_sql}</failed_sql>
+<error>{error_message}</error>

@@ -20,6 +20,7 @@ from api.v1.feedback.router import router as feedback_router
 from api.v1.admin.router import router as admin_router
 from api.v1.auth.router import router as auth_jwt_router
 from api.v1.analyse.router import router as analyse_router
+from api.v1.alerts.router import router as alerts_router
 
 
 _DEV_JWT_SECRET = "dev_secret_change_in_production"
@@ -60,6 +61,14 @@ async def lifespan(app: FastAPI):
     except Exception as _exc:
         app.state.semantic_catalog = None
         logging.getLogger("genbi").warning("Semantic catalog non chargé (best-effort): %s", _exc)
+
+    # Schema embeddings : pré-calcule les vecteurs nomic-embed-text par table (best-effort)
+    try:
+        from core.schema_filter import precompute_schema_embeddings
+        app.state.schema_embeddings = precompute_schema_embeddings(app.state.manifest)
+    except Exception as _exc:
+        app.state.schema_embeddings = None
+        logging.getLogger("genbi").warning("Schema embeddings non disponibles (best-effort): %s", _exc)
 
     # Seed RAG : injecte les exemples golden dans ChromaDB si collections vides (best-effort)
     try:
@@ -145,6 +154,7 @@ app.include_router(feedback_router)
 app.include_router(admin_router)
 app.include_router(auth_jwt_router)
 app.include_router(analyse_router)
+app.include_router(alerts_router)
 
 
 @app.get("/", include_in_schema=False)

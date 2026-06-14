@@ -29,6 +29,16 @@ models:
       - name: is_generic
         description: "Vrai si le produit est un générique."
         data_tests: [not_null]
+      - name: form
+        description: "Forme galénique (ex : Comprimé, Sirop, Gélule, Seringue préremplie, Suppositoire)."
+      - name: dosage
+        description: "Dosage de la substance active (ex : 500mg, 1g, 2.4%). Utile pour distinguer les variantes d'un même DCI."
+      - name: laboratory
+        description: "Laboratoire fabricant (ex : Sanofi, GlaxoSmithKline, Institut Pasteur Dakar, Pfizer)."
+      - name: is_regulated
+        description: "Vrai si le prix est réglementé par l'État sénégalais — s'applique à tous les médicaments."
+      - name: vat_rate
+        description: "Taux de TVA applicable : 0.00 pour médicaments (exonérés), 0.18 pour parapharmacie (18%)."
       - name: public_price_fcfa
         description: "Prix Public Réglementé (PPR) en FCFA."
         data_tests: [not_null]
@@ -54,6 +64,8 @@ models:
         description: "Vrai si le patient suit un traitement long terme (diabète, hypertension)."
       - name: loyalty_points
         description: "Points de fidélité accumulés dans le programme pharmacie."
+      - name: created_at
+        description: "Date d'enregistrement du patient — utile pour analyser les nouveaux clients par mois."
 
   - name: dim_pharmacies
     description: "Dimension pharmacies — les 3 officines de Dakar couvertes par GenBI."
@@ -101,6 +113,8 @@ models:
       - name: quantity_in_stock
         description: "Nombre d'unités disponibles dans ce lot."
         data_tests: [not_null]
+      - name: therapeutic_class
+        description: "Classe thérapeutique du produit stocké (ex : Antibiotique, Antipaludéen) — dénormalisée depuis dim_products pour éviter les JOINs."
       - name: expiry_status
         description: "Alerte péremption : 'OK', 'Attention (< 90j)', 'Critique (< 30j)' ou 'Expiré'."
       - name: days_until_expiry
@@ -121,6 +135,10 @@ models:
       - name: sale_id
         description: "Identifiant unique de la vente."
         data_tests: [unique, not_null]
+      - name: client_id
+        description: "Patient identifié ayant effectué la vente. NULL si client anonyme (passant non enregistré)."
+      - name: sale_date_day
+        description: "Date de la vente sans l'heure (DATE) — utile pour les agrégations journalières."
       - name: pharmacy_id
         description: "Pharmacie où la vente a eu lieu."
         data_tests:
@@ -170,6 +188,8 @@ models:
         data_tests: [not_null]
       - name: vat_amount_fcfa
         description: "Montant de TVA collectée sur la vente (18% sur parapharmacie, 0% sur médicaments)."
+      - name: is_anonymous
+        description: "Vrai si le client n'est pas enregistré (passant) — utile pour mesurer la part des ventes anonymes."
       - name: nb_products_in_cart
         description: "Nombre de références produits différentes dans ce panier."
       - name: total_units_sold
@@ -199,6 +219,19 @@ models:
                 field: product_id
       - name: wholesaler_name
         description: "Grossiste répartiteur fournisseur (UBIPHARM, LABOREX, COPHARMA, TEDIS PHARMA)."
+        data_tests: [not_null]
+      - name: order_date
+        description: "Date à laquelle la commande a été passée au grossiste — utile pour les analyses temporelles d'approvisionnement."
+        data_tests: [not_null]
+      - name: delivery_date
+        description: "Date de réception effective de la livraison. NULL si rupture totale du grossiste."
+      - name: quantity_ordered
+        description: "Quantité commandée au grossiste pour ce produit."
+        data_tests: [not_null]
+      - name: quantity_received
+        description: "Quantité effectivement reçue (inférieure à quantity_ordered en cas de rupture partielle)."
+      - name: purchase_price_fcfa
+        description: "Prix d'Achat Grossiste (PAG) en FCFA — environ 71% du PPR. Utile pour calculer les marges."
         data_tests: [not_null]
       - name: delivery_status
         description: "'Livraison complète', 'Livraison partielle' ou 'Rupture totale'."
@@ -234,6 +267,10 @@ models:
       - name: missed_date
         description: "Horodatage de la demande non servie."
         data_tests: [not_null]
+      - name: missed_year
+        description: "Année de la rupture — pour les analyses annuelles des ventes manquées."
+      - name: missed_month
+        description: "Mois de la rupture (1=Janvier ... 12=Décembre) — pour les analyses mensuelles."
       - name: requested_quantity
         description: "Quantité demandée qui n'a pas pu être servie."
         data_tests: [not_null]
@@ -262,6 +299,12 @@ models:
               arguments:
                 to: ref('dim_products')
                 field: product_id
+      - name: wholesaler_name
+        description: "Grossiste auquel le retour est adressé (UBIPHARM Sénégal, LABOREX Sénégal)."
+        data_tests: [not_null]
+      - name: return_date
+        description: "Date à laquelle le retour a été initié — utile pour analyser les retours par mois."
+        data_tests: [not_null]
       - name: quantity_returned
         description: "Nombre d'unités renvoyées au grossiste."
         data_tests: [not_null]

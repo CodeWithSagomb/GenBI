@@ -156,7 +156,7 @@ def populate_pharmacy_data():
         c_type = random.choice(['Passant','Assuré','Assuré'])
         is_chronic = random.choice([True,False,False]) if c_type == 'Assuré' else False
         points = random.randint(0,450) if is_chronic or c_type == 'Assuré' else 0
-        signup = datetime(2025, random.randint(1,12), random.randint(1,28))
+        signup = datetime(2026, random.choices([1,2,3,4,5], weights=[10,25,30,25,10])[0], random.randint(1,28))
         clients.append((i, fn, ln, phone, c_type, is_chronic, points, signup))
 
     stocks = []
