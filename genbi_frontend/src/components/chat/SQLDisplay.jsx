@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { Copy, Check } from 'lucide-react'
 
-export function SQLDisplay({ sql, onReexecute }) {
+export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteError }) {
   const [editing, setEditing] = useState(false)
   const [editedSql, setEditedSql] = useState(sql ?? '')
+  const [copied, setCopied] = useState(false)
 
   if (!sql) return null
 
@@ -11,15 +13,33 @@ export function SQLDisplay({ sql, onReexecute }) {
     onReexecute?.(editedSql)
   }
 
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(sql)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (_) {}
+  }
+
   return (
     <div data-testid="sql-display" className="sql-display">
       <div className="sql-display__header">
         <span className="sql-display__label">SQL généré</span>
-        {onReexecute && !editing && (
-          <button className="sql-display__edit-btn" onClick={() => setEditing(true)}>
-            Modifier
+        <div className="sql-display__actions">
+          <button
+            className="sql-display__edit-btn"
+            onClick={handleCopy}
+            title="Copier le SQL"
+            aria-label="Copier le SQL"
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />}
           </button>
-        )}
+          {onReexecute && !editing && (
+            <button className="sql-display__edit-btn" onClick={() => setEditing(true)}>
+              Modifier
+            </button>
+          )}
+        </div>
       </div>
 
       {editing ? (
@@ -34,10 +54,17 @@ export function SQLDisplay({ sql, onReexecute }) {
             <button className="sql-display__cancel-btn" onClick={() => setEditing(false)}>
               Annuler
             </button>
-            <button className="sql-display__run-btn" onClick={handleReexecute}>
-              Ré-exécuter
+            <button
+              className="sql-display__run-btn"
+              onClick={handleReexecute}
+              disabled={isExecuting}
+            >
+              {isExecuting ? 'Exécution…' : 'Ré-exécuter'}
             </button>
           </div>
+          {reexecuteError && (
+            <p className="sql-display__error">{reexecuteError}</p>
+          )}
         </div>
       ) : (
         <pre className="sql-display__code">

@@ -12,11 +12,15 @@ import { chatApi } from '../../services/api'
 export function ChatWindow() {
   const { messages, status, sendQuestion, setFeedback, clearChat: clearChatState } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
+  const [reexecuteLoading, setReexecuteLoading] = useState({})
+  const [reexecuteErrors, setReexecuteErrors] = useState({})
   const bottomRef = useRef(null)
 
   function clearChat() {
     clearChatState()
     setReexecuteResults({})
+    setReexecuteLoading({})
+    setReexecuteErrors({})
   }
 
   useEffect(() => {
@@ -24,10 +28,16 @@ export function ChatWindow() {
   }, [messages])
 
   async function handleReexecute(messageId, editedSql) {
+    setReexecuteLoading(prev => ({ ...prev, [messageId]: true }))
+    setReexecuteErrors(prev => { const n = { ...prev }; delete n[messageId]; return n })
     try {
       const result = await chatApi.executeSQL(editedSql)
       setReexecuteResults(prev => ({ ...prev, [messageId]: result }))
-    } catch (_) {}
+    } catch (err) {
+      setReexecuteErrors(prev => ({ ...prev, [messageId]: err.message ?? 'Erreur d\'exécution SQL.' }))
+    } finally {
+      setReexecuteLoading(prev => { const n = { ...prev }; delete n[messageId]; return n })
+    }
   }
 
   async function handleFeedback(msg, rating) {
@@ -59,6 +69,8 @@ export function ChatWindow() {
           <SQLDisplay
             sql={sub.sql}
             onReexecute={(sql) => handleReexecute(msg.id, sql)}
+            isExecuting={!!reexecuteLoading[msg.id]}
+            reexecuteError={reexecuteErrors[msg.id]}
           />
         )}
         <ChartRouter columns={display.columns} rows={display.rows} />

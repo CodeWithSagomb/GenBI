@@ -476,6 +476,12 @@ body {
   letter-spacing: 0.05em;
 }
 
+.sql-display__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .sql-display__edit-btn {
   background: transparent;
   border: 1px solid var(--panel-border);
@@ -485,6 +491,24 @@ body {
   font-size: 0.75rem;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sql-display__error {
+  margin: 0.5rem 0 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: 6px;
+  border-left: 2px solid var(--danger);
+}
+
+.sql-display__run-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .sql-display__edit-btn:hover {
