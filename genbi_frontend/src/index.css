@@ -1104,3 +1104,150 @@ body {
   font-style: italic;
   margin: 0;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DATATABLE — toolbar, export, pagination
+───────────────────────────────────────────────────────────────────────────── */
+.datatable__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 1rem;
+  border-bottom: 1px solid var(--panel-border);
+  background: HSL(222, 47%, 6%);
+  border-radius: 10px 10px 0 0;
+}
+
+.datatable__count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.datatable__export-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.datatable__export-btn:hover {
+  color: var(--text-main);
+  border-color: var(--border-focus);
+  background: var(--primary-glow);
+}
+
+.datatable__load-more {
+  display: block;
+  width: 100%;
+  padding: 0.6rem;
+  border: none;
+  border-top: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease;
+  border-radius: 0 0 10px 10px;
+}
+.datatable__load-more:hover { background: var(--primary-glow); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-main);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  animation: toast-in 0.2s ease;
+}
+
+.toast--success { border-color: HSLA(142, 70%, 45%, 0.4); color: var(--accent-green); }
+.toast--error   { border-color: HSLA(0, 70%, 50%, 0.4);   color: var(--danger); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RESPONSIVE — mobile < 768px
+───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 0.75rem 1rem 0;
+  }
+
+  .app-header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .logo-text { font-size: 1.1rem; }
+
+  /* Nav labels visibles uniquement sur desktop */
+  .app-nav__btn { padding: 0.45rem 0.65rem; gap: 0; font-size: 0; }
+  .app-nav__btn svg { font-size: initial; }
+
+  /* Masquer "Connecté" sur mobile */
+  .status-badge span { display: none; }
+
+  /* KPI : 2 colonnes sur mobile */
+  .dashboard__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Charts : colonne unique */
+  .dashboard__charts {
+    grid-template-columns: 1fr;
+  }
+
+  /* Table : moins de padding */
+  .datatable__th,
+  .datatable__td {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  /* Chat input full-width */
+  .query-input { padding: 0.75rem; }
+
+  /* Message bubbles */
+  .message-bubble { max-width: 100%; }
+
+  /* Toast en bas au centre sur mobile */
+  .toast-container {
+    right: 0;
+    left: 0;
+    bottom: 1rem;
+    align-items: center;
+  }
+}

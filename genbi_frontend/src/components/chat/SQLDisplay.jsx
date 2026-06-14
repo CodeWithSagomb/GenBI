@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
+import { useToast } from '../../hooks/useToast'
 
 export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteError }) {
   const [editing, setEditing] = useState(false)
   const [editedSql, setEditedSql] = useState(sql ?? '')
   const [copied, setCopied] = useState(false)
+  const toast = useToast()
 
   if (!sql) return null
 
@@ -17,6 +19,7 @@ export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteErr
     try {
       await navigator.clipboard.writeText(sql)
       setCopied(true)
+      toast?.('SQL copié dans le presse-papiers')
       setTimeout(() => setCopied(false), 2000)
     } catch (_) {}
   }
