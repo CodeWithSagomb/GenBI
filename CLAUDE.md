@@ -66,8 +66,19 @@ raw.*  →  staging.*  →  marts.*
 27. **Schéma dbt compact pour le LLM** — `core/dbt_parser._format_for_llm()` génère une ligne par table (`schema.table: col1, col2, ...`) sans descriptions (~2600 chars vs 13200 avant). Les descriptions longues dégradent la qualité SQL de qwen2.5-coder:7b. Ne pas rajouter les descriptions.
 28. **`_clean_sql` défensif** — `core/llm._clean_sql()` supprime les commentaires SQL (apostrophes françaises dans `-- Note: c'est...`), extrait depuis le premier SELECT, et normalise les apostrophes dans les identifiants (`jours_jusqu'à_exp` → `jours_jusqu_à_exp`). Ne pas affaiblir ces nettoyages.
 29. **q2.5-coder:7b génère des alias français avec apostrophes** — ex: `AS jours_jusqu'à_expiration`. Cause `sqlglot.errors.TokenError`. Fix dans `_clean_sql` : `re.sub(r"(\w)'(\w)", r"\1_\2", raw)`.
+30. **Schema filter — `top_k=15` sur 19 tables** — `core/schema_filter.py` filtre à 80% du schéma (15/19). Descendre à 10 est trop agressif (risque d'exclure des tables nécessaires). Augmenter top_k quand schéma > 50 tables. Fallback schéma complet si Ollama/embeddings indisponibles.
+31. **Insight vide si 0 lignes** — `query_pipeline` retourne `"Aucune donnée disponible pour cette période ou cette sélection."` sans appeler le LLM si `rows=[]`. Évite la réponse absurde "vous n'avez pas fourni de données".
+32. **Chat multi-tour — historique limité** — `useChat.js/_buildHistory()` envoie max 3 tours (6 messages : 3 user + 3 SQL assistant). Seuls les tours avec SQL valide sont inclus. qwen2.5-coder:7b suit le contexte sur 1-2 tours fiablement, moins sur 3+.
 
 ## État d'avancement
+- ✅ Roadmap Innovations — branch `feat/rag-360-coverage` — validé 2026-06-14 — **193/193 tests PASS**
+  - Phase 1 `1126353` — MARS-SQL : auto-repair SQL execution-feedback loop (2 tentatives, `SQL_MAX_REPAIR_ATTEMPTS=2`)
+  - Phase 2 `68b45fa` — CALM : alertes proactives LLM — 3 alertes (stock critique, lots expirants, taux service) via `/api/v1/alerts`
+  - Phase 3 `c32eaee` — AP-SQL : filtrage dynamique schéma — `top_k=15`, score hybride 0.3×lexical + 0.7×cosine (nomic-embed-text)
+  - Phase 4 `419bdad` — Chat multi-tour : `conversation_history` → messages LiteLLM natifs (max 3 tours / 6 messages)
+  - Phase 5 ⏸ — Corpus RAG synthétique via Claude Haiku (~$0.10) — **en attente budget API Anthropic**
+  - Gotchas : `top_k=15` fiable sur 19 tables (80% du schéma) · insight vide si `rows=[]` → message explicite sans appel LLM
+  - Nouveaux fichiers : `core/schema_filter.py` · `core/prompts/v1_sql_repair.txt` · `api/v1/alerts/` (router/schemas/service)
 - ✅ Phase 8b — `/api/v1/analyse` — validé 2026-06-12
   - Endpoint POST `/api/v1/analyse` : questions simples ET composées via un seul appel
   - Détection d'intention Python (regex) → 4 patterns : analyse complète · état stocks · ruptures · priorités commande
