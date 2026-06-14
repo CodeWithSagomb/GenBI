@@ -150,6 +150,60 @@ def test_repair_prompt_contient_schema_et_question():
     assert "ma question" in prompt
 
 
+# ── Multi-tour — Phase 4 ──────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_generate_sql_passe_historique_en_messages_multi_turn():
+    """Avec conversation_history, LiteLLM reçoit les turns précédents + le prompt courant."""
+    history = [
+        {"role": "user",      "content": "Quels sont les top 5 produits ?"},
+        {"role": "assistant", "content": "SELECT pd.commercial_name FROM marts.fct_sales"},
+    ]
+    captured = {}
+
+    async def fake_completion(*args, **kwargs):
+        captured["messages"] = kwargs.get("messages", [])
+        class FakeMsg:
+            content = "SELECT COUNT(*) FROM marts.fct_sales"
+        class FakeChoice:
+            message = FakeMsg()
+        class FakeResp:
+            choices = [FakeChoice()]
+        return FakeResp()
+
+    with patch("litellm.acompletion", new=fake_completion):
+        await generate_sql("schema", "et ce mois ?", conversation_history=history)
+
+    msgs = captured["messages"]
+    assert len(msgs) == 3                             # 2 history + 1 prompt courant
+    assert msgs[0]["role"] == "user"
+    assert "top 5 produits" in msgs[0]["content"]
+    assert msgs[1]["role"] == "assistant"
+    assert msgs[2]["role"] == "user"                  # prompt courant
+
+
+@pytest.mark.asyncio
+async def test_generate_sql_sans_historique_envoie_un_seul_message():
+    """Sans conversation_history, comportement identique à avant Phase 4."""
+    captured = {}
+
+    async def fake_completion(*args, **kwargs):
+        captured["messages"] = kwargs.get("messages", [])
+        class FakeMsg:
+            content = "SELECT COUNT(*) FROM marts.fct_sales"
+        class FakeChoice:
+            message = FakeMsg()
+        class FakeResp:
+            choices = [FakeChoice()]
+        return FakeResp()
+
+    with patch("litellm.acompletion", new=fake_completion):
+        await generate_sql("schema", "Quel est mon CA ?")
+
+    assert len(captured["messages"]) == 1
+    assert captured["messages"][0]["role"] == "user"
+
+
 # ── build_sql_prompt version configurable ─────────────────────────────────────
 
 def test_build_sql_prompt_utilise_version_configurable():

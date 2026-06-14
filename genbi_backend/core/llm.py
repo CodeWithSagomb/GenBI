@@ -95,20 +95,28 @@ async def generate_sql(
     question: str,
     examples: list | None = None,
     semantic_context: str = "",
+    conversation_history: list | None = None,
     timeout: Optional[int] = None,
 ) -> str:
     """Appelle Ollama pour générer un SELECT SQL.
 
     temperature=0.0 pour le déterminisme.
+    conversation_history : liste de dicts {role, content} — turns précédents injectés
+    en multi-turn natif LiteLLM pour le chat multi-tour (Phase 4).
     Lève LLMTimeoutError si Ollama ne répond pas dans le délai imparti.
     """
     timeout_s = timeout if timeout is not None else settings.LLM_SQL_TIMEOUT
     prompt = build_sql_prompt(schema, question, examples, semantic_context)
+    messages: list[dict] = []
+    if conversation_history:
+        for turn in conversation_history[-6:]:
+            messages.append({"role": turn["role"], "content": turn["content"]})
+    messages.append({"role": "user", "content": prompt})
     try:
         response = await asyncio.wait_for(
             litellm.acompletion(
                 model=f"ollama/{settings.OLLAMA_MODEL}",
-                messages=[{"role": "user", "content": prompt}],
+                messages=messages,
                 temperature=0.0,
                 api_base=settings.OLLAMA_BASE_URL,
             ),

@@ -110,4 +110,8 @@ def filter_schema_for_question(
         scored.append((rec["line"], 0.3 * lex + 0.7 * sem))
 
     scored.sort(key=lambda x: x[1], reverse=True)
-    return "\n".join(line for line, _ in scored[:top_k])
+    result = "\n".join(line for line, _ in scored[:top_k])
+    kept = len(scored[:top_k])
+    total = len(records)
+    logger.info("[SCHEMA-FILTER] %d/%d tables → question: %.60s", kept, total, question)
+    return result

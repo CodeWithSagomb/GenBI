@@ -22,5 +22,6 @@ async def analyse_endpoint(
     rag_client = getattr(request.app.state, "rag_client", None)
     semantic_catalog = getattr(request.app.state, "semantic_catalog", None)
     schema_embeddings = getattr(request.app.state, "schema_embeddings", None)
-    result = await analyse_pipeline(body.question, schema, pool, pharmacy_id, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings)
+    conversation_history = [t.model_dump() for t in body.conversation_history]
+    result = await analyse_pipeline(body.question, schema, pool, pharmacy_id, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings, conversation_history=conversation_history or None)
     return AnalyseResponse(**result)

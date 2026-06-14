@@ -56,11 +56,13 @@ async def query_pipeline(
     pharmacy_id: int | None = None,
     semantic_catalog: dict | None = None,
     schema_embeddings: dict | None = None,
+    conversation_history: list | None = None,
 ) -> dict:
     """Pipeline complet : question → SQL → exécution → insight (optionnel).
 
     - rag_client + pharmacy_id  : exemples ChromaDB injectés dans le prompt
     - semantic_catalog          : termes métier détectés → bloc <semantic_context>
+    - conversation_history      : turns précédents pour le chat multi-tour (Phase 4)
     """
     examples: list = []
     if rag_client is not None and pharmacy_id is not None:
@@ -69,7 +71,7 @@ async def query_pipeline(
     semantic_context = resolve_semantics(question, semantic_catalog)
     filtered_schema = filter_schema_for_question(schema, question, schema_embeddings)
 
-    sql = await generate_sql(filtered_schema, question, examples or None, semantic_context)
+    sql = await generate_sql(filtered_schema, question, examples or None, semantic_context, conversation_history)
     validate_sql(sql)
 
     paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
@@ -101,7 +103,12 @@ async def query_pipeline(
 
     rows = _humanize_months(columns, rows)
     results = {"columns": columns, "rows": rows}
-    insight = await generate_insight(question, results) if with_insight else ""
+    if with_insight and rows:
+        insight = await generate_insight(question, results)
+    elif with_insight and not rows:
+        insight = "Aucune donnée disponible pour cette période ou cette sélection."
+    else:
+        insight = ""
 
     return {
         "question": question,
