@@ -62,6 +62,14 @@ async def lifespan(app: FastAPI):
         app.state.semantic_catalog = None
         logging.getLogger("genbi").warning("Semantic catalog non chargé (best-effort): %s", _exc)
 
+    # Schema embeddings : pré-calcule les vecteurs nomic-embed-text par table (best-effort)
+    try:
+        from core.schema_filter import precompute_schema_embeddings
+        app.state.schema_embeddings = precompute_schema_embeddings(app.state.manifest)
+    except Exception as _exc:
+        app.state.schema_embeddings = None
+        logging.getLogger("genbi").warning("Schema embeddings non disponibles (best-effort): %s", _exc)
+
     # Seed RAG : injecte les exemples golden dans ChromaDB si collections vides (best-effort)
     try:
         from core.rag import seed_collection

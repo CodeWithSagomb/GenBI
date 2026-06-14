@@ -7,6 +7,7 @@ from config import settings
 logger = logging.getLogger(__name__)
 from core.llm import generate_sql, generate_insight, repair_sql
 from core.rag import retrieve_examples
+from core.schema_filter import filter_schema_for_question
 from core.semantic_layer import resolve_semantics
 from core.sql_validator import validate_sql
 from core.exceptions import DatabaseError
@@ -54,6 +55,7 @@ async def query_pipeline(
     rag_client=None,
     pharmacy_id: int | None = None,
     semantic_catalog: dict | None = None,
+    schema_embeddings: dict | None = None,
 ) -> dict:
     """Pipeline complet : question → SQL → exécution → insight (optionnel).
 
@@ -65,8 +67,9 @@ async def query_pipeline(
         examples = retrieve_examples(rag_client, pharmacy_id, question, n=3)
 
     semantic_context = resolve_semantics(question, semantic_catalog)
+    filtered_schema = filter_schema_for_question(schema, question, schema_embeddings)
 
-    sql = await generate_sql(schema, question, examples or None, semantic_context)
+    sql = await generate_sql(filtered_schema, question, examples or None, semantic_context)
     validate_sql(sql)
 
     paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"

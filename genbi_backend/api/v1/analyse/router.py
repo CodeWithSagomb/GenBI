@@ -21,5 +21,6 @@ async def analyse_endpoint(
     pool = request.app.state.db_pool
     rag_client = getattr(request.app.state, "rag_client", None)
     semantic_catalog = getattr(request.app.state, "semantic_catalog", None)
-    result = await analyse_pipeline(body.question, schema, pool, pharmacy_id, rag_client=rag_client, semantic_catalog=semantic_catalog)
+    schema_embeddings = getattr(request.app.state, "schema_embeddings", None)
+    result = await analyse_pipeline(body.question, schema, pool, pharmacy_id, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings)
     return AnalyseResponse(**result)
