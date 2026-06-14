@@ -61,11 +61,13 @@ export const chatApi = {
       body: JSON.stringify({ question, sql_generated, rating, comment }),
     }),
 
-  analyse: (question) =>
+  analyse: (question, conversationHistory = []) =>
     request('/api/v1/analyse', {
       method: 'POST',
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, conversation_history: conversationHistory }),
     }),
+
+  getAlerts: () => request('/api/v1/alerts'),
 }
 
 export const authApi = {

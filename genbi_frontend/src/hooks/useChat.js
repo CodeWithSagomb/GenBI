@@ -1,6 +1,16 @@
 import { useState, useRef, useCallback } from 'react'
 import { chatApi } from '../services/api'
 
+function _buildHistory(msgs) {
+  return msgs
+    .filter(m => m.role === 'ai' && !m.error && m.sub_analyses?.[0]?.sql)
+    .slice(-3)
+    .flatMap(m => [
+      { role: 'user', content: m.question },
+      { role: 'assistant', content: m.sub_analyses[0].sql },
+    ])
+}
+
 export function useChat() {
   const [messages, setMessages] = useState([])
   const [status, setStatus] = useState('idle')
@@ -12,13 +22,13 @@ export function useChat() {
     const q = question.trim()
     const userId = nextId.current++
     const aiId = nextId.current++
+    const history = _buildHistory(messages)
 
     setMessages(prev => [...prev, { id: userId, role: 'user', content: q }])
     setStatus('loading')
 
     try {
-      const result = await chatApi.analyse(q)
-
+      const result = await chatApi.analyse(q, history)
       setMessages(prev => [...prev, {
         id: aiId,
         role: 'ai',
@@ -38,7 +48,7 @@ export function useChat() {
     } finally {
       setStatus('idle')
     }
-  }, [])
+  }, [messages])
 
   const setFeedback = useCallback((messageId, rating) => {
     setMessages(prev =>
