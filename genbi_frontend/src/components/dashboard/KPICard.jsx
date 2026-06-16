@@ -15,8 +15,13 @@ export function KPICard({ title, value, unit = '', icon: Icon, color = 'primary'
         {Icon && <Icon size={18} className="kpi-card__icon" />}
       </div>
       <div className="kpi-card__body">
-        {loading && <span className="kpi-card__loading">…</span>}
-        {error  && <span className="kpi-card__error">Erreur</span>}
+        {loading && (
+          <div className="kpi-card__skeleton">
+            <div className="kpi-card__skeleton-value" />
+            <div className="kpi-card__skeleton-unit" />
+          </div>
+        )}
+        {!loading && error && <span className="kpi-card__error">Erreur</span>}
         {!loading && !error && (
           <span className="kpi-card__value">
             {formatNumber(value)}
