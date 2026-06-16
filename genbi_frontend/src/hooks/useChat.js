@@ -37,6 +37,7 @@ export function useChat() {
         sub_analyses: result.sub_analyses,
         error: null,
         feedback: null,
+        timestamp: Date.now(),
       }])
     } catch (err) {
       setMessages(prev => [...prev, {

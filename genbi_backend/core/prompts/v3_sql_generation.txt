@@ -48,6 +48,15 @@ RÈGLES TECHNIQUES :
 4. Colonnes : utiliser uniquement celles du schéma ci-dessous — ne rien inventer
 5. Marge : utiliser marts.fct_purchases (a product_id) — fct_sales N'A PAS product_id
 6. Produit par vente : passer par staging.stg_raw__sale_details sd JOIN marts.fct_sales s ON sd.sale_id = s.sale_id
+7. COUNT DISTINCT produits → toujours via sd.product_id qualifié — fct_sales n'a pas product_id
+   ✓  SELECT COUNT(DISTINCT sd.product_id) FROM marts.fct_sales s JOIN staging.stg_raw__sale_details sd ON sd.sale_id = s.sale_id
+   ✗  SELECT COUNT(DISTINCT product_id) ...
+8. Différence de dates en jours → (date_col - CURRENT_DATE) retourne un INTEGER directement — ne jamais utiliser INTERVAL pour calculer des jours
+   ✓  WHERE (sk.expiration_date - CURRENT_DATE) < 30
+   ✗  WHERE (sk.expiration_date - CURRENT_DATE) * INTERVAL '1 day' ...
+9. dim_stocks JOIN ventes → toujours GROUP BY pd.commercial_name + MIN(sk.quantity_in_stock) — un produit a plusieurs lots, le JOIN crée des doublons sinon
+   ✓  SELECT pd.commercial_name, MIN(sk.quantity_in_stock) AS stock ... GROUP BY pd.commercial_name
+   ✗  SELECT pd.commercial_name, sk.quantity_in_stock ... (sans GROUP BY → lignes dupliquées par lot)
 
 <schema_dbt>
 {schema}

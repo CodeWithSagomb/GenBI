@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { Download } from 'lucide-react'
+import { useToast } from '../../hooks/useToast'
+
 const FR_MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']
 
 function formatCell(value) {
@@ -26,16 +30,45 @@ function formatHeader(col) {
 }
 
 export function DataTable({ columns, rows, rowCount }) {
+  const [visibleCount, setVisibleCount] = useState(50)
+  const toast = useToast()
+
   if (!rows || rows.length === 0) {
     return (
       <p className="datatable__empty">Aucun résultat trouvé.</p>
     )
   }
 
+  const visible = rows.slice(0, visibleCount)
+  const hasMore = visibleCount < rows.length
+  const remaining = Math.min(50, rows.length - visibleCount)
+
+  function exportCSV() {
+    const header = columns.join(';')
+    const body = rows
+      .map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';'))
+      .join('\n')
+    const blob = new Blob(['﻿' + header + '\n' + body], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'export.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+    toast?.('Export téléchargé')
+  }
+
   const isTruncated = rowCount != null && rowCount > rows.length
 
   return (
     <div className="datatable__wrapper" data-testid="results-table">
+      <div className="datatable__toolbar">
+        <span className="datatable__count">{rows.length} ligne{rows.length > 1 ? 's' : ''}</span>
+        <button className="datatable__export-btn" onClick={exportCSV} title="Exporter en CSV">
+          <Download size={13} />
+          <span>CSV</span>
+        </button>
+      </div>
       <table className="datatable">
         <thead>
           <tr>
@@ -45,7 +78,7 @@ export function DataTable({ columns, rows, rowCount }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => (
+          {visible.map((row, i) => (
             <tr key={i} className="datatable__row">
               {row.map((cell, j) => (
                 <td key={j} className="datatable__td">{formatCell(cell)}</td>
@@ -54,6 +87,14 @@ export function DataTable({ columns, rows, rowCount }) {
           ))}
         </tbody>
       </table>
+      {hasMore && (
+        <button
+          className="datatable__load-more"
+          onClick={() => setVisibleCount(c => c + 50)}
+        >
+          Afficher {remaining} ligne{remaining > 1 ? 's' : ''} suivante{remaining > 1 ? 's' : ''}
+        </button>
+      )}
       {isTruncated && (
         <p className="datatable__truncated">
           {rows.length} premiers résultats sur {rowCount.toLocaleString('fr-FR')} au total
