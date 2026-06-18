@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Admin — secret pour les opérations de maintenance (vide = endpoint désactivé)
     ADMIN_SECRET: str = ""
 
+    # Anthropic API — Phase 5 génération corpus RAG synthétique (Claude Haiku)
+    ANTHROPIC_API_KEY: str = ""
+
     # Prompt LLM — version active pour la génération SQL (versionné dans core/prompts/)
     SQL_PROMPT_VERSION: str = "v3_sql_generation"
 
