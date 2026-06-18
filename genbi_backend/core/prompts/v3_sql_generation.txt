@@ -57,6 +57,9 @@ RÈGLES TECHNIQUES :
 9. dim_stocks JOIN ventes → toujours GROUP BY pd.commercial_name + MIN(sk.quantity_in_stock) — un produit a plusieurs lots, le JOIN crée des doublons sinon
    ✓  SELECT pd.commercial_name, MIN(sk.quantity_in_stock) AS stock ... GROUP BY pd.commercial_name
    ✗  SELECT pd.commercial_name, sk.quantity_in_stock ... (sans GROUP BY → lignes dupliquées par lot)
+10. dim_products → alias TOUJOURS pd — jamais dp, d, prod ou tout autre raccourci
+    ✓  JOIN marts.dim_products pd ON sd.product_id = pd.product_id → pd.commercial_name · pd.product_category · pd.therapeutic_class
+    ✗  JOIN marts.dim_products dp ... → dp.product_category (alias inconnu → erreur SQL)
 
 <schema_dbt>
 {schema}

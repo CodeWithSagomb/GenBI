@@ -47,7 +47,10 @@ test('affiche les messages de la conversation', () => {
     ...defaultHook,
     messages: [
       { id: 0, role: 'user', content: 'Quel est mon CA ?' },
-      { id: 1, role: 'ai', sql: 'SELECT 1', columns: ['ca'], rows: [[42]], insight: 'Bonne perf.', error: null, feedback: null },
+      {
+        id: 1, role: 'ai', is_compound: false, error: null, feedback: null,
+        sub_analyses: [{ sql: 'SELECT 1', columns: ['ca'], rows: [[42]], row_count: 1, insight: 'Bonne perf.' }],
+      },
     ],
   })
   render(<ChatWindow />)
