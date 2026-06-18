@@ -1,4 +1,4 @@
-import { TrendingUp } from 'lucide-react'
+import { LineChart, Line, ResponsiveContainer } from 'recharts'
 
 function formatNumber(val) {
   if (val === null || val === undefined) return '—'
@@ -7,7 +7,7 @@ function formatNumber(val) {
   return new Intl.NumberFormat('fr-FR').format(Math.round(num))
 }
 
-export function KPICard({ title, value, unit = '', icon: Icon, color = 'primary', loading, error }) {
+export function KPICard({ title, value, unit = '', icon: Icon, color = 'primary', loading, error, sparklineData }) {
   return (
     <div className={`kpi-card kpi-card--${color}`}>
       <div className="kpi-card__header">
@@ -29,6 +29,21 @@ export function KPICard({ title, value, unit = '', icon: Icon, color = 'primary'
           </span>
         )}
       </div>
+      {!loading && !error && sparklineData && sparklineData.length > 1 && (
+        <div className="kpi-sparkline">
+          <ResponsiveContainer width="100%" height={44}>
+            <LineChart data={sparklineData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <Line
+                type="monotone"
+                dataKey="v"
+                stroke={`var(--${color === 'primary' ? 'primary' : color === 'danger' ? 'danger' : color === 'warning' ? 'warning' : color === 'ok' ? 'accent-green' : 'secondary'})`}
+                strokeWidth={1.5}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }

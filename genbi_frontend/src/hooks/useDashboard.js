@@ -1,48 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { chatApi } from '../services/api'
 
-const SQL = {
-  caTotal: `
-    SELECT SUM(total_amount_fcfa) AS ca_total
-    FROM marts.fct_sales`,
-
-  caMensuel: `
-    SELECT sale_month AS mois, SUM(total_amount_fcfa) AS ca_total
-    FROM marts.fct_sales
-    GROUP BY sale_month
-    ORDER BY sale_month`,
-
-  topProduits: `
-    SELECT pd.commercial_name AS produit, SUM(sd.quantity) AS quantite_vendue
-    FROM marts.fct_sales s
-    JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
-    JOIN marts.dim_products pd ON sd.product_id = pd.product_id
-    GROUP BY pd.commercial_name
-    ORDER BY quantite_vendue DESC
-    LIMIT 5`,
-
-  stocksAlerte: `
-    SELECT commercial_name AS produit,
-           quantity_in_stock AS stock_actuel,
-           safety_stock_threshold AS seuil
-    FROM marts.dim_stocks
-    WHERE is_below_safety_threshold = TRUE
-    ORDER BY quantity_in_stock ASC`,
-
-  lotsPerimables: `
-    SELECT commercial_name AS produit,
-           batch_number AS lot,
-           expiration_date AS expiration,
-           days_until_expiry AS jours_restants
-    FROM marts.dim_stocks
-    WHERE days_until_expiry >= 0 AND days_until_expiry <= 30
-    ORDER BY days_until_expiry ASC`,
-
-  ruptures: `
-    SELECT COUNT(*) AS total_ruptures
-    FROM marts.fct_missed_sales`,
-}
-
 function useQuery(sql) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -67,12 +25,70 @@ function useQuery(sql) {
 }
 
 export function useDashboard() {
-  const caTotal      = useQuery(SQL.caTotal)
-  const caMensuel    = useQuery(SQL.caMensuel)
-  const topProduits  = useQuery(SQL.topProduits)
-  const stocksAlerte = useQuery(SQL.stocksAlerte)
-  const lotsPerimables = useQuery(SQL.lotsPerimables)
-  const ruptures     = useQuery(SQL.ruptures)
+  const [period, setPeriod] = useState('all') // 'all' | '30j' | '7j'
+
+  const pw = period === '7j'
+    ? `AND sale_date >= CURRENT_DATE - INTERVAL '7 days'`
+    : period === '30j'
+    ? `AND sale_date >= CURRENT_DATE - INTERVAL '30 days'`
+    : ''
+
+  const pws = period === '7j'
+    ? `AND s.sale_date >= CURRENT_DATE - INTERVAL '7 days'`
+    : period === '30j'
+    ? `AND s.sale_date >= CURRENT_DATE - INTERVAL '30 days'`
+    : ''
+
+  const caTotal = useQuery(
+    `SELECT SUM(total_amount_fcfa) AS ca_total FROM marts.fct_sales WHERE TRUE ${pw}`
+  )
+
+  const caMensuel = useQuery(
+    `SELECT sale_month AS mois, SUM(total_amount_fcfa) AS ca_total
+     FROM marts.fct_sales WHERE TRUE ${pw}
+     GROUP BY sale_month ORDER BY sale_month`
+  )
+
+  const topProduits = useQuery(
+    `SELECT pd.commercial_name AS produit, SUM(sd.quantity) AS quantite_vendue
+     FROM marts.fct_sales s
+     JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
+     JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+     WHERE TRUE ${pws}
+     GROUP BY pd.commercial_name ORDER BY quantite_vendue DESC LIMIT 5`
+  )
+
+  const genericsSplit = useQuery(
+    `SELECT pd.is_generic, SUM(sd.quantity) AS total_vendu
+     FROM marts.fct_sales s
+     JOIN staging.stg_raw__sale_details sd ON s.sale_id = sd.sale_id
+     JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+     WHERE TRUE ${pws}
+     GROUP BY pd.is_generic ORDER BY pd.is_generic DESC`
+  )
+
+  const stocksAlerte = useQuery(
+    `SELECT commercial_name AS produit,
+            quantity_in_stock AS stock_actuel,
+            safety_stock_threshold AS seuil
+     FROM marts.dim_stocks
+     WHERE is_below_safety_threshold = TRUE
+     ORDER BY quantity_in_stock ASC`
+  )
+
+  const lotsPerimables = useQuery(
+    `SELECT commercial_name AS produit,
+            batch_number AS lot,
+            expiration_date AS expiration,
+            days_until_expiry AS jours_restants
+     FROM marts.dim_stocks
+     WHERE days_until_expiry >= 0 AND days_until_expiry <= 30
+     ORDER BY days_until_expiry ASC`
+  )
+
+  const ruptures = useQuery(
+    `SELECT COUNT(*) AS total_ruptures FROM marts.fct_missed_sales`
+  )
 
   const isLoading = [caTotal, caMensuel, topProduits, stocksAlerte, lotsPerimables, ruptures]
     .some(q => q.loading)
@@ -81,10 +97,16 @@ export function useDashboard() {
     caTotal.refetch()
     caMensuel.refetch()
     topProduits.refetch()
+    genericsSplit.refetch()
     stocksAlerte.refetch()
     lotsPerimables.refetch()
     ruptures.refetch()
   }
 
-  return { caTotal, caMensuel, topProduits, stocksAlerte, lotsPerimables, ruptures, isLoading, refetchAll }
+  return {
+    caTotal, caMensuel, topProduits, genericsSplit,
+    stocksAlerte, lotsPerimables, ruptures,
+    isLoading, refetchAll,
+    period, setPeriod,
+  }
 }

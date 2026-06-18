@@ -1,15 +1,26 @@
 import { SalesLineChart } from './SalesLineChart'
 import { RankingBarChart } from './RankingBarChart'
+import { ComboChart } from './ComboChart'
 
 function isDateColumn(name) {
   return /date|jour|semaine|mois|month/i.test(name)
+}
+
+function isNumeric(sample, colIdx) {
+  const v = sample[colIdx]
+  return v !== null && v !== undefined && v !== '' && !isNaN(Number(v))
 }
 
 function detectChartType(columns, rows) {
   if (!rows || rows.length <= 1) return null
   if (!columns || columns.length < 2) return null
 
-  if (isDateColumn(columns[0])) return 'line'
+  if (isDateColumn(columns[0])) {
+    const sample = rows[0] ?? []
+    const numericCols = columns.slice(1).filter((_, i) => isNumeric(sample, i + 1))
+    if (numericCols.length >= 2) return 'combo'
+    return 'line'
+  }
   return 'bar'
 }
 
@@ -24,28 +35,35 @@ function buildData(columns, rows) {
 function pickChartKeys(columns, rows) {
   const sample = rows[0] ?? []
 
-  // Label (xKey) : première colonne texte non-identifiant
   const labelIdx = columns.findIndex(
     (col, i) => !/_id$/i.test(col) && isNaN(Number(sample[i]))
   )
 
-  // Valeur (yKey) : dernière colonne numérique qui N'EST PAS un identifiant
-  // (un _id comme product_id n'a pas de sens comme métrique sur un graphique)
   let valueIdx = -1
   for (let i = columns.length - 1; i >= 0; i--) {
-    const isNumeric = !isNaN(Number(sample[i])) && sample[i] !== null && sample[i] !== ''
+    const isNum = !isNaN(Number(sample[i])) && sample[i] !== null && sample[i] !== ''
     const isId = /_id$/i.test(columns[i])
-    if (isNumeric && !isId) {
-      valueIdx = i
-      break
-    }
+    if (isNum && !isId) { valueIdx = i; break }
   }
 
-  if (valueIdx < 0) return null  // Pas de métrique numérique exploitable → pas de graphique
+  if (valueIdx < 0) return null
 
   return {
     xKey: labelIdx >= 0 ? columns[labelIdx] : columns[0],
     yKey: columns[valueIdx],
+  }
+}
+
+function pickComboKeys(columns, rows) {
+  const sample = rows[0] ?? []
+  const numericIdxs = columns
+    .map((col, i) => ({ col, i }))
+    .filter(({ col, i }) => i > 0 && !/_id$/i.test(col) && isNumeric(sample, i))
+  if (numericIdxs.length < 2) return null
+  return {
+    xKey: columns[0],
+    barKey: numericIdxs[0].col,
+    lineKey: numericIdxs[1].col,
   }
 }
 
@@ -54,6 +72,12 @@ export function ChartRouter({ columns, rows }) {
   if (!type) return null
 
   const data = buildData(columns, rows)
+
+  if (type === 'combo') {
+    const keys = pickComboKeys(columns, rows)
+    if (!keys) return <SalesLineChart data={data} xKey={columns[0]} yKey={columns[1]} />
+    return <ComboChart data={data} xKey={keys.xKey} barKey={keys.barKey} lineKey={keys.lineKey} />
+  }
 
   if (type === 'line') {
     const keys = pickChartKeys(columns, rows)

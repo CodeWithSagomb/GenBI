@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare, Sun, Moon } from 'lucide-react'
+import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare, Sun, Moon, User } from 'lucide-react'
 import { ChatWindow } from './components/chat/ChatWindow'
 import { DashboardPage } from './components/dashboard/DashboardPage'
 import { LoginPage } from './components/auth/LoginPage'
+import { ProfilePage } from './components/profile/ProfilePage'
 import { ToastProvider } from './hooks/useToast'
 
 function App() {
@@ -38,7 +39,6 @@ function App() {
           <span className="logo-text">RuwaGenBI</span>
         </div>
 
-        {/* Navigation */}
         <nav className="app-nav">
           <button
             className={`app-nav__btn ${page === 'dashboard' ? 'app-nav__btn--active' : ''}`}
@@ -53,6 +53,13 @@ function App() {
           >
             <MessageSquare size={15} />
             Chat
+          </button>
+          <button
+            className={`app-nav__btn ${page === 'profile' ? 'app-nav__btn--active' : ''}`}
+            onClick={() => setPage('profile')}
+          >
+            <User size={15} />
+            Profil
           </button>
         </nav>
 
@@ -81,8 +88,15 @@ function App() {
       </header>
 
       <main className={`chat-main${page === 'dashboard' ? ' chat-main--dashboard' : ''}`}>
-        <div style={{ display: page === 'dashboard' ? 'contents' : 'none' }}><DashboardPage /></div>
-        <div style={{ display: page === 'chat' ? 'contents' : 'none' }}><ChatWindow /></div>
+        <div className={`page-view${page === 'dashboard' ? ' page-view--active' : ''}`}>
+          <DashboardPage />
+        </div>
+        <div className={`page-view${page === 'chat' ? ' page-view--active' : ''}`}>
+          <ChatWindow />
+        </div>
+        <div className={`page-view${page === 'profile' ? ' page-view--active' : ''}`}>
+          <ProfilePage onLogout={handleLogout} />
+        </div>
       </main>
     </div>
     </ToastProvider>

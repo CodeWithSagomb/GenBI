@@ -17,6 +17,13 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function getConfidence(rows) {
+  if (!rows || rows.length === 0) return { level: 'empty', label: 'Aucune donnée' }
+  if (rows.length >= 10) return { level: 'high', label: `${rows.length} résultats` }
+  if (rows.length >= 2) return { level: 'medium', label: `${rows.length} résultats` }
+  return { level: 'low', label: '1 résultat' }
+}
+
 export function ChatWindow() {
   const { messages, status, sendQuestion, setFeedback, clearChat: clearChatState } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
@@ -70,9 +77,14 @@ export function ChatWindow() {
   function renderSimpleMessage(msg) {
     const sub = msg.sub_analyses?.[0] ?? {}
     const display = getSimpleDisplayData(msg)
+    const conf = getConfidence(display.rows)
     return (
       <>
         {sub.insight && <p className="chat-insight">{sub.insight}</p>}
+        <div className={`confidence-badge confidence-badge--${conf.level}`}>
+          <span className={`confidence-dot confidence-dot--${conf.level}`} />
+          {conf.label}
+        </div>
         {sub.sql && (
           <SQLDisplay
             sql={sub.sql}
@@ -97,21 +109,32 @@ export function ChatWindow() {
 
   function renderCompoundMessage(msg) {
     return (
-      <>
+      <div className="compound-timeline">
         {msg.sub_analyses.map((sub, i) => (
-          <div key={i} className="sub-analysis">
-            <p className="sub-analysis__title">{sub.question}</p>
-            {sub.insight && <p className="chat-insight">{sub.insight}</p>}
-            {sub.columns?.length > 0 && (
-              <DataTable
-                columns={sub.columns}
-                rows={sub.rows}
-                rowCount={sub.row_count}
-              />
-            )}
+          <div key={i} className="compound-step">
+            <div className="compound-step__indicator">
+              <div className="compound-step__number">{i + 1}</div>
+              {i < msg.sub_analyses.length - 1 && (
+                <div className="compound-step__connector" />
+              )}
+            </div>
+            <div className="compound-step__content">
+              <p className="compound-step__question">{sub.question}</p>
+              {sub.insight && <p className="chat-insight">{sub.insight}</p>}
+              {sub.columns?.length > 0 && (
+                <>
+                  <ChartRouter columns={sub.columns} rows={sub.rows} />
+                  <DataTable
+                    columns={sub.columns}
+                    rows={sub.rows}
+                    rowCount={sub.row_count}
+                  />
+                </>
+              )}
+            </div>
           </div>
         ))}
-      </>
+      </div>
     )
   }
 

@@ -1,17 +1,15 @@
 import { useState } from 'react'
-import { Download } from 'lucide-react'
+import { Download, Printer, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { useToast } from '../../hooks/useToast'
 
 const FR_MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']
 
 function formatCell(value) {
   if (value === null || value === undefined) return '—'
-  // ISO timestamp → "Janvier 2026"
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
     const d = new Date(value)
     if (!isNaN(d)) return `${FR_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
   }
-  // PostgreSQL NUMERIC/DECIMAL arrive en string depuis JSON — convertir avant le test
   const num = Number(value)
   if (!isNaN(num) && String(value).trim() !== '') {
     const abs = Math.abs(num)
@@ -29,19 +27,43 @@ function formatHeader(col) {
   return col.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
+function SortIcon({ colIdx, sortState }) {
+  if (sortState.col !== colIdx) return <ChevronsUpDown size={11} style={{ opacity: 0.35 }} />
+  return sortState.dir === 'asc'
+    ? <ChevronUp size={11} style={{ color: 'var(--secondary)' }} />
+    : <ChevronDown size={11} style={{ color: 'var(--secondary)' }} />
+}
+
 export function DataTable({ columns, rows, rowCount }) {
   const [visibleCount, setVisibleCount] = useState(50)
+  const [sortState, setSortState] = useState({ col: null, dir: 'asc' })
   const toast = useToast()
 
   if (!rows || rows.length === 0) {
-    return (
-      <p className="datatable__empty">Aucun résultat trouvé.</p>
+    return <p className="datatable__empty">Aucun résultat trouvé.</p>
+  }
+
+  function toggleSort(colIdx) {
+    setSortState(prev =>
+      prev.col === colIdx
+        ? { col: colIdx, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { col: colIdx, dir: 'asc' }
     )
   }
 
-  const visible = rows.slice(0, visibleCount)
-  const hasMore = visibleCount < rows.length
-  const remaining = Math.min(50, rows.length - visibleCount)
+  const sorted = sortState.col === null ? rows : [...rows].sort((a, b) => {
+    const va = a[sortState.col]
+    const vb = b[sortState.col]
+    const na = Number(va), nb = Number(vb)
+    const cmp = !isNaN(na) && !isNaN(nb) && va !== null && vb !== null
+      ? na - nb
+      : String(va ?? '').localeCompare(String(vb ?? ''), 'fr')
+    return sortState.dir === 'asc' ? cmp : -cmp
+  })
+
+  const visible = sorted.slice(0, visibleCount)
+  const hasMore = visibleCount < sorted.length
+  const remaining = Math.min(50, sorted.length - visibleCount)
 
   function exportCSV() {
     const header = columns.join(';')
@@ -58,22 +80,41 @@ export function DataTable({ columns, rows, rowCount }) {
     toast?.('Export téléchargé')
   }
 
+  function printTable() {
+    window.print()
+  }
+
   const isTruncated = rowCount != null && rowCount > rows.length
 
   return (
     <div className="datatable__wrapper" data-testid="results-table">
       <div className="datatable__toolbar">
         <span className="datatable__count">{rows.length} ligne{rows.length > 1 ? 's' : ''}</span>
-        <button className="datatable__export-btn" onClick={exportCSV} title="Exporter en CSV">
-          <Download size={13} />
-          <span>CSV</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <button className="datatable__export-btn" onClick={printTable} title="Imprimer / PDF">
+            <Printer size={13} />
+            <span>PDF</span>
+          </button>
+          <button className="datatable__export-btn" onClick={exportCSV} title="Exporter en CSV">
+            <Download size={13} />
+            <span>CSV</span>
+          </button>
+        </div>
       </div>
       <table className="datatable">
         <thead>
           <tr>
-            {columns.map((col) => (
-              <th key={col} className="datatable__th">{formatHeader(col)}</th>
+            {columns.map((col, i) => (
+              <th
+                key={col}
+                className="datatable__th datatable__th--sortable"
+                onClick={() => toggleSort(i)}
+              >
+                <span className="datatable__th-inner">
+                  {formatHeader(col)}
+                  <SortIcon colIdx={i} sortState={sortState} />
+                </span>
+              </th>
             ))}
           </tr>
         </thead>
