@@ -2,14 +2,18 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 
 const COLORS = ['var(--secondary)', 'var(--primary)']
 
-const LABELS = { true: 'Génériques', false: 'Princeps', 1: 'Génériques', 0: 'Princeps' }
+const BOOL_LABELS = { true: 'Génériques', false: 'Princeps', 1: 'Génériques', 0: 'Princeps' }
+
+function toLabel(v) {
+  if (v === null || v === undefined) return '—'
+  if (v in BOOL_LABELS) return BOOL_LABELS[v]
+  const s = String(v)
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')
+}
 
 function buildPieData(rows) {
   if (!rows) return []
-  return rows.map(row => ({
-    label: LABELS[row[0]] ?? (row[0] ? 'Génériques' : 'Princeps'),
-    value: Number(row[1]),
-  }))
+  return rows.map(row => ({ label: toLabel(row[0]), value: Number(row[1]) }))
 }
 
 export function GenericsPieChart({ rows }) {

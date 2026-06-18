@@ -1,6 +1,7 @@
 import { SalesLineChart } from './SalesLineChart'
 import { RankingBarChart } from './RankingBarChart'
 import { ComboChart } from './ComboChart'
+import { GenericsPieChart } from './GenericsPieChart'
 
 function isDateColumn(name) {
   return /date|jour|semaine|mois|month/i.test(name)
@@ -9,6 +10,17 @@ function isDateColumn(name) {
 function isNumeric(sample, colIdx) {
   const v = sample[colIdx]
   return v !== null && v !== undefined && v !== '' && !isNaN(Number(v))
+}
+
+function isPieColumn(name) {
+  return /généri|generic|princep|type|mode|assur|catégor|répart|segment|classe|forme|thérap/i.test(name)
+}
+
+function isBooleanRows(rows) {
+  return rows.every(r => {
+    const v = r[0]
+    return v === true || v === false || v === 0 || v === 1 || v === 'true' || v === 'false'
+  })
 }
 
 function detectChartType(columns, rows) {
@@ -21,6 +33,16 @@ function detectChartType(columns, rows) {
     if (numericCols.length >= 2) return 'combo'
     return 'line'
   }
+
+  // Pie : 2 colonnes + 2-8 lignes + colonne catégorielle reconnue ou valeurs booléennes
+  if (
+    columns.length === 2 &&
+    rows.length >= 2 &&
+    rows.length <= 8 &&
+    isNumeric(rows[0], 1) &&
+    (isPieColumn(columns[0]) || isBooleanRows(rows))
+  ) return 'pie'
+
   return 'bar'
 }
 
@@ -72,6 +94,10 @@ export function ChartRouter({ columns, rows }) {
   if (!type) return null
 
   const data = buildData(columns, rows)
+
+  if (type === 'pie') {
+    return <GenericsPieChart rows={rows} labelCol={columns[0]} />
+  }
 
   if (type === 'combo') {
     const keys = pickComboKeys(columns, rows)
