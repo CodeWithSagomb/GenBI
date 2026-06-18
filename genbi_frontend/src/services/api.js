@@ -76,4 +76,6 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+
+  me: () => request('/api/v1/auth/me'),
 }
