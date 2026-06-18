@@ -13,7 +13,7 @@ function isNumeric(sample, colIdx) {
 }
 
 function isPieColumn(name) {
-  return /généri|generic|princep|type|mode|assur|catégor|répart|segment|classe|forme|thérap/i.test(name)
+  return /généri|generic|princep|type|mode|assur|insur|payment|catégor|répart|segment|classe|forme|thérap/i.test(name)
 }
 
 function isBooleanRows(rows) {
