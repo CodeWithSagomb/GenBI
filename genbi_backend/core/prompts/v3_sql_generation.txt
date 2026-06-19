@@ -8,7 +8,9 @@ Nombre de ventes / transactions             → COUNT(*) FROM marts.fct_sales
 Tiers-payant                                → marts.fct_sales WHERE payment_method = 'Tiers-Payant'
 Ruptures / ventes manquées / stockout       → COUNT(*) FROM marts.fct_missed_sales
 Stocks / péremptions / seuil sécurité       → FROM marts.dim_stocks
-CA ou ventes par produit / par catégorie    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
+CA ou ventes par produit                    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
+Top N catégories / quelles catégories       → GROUP BY pd.therapeutic_class LIMIT N  (JAMAIS pd.product_category qui n'a que 2 valeurs)
+Médicaments vs parapharmacie uniquement     → GROUP BY pd.product_category
 Clients chroniques                          → FROM marts.dim_clients WHERE is_chronic = TRUE
 Clients assurés (nombre de clients)         → FROM marts.dim_clients WHERE client_type = 'Assuré'
 Achats / approvisionnements                 → FROM marts.fct_purchases (wholesaler_name, purchase_price_fcfa, quantity_received)
@@ -61,10 +63,17 @@ RÈGLES TECHNIQUES :
     ✓  JOIN marts.dim_products pd ON sd.product_id = pd.product_id → pd.commercial_name · pd.product_category · pd.therapeutic_class
     ✗  JOIN marts.dim_products dp ... → dp.product_category (alias inconnu → erreur SQL)
 11. Catégories produits — deux colonnes, deux usages distincts :
+    • pd.origin → exactement 2 valeurs : 'Local' · 'Importé'  (NE PAS utiliser 'Sénégal', 'France' ou toute autre valeur inventée)
+    ✓  WHERE pd.origin = 'Local'   ✓  WHERE pd.origin = 'Importé'
+    ✗  WHERE pd.origin = 'Sénégal' (valeur inexistante — hallucination)
     • pd.product_category  → seulement 2 valeurs (Médicament · Parapharmacie) — utiliser UNIQUEMENT pour comparer médicaments vs parapharmacie
     • pd.therapeutic_class → 14+ valeurs (Antibiotique · Antalgique · Anti-inflammatoire · Antipaludéen…) — utiliser pour "top catégories" / classement / analyses de classes
     ✓  "top 5 catégories" / "quelles catégories génèrent le plus de CA" → GROUP BY pd.therapeutic_class
     ✗  "top 5 catégories" → GROUP BY pd.product_category (retourne toujours 2 lignes maximum)
+12. Répartitions (part, %) → retourner COUNT(*) ou SUM() brut — JAMAIS diviser dans le SQL
+    Le frontend calcule les pourcentages automatiquement à partir des valeurs brutes.
+    ✓  SELECT pd.origin, SUM(sd.total_line_amount_fcfa) AS ca_total FROM ... GROUP BY pd.origin
+    ✗  SELECT pd.origin, SUM(...) / SUM(...) * 100 AS part ... (division entière = 0 en PostgreSQL)
 
 <schema_dbt>
 {schema}

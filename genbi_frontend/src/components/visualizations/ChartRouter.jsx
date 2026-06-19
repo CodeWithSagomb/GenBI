@@ -14,7 +14,7 @@ function isNumeric(sample, colIdx) {
 
 function isPieColumn(name) {
   // B-03: ajout origin/origine  B-04: forme→form (couvre form, forme, formes)
-  return /généri|generic|princep|type|mode|assur|insur|payment|catég|categ|répart|segment|classe|form|thérap|therap|origin/i.test(name)
+  return /généri|generic|princep|type|mode|assur|insur|payment|catég|categ|répart|segment|classe|form|thérap|origin/i.test(name)
 }
 
 function isBooleanRows(rows) {
