@@ -60,6 +60,11 @@ RÈGLES TECHNIQUES :
 10. dim_products → alias TOUJOURS pd — jamais dp, d, prod ou tout autre raccourci
     ✓  JOIN marts.dim_products pd ON sd.product_id = pd.product_id → pd.commercial_name · pd.product_category · pd.therapeutic_class
     ✗  JOIN marts.dim_products dp ... → dp.product_category (alias inconnu → erreur SQL)
+11. Catégories produits — deux colonnes, deux usages distincts :
+    • pd.product_category  → seulement 2 valeurs (Médicament · Parapharmacie) — utiliser UNIQUEMENT pour comparer médicaments vs parapharmacie
+    • pd.therapeutic_class → 14+ valeurs (Antibiotique · Antalgique · Anti-inflammatoire · Antipaludéen…) — utiliser pour "top catégories" / classement / analyses de classes
+    ✓  "top 5 catégories" / "quelles catégories génèrent le plus de CA" → GROUP BY pd.therapeutic_class
+    ✗  "top 5 catégories" → GROUP BY pd.product_category (retourne toujours 2 lignes maximum)
 
 <schema_dbt>
 {schema}

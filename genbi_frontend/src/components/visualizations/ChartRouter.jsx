@@ -13,13 +13,16 @@ function isNumeric(sample, colIdx) {
 }
 
 function isPieColumn(name) {
-  return /généri|generic|princep|type|mode|assur|insur|payment|catégor|répart|segment|classe|forme|thérap/i.test(name)
+  // B-03: ajout origin/origine  B-04: forme→form (couvre form, forme, formes)
+  return /généri|generic|princep|type|mode|assur|insur|payment|catég|categ|répart|segment|classe|form|thérap|therap|origin/i.test(name)
 }
 
 function isBooleanRows(rows) {
+  // B-01: PostgreSQL sérialise les booléens en "t"/"f" côté API
   return rows.every(r => {
     const v = r[0]
-    return v === true || v === false || v === 0 || v === 1 || v === 'true' || v === 'false'
+    return v === true || v === false || v === 0 || v === 1
+      || v === 'true' || v === 'false' || v === 't' || v === 'f'
   })
 }
 
@@ -35,11 +38,13 @@ function detectChartType(columns, rows) {
   }
 
   // Pie : 2 colonnes + 2-8 lignes + colonne catégorielle reconnue ou valeurs booléennes
+  // B-09: exclure les colonnes _id et _fcfa (faux positifs insurer_id, insurer_share_fcfa)
   if (
     columns.length === 2 &&
     rows.length >= 2 &&
     rows.length <= 8 &&
     isNumeric(rows[0], 1) &&
+    !/_id$|_fcfa$/i.test(columns[0]) &&
     (isPieColumn(columns[0]) || isBooleanRows(rows))
   ) return 'pie'
 
@@ -96,7 +101,8 @@ export function ChartRouter({ columns, rows }) {
   const data = buildData(columns, rows)
 
   if (type === 'pie') {
-    return <GenericsPieChart rows={rows} labelCol={columns[0]} />
+    // B-10: labelCol supprimé (ignoré dans GenericsPieChart)
+    return <GenericsPieChart rows={rows} />
   }
 
   if (type === 'combo') {

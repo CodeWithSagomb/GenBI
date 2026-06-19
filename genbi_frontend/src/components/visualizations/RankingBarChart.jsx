@@ -23,6 +23,13 @@ function YTick({ x, y, payload }) {
   )
 }
 
+// B-05: formatter pour grands nombres sur l'axe horizontal
+function formatY(v) {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`
+  return v
+}
+
 export function RankingBarChart({ data, xKey, yKey }) {
   return (
     <div className="chart-wrapper" data-chart-type="bar">
@@ -32,8 +39,8 @@ export function RankingBarChart({ data, xKey, yKey }) {
           layout="vertical"
           margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-          <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--panel-border)" />
+          <XAxis type="number" tickFormatter={formatY} tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
           <YAxis
             type="category"
             dataKey={xKey}
@@ -41,7 +48,8 @@ export function RankingBarChart({ data, xKey, yKey }) {
             width={160}
           />
           <Tooltip
-            contentStyle={{ background: 'var(--panel-bg)', border: '1px solid var(--panel-border)' }}
+            contentStyle={{ background: 'var(--panel-bg)', border: '1px solid var(--panel-border)', borderRadius: '8px' }}
+            formatter={(value) => [value.toLocaleString('fr-FR')]}
           />
           <Bar dataKey={yKey} fill="var(--primary)" radius={[0, 4, 4, 0]} />
         </BarChart>

@@ -1,8 +1,22 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-const COLORS = ['var(--secondary)', 'var(--primary)']
+const COLORS = [
+  'var(--secondary)',           // cyan
+  'var(--primary)',             // violet
+  'var(--accent-green)',        // vert
+  'var(--warning)',             // orange
+  'var(--danger)',              // rouge
+  'hsl(300, 65%, 58%)',        // magenta
+  'hsl(55, 90%, 55%)',         // jaune
+  'hsl(170, 70%, 45%)',        // teal
+]
 
-const BOOL_LABELS = { true: 'Génériques', false: 'Princeps', 1: 'Génériques', 0: 'Princeps' }
+// B-01: PostgreSQL sérialise les booléens en "t"/"f" dans les résultats JSON
+const BOOL_LABELS = {
+  true: 'Génériques', false: 'Princeps',
+  1: 'Génériques', 0: 'Princeps',
+  t: 'Génériques', f: 'Princeps',
+}
 
 function toLabel(v) {
   if (v === null || v === undefined) return '—'
@@ -20,8 +34,6 @@ export function GenericsPieChart({ rows }) {
   const data = buildPieData(rows)
   if (!data.length) return null
 
-  const total = data.reduce((s, d) => s + d.value, 0)
-
   return (
     <div className="chart-wrapper" data-chart-type="pie">
       <ResponsiveContainer width="100%" height={280}>
@@ -35,8 +47,8 @@ export function GenericsPieChart({ rows }) {
             outerRadius={95}
             innerRadius={50}
             paddingAngle={3}
-            label={({ label, value }) =>
-              `${label} ${total > 0 ? ((value / total) * 100).toFixed(0) : 0}%`
+            label={({ label, percent }) =>
+              percent >= 0.05 ? `${label} ${Math.round(percent * 100)}%` : ''
             }
             labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}
           >
