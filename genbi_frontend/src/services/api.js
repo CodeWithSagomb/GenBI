@@ -24,7 +24,12 @@ async function request(path, options = {}) {
     let detail = `Erreur ${res.status}`
     try {
       const body = await res.json()
-      detail = body.error ?? body.detail ?? detail
+      if (Array.isArray(body.detail)) {
+        // Pydantic validation error → [{msg: "Value error, ..."}]
+        detail = body.detail[0]?.msg?.replace(/^Value error,\s*/i, '') ?? detail
+      } else {
+        detail = body.error ?? body.detail ?? detail
+      }
     } catch (_) {}
     throw new Error(detail)
   }
