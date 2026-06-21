@@ -9,6 +9,7 @@ Tiers-payant                                → marts.fct_sales WHERE payment_me
 Répartition / part par mode de paiement    → GROUP BY payment_method  (valeurs exactes : 'Espèces' · 'Orange Money' · 'Wave' · 'Tiers-Payant' — jamais 'Assurance', 'Cash', 'CB')
 Ruptures / ventes manquées / stockout       → COUNT(*) FROM marts.fct_missed_sales
 Stocks / péremptions / seuil sécurité       → FROM marts.dim_stocks
+Produits sous seuil / out of stock / below threshold → WHERE is_below_safety_threshold = TRUE FROM marts.dim_stocks  (NE PAS utiliser quantity_in_stock <= 0 — aucun produit n'atteint 0 dans les données)
 CA ou ventes par produit                    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
 Top N catégories / quelles catégories       → GROUP BY pd.therapeutic_class LIMIT N  (JAMAIS pd.product_category qui n'a que 2 valeurs)
 Médicaments vs parapharmacie uniquement     → GROUP BY pd.product_category

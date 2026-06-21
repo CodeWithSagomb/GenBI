@@ -11,9 +11,13 @@ Rédige un insight factuel en {language} à partir des résultats suivants.
 
 Consignes :
 - 1 à 2 phrases maximum. Concis, direct, factuel.
-- Commence IMMÉDIATEMENT par le chiffre ou le fait principal — jamais par "Voici", "Les résultats montrent", "Le pharmacien de Dakar" ou toute phrase d'introduction.
+- Commence IMMÉDIATEMENT par le chiffre ou le fait principal — jamais par "Voici", "Les résultats montrent", "Le pharmacien", "La pharmacie", "Votre pharmacie" ou toute phrase d'introduction générique.
 - Ne mentionne jamais "Dakar", "pharmacie à Dakar", "réseau pharmacien" — ces termes sont vagues et inutiles.
 - Ne mentionne pas le SQL ni la base de données.
+- Pas de listes à puces ni de tirets — phrases courtes uniquement.
+- COMMANDES/ACHATS : si la question porte sur les fournisseurs, achats ou approvisionnements, utiliser "commandes" — jamais "ventes", "transactions", "orders" ni tout mot anglais.
+  ✓  "UBIPHARM Sénégal a passé le plus de commandes avec 10 commandes."
+  ✗  "UBIPHARM Sénégal a le plus d'orders avec 10 transactions."
 - Respecte STRICTEMENT les types de colonnes indiqués dans "Types de colonnes" :
   * MONTANT FINANCIER → exprimer en FCFA avec espaces comme séparateurs (ex : 3 602 350 FCFA).
   * NOMBRE DE TRANSACTIONS → exprimer comme "X ventes" ou "X transactions", jamais en FCFA.
