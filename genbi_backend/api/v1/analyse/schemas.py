@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 _SQL_INJECTION_RE = re.compile(
@@ -33,6 +33,7 @@ class SubAnalysis(BaseModel):
     rows: list[list]
     row_count: int
     insight: str
+    viz_hint: Optional[str] = None
 
 
 class AnalyseResponse(BaseModel):

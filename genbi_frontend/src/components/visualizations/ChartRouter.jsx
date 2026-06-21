@@ -94,8 +94,8 @@ function pickComboKeys(columns, rows) {
   }
 }
 
-export function ChartRouter({ columns, rows }) {
-  const type = detectChartType(columns, rows)
+export function ChartRouter({ columns, rows, vizHint = null }) {
+  const type = vizHint ?? detectChartType(columns, rows)
   if (!type) return null
 
   const data = buildData(columns, rows)

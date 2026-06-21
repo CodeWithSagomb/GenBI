@@ -10,6 +10,7 @@ from core.rag import retrieve_examples
 from core.schema_filter import filter_schema_for_question
 from core.semantic_layer import resolve_semantics
 from core.sql_validator import validate_sql
+from core.viz_classifier import detect_viz_hint
 from core.exceptions import DatabaseError
 from core.pagination import PageParams
 
@@ -117,6 +118,8 @@ async def query_pipeline(
     else:
         insight = ""
 
+    viz_hint = detect_viz_hint(question, sql, columns, rows)
+
     return {
         "question": question,
         "sql": sql,
@@ -126,4 +129,5 @@ async def query_pipeline(
         "limit": page.limit,
         "offset": page.offset,
         "insight": insight,
+        "viz_hint": viz_hint,
     }

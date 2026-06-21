@@ -95,7 +95,7 @@ export function ChatWindow() {
             reexecuteError={reexecuteErrors[msg.id]}
           />
         )}
-        <ChartRouter columns={display.columns} rows={display.rows} />
+        <ChartRouter columns={display.columns} rows={display.rows} vizHint={reexecuteResults[msg.id] ? null : (sub.viz_hint ?? null)} />
         <DataTable
           columns={display.columns}
           rows={display.rows}
@@ -125,7 +125,7 @@ export function ChatWindow() {
               {sub.insight && <p className="chat-insight">{sub.insight}</p>}
               {sub.columns?.length > 0 && (
                 <>
-                  <ChartRouter columns={sub.columns} rows={sub.rows} />
+                  <ChartRouter columns={sub.columns} rows={sub.rows} vizHint={sub.viz_hint ?? null} />
                   <DataTable
                     columns={sub.columns}
                     rows={sub.rows}
