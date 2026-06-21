@@ -76,7 +76,7 @@ raw.*  →  staging.*  →  marts.*
   - Phase 2 `68b45fa` — CALM : alertes proactives LLM — 3 alertes (stock critique, lots expirants, taux service) via `/api/v1/alerts`
   - Phase 3 `c32eaee` — AP-SQL : filtrage dynamique schéma — `top_k=15`, score hybride 0.3×lexical + 0.7×cosine (nomic-embed-text)
   - Phase 4 `419bdad` — Chat multi-tour : `conversation_history` → messages LiteLLM natifs (max 3 tours / 6 messages)
-  - Phase 5 ⏸ — Corpus RAG synthétique via Claude Haiku (~$0.10) — **en attente budget API Anthropic**
+  - Phase 5 ✅ — Corpus RAG synthétique : 114 exemples via claude-haiku-4-5 · 342 entrées ChromaDB (×3 pharmacies) · script : scripts/generate_rag_corpus.py
   - Gotchas : `top_k=15` fiable sur 19 tables (80% du schéma) · insight vide si `rows=[]` → message explicite sans appel LLM
   - Nouveaux fichiers : `core/schema_filter.py` · `core/prompts/v1_sql_repair.txt` · `api/v1/alerts/` (router/schemas/service)
 - ✅ Phase 8b — `/api/v1/analyse` — validé 2026-06-12

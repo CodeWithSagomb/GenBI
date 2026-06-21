@@ -2,17 +2,17 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
-const FR_MONTHS = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc']
+const FR_MONTHS_DEFAULT = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc']
 
-function formatTick(value) {
-  // ISO YYYY-MM (LLM avec TO_CHAR)
-  if (typeof value === 'string' && /^\d{4}-\d{2}/.test(value)) {
-    const d = new Date(value)
-    if (!isNaN(d)) return `${FR_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+function makeFormatTick(months) {
+  return function formatTick(value) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}/.test(value)) {
+      const d = new Date(value)
+      if (!isNaN(d)) return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+    }
+    if (typeof value === 'number' && value >= 1 && value <= 12) return months[value - 1]
+    return value
   }
-  // B-02: entier mois 1-12 (sale_month INTEGER sans humanisation backend)
-  if (typeof value === 'number' && value >= 1 && value <= 12) return FR_MONTHS[value - 1]
-  return value
 }
 
 function formatY(v) {
@@ -21,7 +21,8 @@ function formatY(v) {
   return v
 }
 
-export function SalesLineChart({ data, xKey, yKey }) {
+export function SalesLineChart({ data, xKey, yKey, months = FR_MONTHS_DEFAULT }) {
+  const formatTick = makeFormatTick(months)
   return (
     <div className="chart-wrapper" data-chart-type="line">
       <ResponsiveContainer width="100%" height={280}>

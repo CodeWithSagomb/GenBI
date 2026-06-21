@@ -67,6 +67,7 @@
     "alert_results_other": "{{count}} résultats",
     "alert_stocks_title": "Stocks sous seuil de sécurité",
     "alert_lots_title": "Lots expirant dans 30 jours",
+    "kpi_unit_products": "produits",
     "kpi_error": "Erreur",
     "alert_loading": "Chargement…",
     "alert_error": "Erreur de chargement",

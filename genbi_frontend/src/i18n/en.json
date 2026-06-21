@@ -67,6 +67,7 @@
     "alert_results_other": "{{count}} results",
     "alert_stocks_title": "Low safety stock",
     "alert_lots_title": "Lots expiring within 30 days",
+    "kpi_unit_products": "products",
     "kpi_error": "Error",
     "alert_loading": "Loading…",
     "alert_error": "Load error",

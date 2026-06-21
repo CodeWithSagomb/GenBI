@@ -81,7 +81,7 @@ function AppInner() {
           >
             <Languages size={15} />
             <span style={{ fontSize: '0.7rem', fontWeight: 700, marginLeft: '2px' }}>
-              {lang === 'fr' ? 'EN' : 'FR'}
+              {lang === 'fr' ? 'FR' : 'EN'}
             </span>
           </button>
           <button

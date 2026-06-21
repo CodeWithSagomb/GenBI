@@ -151,7 +151,7 @@ export function DashboardPage() {
         <KPICard
           title={t('dashboard.kpi_stocks')}
           value={stocksAlerte.data?.rows?.length ?? null}
-          unit="produits"
+          unit={t('dashboard.kpi_unit_products')}
           icon={AlertTriangle}
           color={stocksAlerte.data?.rows?.length > 0 ? 'danger' : 'ok'}
           loading={stocksAlerte.loading}
@@ -192,7 +192,7 @@ export function DashboardPage() {
             {caMensuel.loading && <p className="chart-card__state">{t('dashboard.loading')}</p>}
             {caMensuel.error   && <p className="chart-card__state">{t('dashboard.kpi_error')}</p>}
             {!caMensuel.loading && caMensuelData.length > 0 && (
-              <SalesLineChart data={caMensuelData} xKey="mois" yKey="ca_total" />
+              <SalesLineChart data={caMensuelData} xKey="mois" yKey="ca_total" months={monthsShort} />
             )}
             {!caMensuel.loading && !caMensuel.error && caMensuelData.length === 0 && (
               <p className="chart-card__state">{t('dashboard.chart_ca_empty')}</p>
@@ -277,7 +277,7 @@ export function DashboardPage() {
       {fullscreen === 'line' && (
         <FullscreenOverlay title={t('dashboard.chart_ca_monthly')} onClose={() => setFullscreen(null)}>
           {caMensuelData.length > 0
-            ? <SalesLineChart data={caMensuelData} xKey="mois" yKey="ca_total" />
+            ? <SalesLineChart data={caMensuelData} xKey="mois" yKey="ca_total" months={monthsShort} />
             : <p className="chart-card__state">{t('dashboard.chart_ca_empty')}</p>}
         </FullscreenOverlay>
       )}
