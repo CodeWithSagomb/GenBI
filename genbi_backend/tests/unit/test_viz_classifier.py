@@ -103,14 +103,36 @@ class TestPieDetection:
                      ["assureur", "nb"],
                      [["CNAM", 80], ["IPM", 50]]) == "pie"
 
+    def test_composition_5_rows_is_pie(self):
+        # 5 lignes + mot de composition → pie autorisé (5 types d'assurance lisibles)
+        assert _hint("distribution par type d'assurance",
+                     "SELECT type_assurance, COUNT(*) FROM t GROUP BY type_assurance",
+                     ["type_assurance", "nb"],
+                     [["CNAM", 80], ["IPM", 50], ["Privée", 30], ["Mutuelle", 20], ["Autre", 10]]) == "pie"
+
+    def test_boolean_is_generic_is_pie(self):
+        # is_generic retourne bool (True/False) depuis PostgreSQL — bool est
+        # sous-classe de int en Python, il ne faut pas le traiter comme numérique
+        assert _hint("part des génériques vs princeps",
+                     "SELECT is_generic, SUM(ca) FROM t GROUP BY is_generic",
+                     ["is_generic", "ca_total"],
+                     [[False, 13660250], [True, 2870650]]) == "pie"
+
 
 # ---------------------------------------------------------------------------
 # PIE — cas exclus (doit retourner bar ou None)
 # ---------------------------------------------------------------------------
 class TestPieExclusions:
-    def test_5_rows_not_pie(self):
-        # ≥5 lignes → pas pie
-        result = _hint("distribution", "SELECT cat, nb FROM t GROUP BY cat",
+    def test_6_rows_not_pie_even_with_composition(self):
+        # ≥6 lignes → pas pie même avec mot de composition
+        result = _hint("distribution par catégorie", "SELECT cat, nb FROM t GROUP BY cat",
+                       ["categorie", "nb"],
+                       [["A", 10], ["B", 20], ["C", 30], ["D", 40], ["E", 50], ["F", 60]])
+        assert result == "bar"
+
+    def test_5_rows_neutral_question_not_pie(self):
+        # 5 lignes sans mot de composition → pas pie (limite stricte = 4)
+        result = _hint("résultats par segment", "SELECT cat, nb FROM t GROUP BY cat",
                        ["categorie", "nb"],
                        [["A", 10], ["B", 20], ["C", 30], ["D", 40], ["E", 50]])
         assert result == "bar"
@@ -154,13 +176,37 @@ class TestPieExclusions:
                        [[1, 100], [2, 200]])
         assert result != "pie"
 
-    def test_3_columns_not_pie(self):
-        # 3 colonnes → pas pie
-        result = _hint("répartition",
+    def test_3_columns_neutral_question_not_pie(self):
+        # 3 colonnes, aucun mot de composition dans la question → pas pie
+        result = _hint("résultats par segment",
                        "SELECT cat, nb, ca FROM t GROUP BY cat",
                        ["categorie", "nb", "ca"],
                        [["A", 10, 500], ["B", 20, 1000]])
         assert result != "pie"
+
+
+# ---------------------------------------------------------------------------
+# BAR — signal de ranking (most/best/highest/…)
+# ---------------------------------------------------------------------------
+class TestBarFromRanking:
+    def test_most_orders_is_bar(self):
+        # "most" = ranking → bar même si 4 lignes et 2 colonnes (candidat pie)
+        assert _hint("Which suppliers have the most orders?",
+                     "SELECT wholesaler_name, COUNT(*) AS nb_orders FROM marts.fct_purchases GROUP BY wholesaler_name ORDER BY nb_orders DESC",
+                     ["wholesaler_name", "nb_orders"],
+                     [["UBIPHARM", 10], ["LABOREX", 7], ["TEDIS", 6], ["COPHARMA", 4]]) == "bar"
+
+    def test_highest_revenue_is_bar(self):
+        assert _hint("Which product has the highest revenue?",
+                     "SELECT commercial_name, SUM(total_line_amount_fcfa) AS ca FROM t GROUP BY commercial_name ORDER BY ca DESC",
+                     ["commercial_name", "ca"],
+                     [["Paracetamol", 500000], ["Ibuprofen", 300000]]) == "bar"
+
+    def test_best_selling_no_limit_is_bar(self):
+        assert _hint("best selling products",
+                     "SELECT commercial_name, SUM(total_units_sold) AS units FROM t GROUP BY commercial_name",
+                     ["commercial_name", "units"],
+                     [["ProdA", 200], ["ProdB", 150], ["ProdC", 100]]) == "bar"
 
 
 # ---------------------------------------------------------------------------

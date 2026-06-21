@@ -6,7 +6,8 @@ import { DashboardPage } from './components/dashboard/DashboardPage'
 import { LoginPage } from './components/auth/LoginPage'
 import { ProfilePage } from './components/profile/ProfilePage'
 import { ToastProvider } from './hooks/useToast'
-import { LanguageProvider, useLang } from './i18n/LanguageContext'
+import { LanguageProvider } from './i18n/LanguageContext'
+import { useLang } from './i18n/useLang'
 import './i18n/index'
 
 function AppInner() {

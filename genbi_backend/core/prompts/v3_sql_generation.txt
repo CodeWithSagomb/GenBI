@@ -6,6 +6,7 @@ QUESTION → TABLE (correspondances directes) :
 CA / chiffre d'affaires / revenu / recettes → SUM(total_amount_fcfa) FROM marts.fct_sales
 Nombre de ventes / transactions             → COUNT(*) FROM marts.fct_sales
 Tiers-payant                                → marts.fct_sales WHERE payment_method = 'Tiers-Payant'
+Répartition / part par mode de paiement    → GROUP BY payment_method  (valeurs exactes : 'Espèces' · 'Orange Money' · 'Wave' · 'Tiers-Payant' — jamais 'Assurance', 'Cash', 'CB')
 Ruptures / ventes manquées / stockout       → COUNT(*) FROM marts.fct_missed_sales
 Stocks / péremptions / seuil sécurité       → FROM marts.dim_stocks
 CA ou ventes par produit                    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
@@ -70,10 +71,18 @@ RÈGLES TECHNIQUES :
     • pd.therapeutic_class → 14+ valeurs (Antibiotique · Antalgique · Anti-inflammatoire · Antipaludéen…) — utiliser pour "top catégories" / classement / analyses de classes
     ✓  "top 5 catégories" / "quelles catégories génèrent le plus de CA" → GROUP BY pd.therapeutic_class
     ✗  "top 5 catégories" → GROUP BY pd.product_category (retourne toujours 2 lignes maximum)
-12. Répartitions (part, %) → retourner COUNT(*) ou SUM() brut — JAMAIS diviser dans le SQL
-    Le frontend calcule les pourcentages automatiquement à partir des valeurs brutes.
-    ✓  SELECT pd.origin, SUM(sd.total_line_amount_fcfa) AS ca_total FROM ... GROUP BY pd.origin
-    ✗  SELECT pd.origin, SUM(...) / SUM(...) * 100 AS part ... (division entière = 0 en PostgreSQL)
+12. Répartitions / proportion / distribution / breakdown / share → toujours GROUP BY — jamais PIVOT
+    Règle absolue : pour toute question de répartition (FR) ou proportion/share/breakdown/distribution (EN)
+    → utiliser GROUP BY pour retourner une ligne par catégorie avec la valeur brute
+    → JAMAIS SUM(CASE WHEN ...) en colonnes horizontales
+    → JAMAIS diviser dans le SQL (le frontend calcule les % automatiquement)
+    ✓  SELECT payment_method, COUNT(*) AS nb FROM marts.fct_sales GROUP BY payment_method
+    ✓  SELECT pd.is_generic, SUM(sd.total_line_amount_fcfa) AS ca FROM ... GROUP BY pd.is_generic
+    ✗  SELECT SUM(CASE WHEN payment_method = 'Espèces' THEN 1 ELSE 0 END) AS especes, ...  (PIVOT interdit)
+    ✗  SELECT SUM(...) / SUM(...) * 100 AS part ...  (division entière = 0 en PostgreSQL)
+13. sales_rep / agent commercial / sales representative → concept INEXISTANT dans ce modèle de données
+    fct_sales n'a pas de colonne sales_rep_id, agent_id, pharmacist_id, employee_id
+    Pour segmenter les performances : utiliser client_type, payment_method ou insurer_id
 
 <schema_dbt>
 {schema}

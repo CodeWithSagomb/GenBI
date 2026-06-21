@@ -1,7 +1,7 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useState } from 'react'
 import i18n from './index'
 
-const LanguageContext = createContext(null)
+export const LanguageContext = createContext(null)
 
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState(() => localStorage.getItem('genbi_lang') || 'fr')
@@ -18,8 +18,4 @@ export function LanguageProvider({ children }) {
       {children}
     </LanguageContext.Provider>
   )
-}
-
-export function useLang() {
-  return useContext(LanguageContext)
 }
