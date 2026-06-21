@@ -72,6 +72,7 @@ async def _run_sub_query(
     semantic_catalog: dict | None = None,
     schema_embeddings: dict | None = None,
     conversation_history: list | None = None,
+    language: str = 'fr',
 ) -> dict:
     """Exécute une sous-question sur une connexion dédiée du pool."""
     conn = pool.getconn()
@@ -87,6 +88,7 @@ async def _run_sub_query(
             semantic_catalog=semantic_catalog,
             schema_embeddings=schema_embeddings,
             conversation_history=conversation_history,
+            language=language,
         )
     except psycopg2.Error as e:
         conn.rollback()
@@ -110,6 +112,7 @@ async def analyse_pipeline(
     semantic_catalog: dict | None = None,
     schema_embeddings: dict | None = None,
     conversation_history: list | None = None,
+    language: str = 'fr',
 ) -> dict:
     """
     Route la question vers le bon pipeline :
@@ -120,7 +123,7 @@ async def analyse_pipeline(
     sub_questions = detect_sub_questions(question)
 
     if sub_questions is None:
-        result = await _run_sub_query(question, schema, pool, pharmacy_id, with_insight=True, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings, conversation_history=conversation_history)
+        result = await _run_sub_query(question, schema, pool, pharmacy_id, with_insight=True, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings, conversation_history=conversation_history, language=language)
         return {
             "question": question,
             "is_compound": False,
@@ -132,7 +135,7 @@ async def analyse_pipeline(
     sub_analyses = []
     for q in sub_questions:
         try:
-            result = await _run_sub_query(q, schema, pool, pharmacy_id, with_insight=False, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings)
+            result = await _run_sub_query(q, schema, pool, pharmacy_id, with_insight=False, rag_client=rag_client, semantic_catalog=semantic_catalog, schema_embeddings=schema_embeddings, language=language)
             sub_analyses.append(result)
         except Exception as e:
             sub_analyses.append({

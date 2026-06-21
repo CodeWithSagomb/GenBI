@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { RefreshCw, DollarSign, TrendingUp, Package, AlertTriangle, Clock, ShoppingCart, Zap, Maximize2, X, PieChart } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useAlerts } from '../../hooks/useAlerts'
 import { KPICard } from './KPICard'
@@ -17,20 +18,23 @@ function buildChartData(columns, rows) {
   })
 }
 
-const SEVERITY_LABEL = { danger: 'Critique', warning: 'Attention', info: 'Info' }
-const MONTHS_SHORT = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
-
-function derivePeriod(rows) {
+function derivePeriod(rows, monthsShort) {
   if (!rows || rows.length === 0) return null
   const first = rows[0][0]
   const last  = rows[rows.length - 1][0]
   if (!first || !last) return null
-  const a = MONTHS_SHORT[first - 1]
-  const b = MONTHS_SHORT[last  - 1]
+  const a = monthsShort[first - 1]
+  const b = monthsShort[last  - 1]
   return a === b ? a : `${a}–${b}`
 }
 
 function AlertInsightCard({ alert }) {
+  const { t } = useTranslation()
+  const SEVERITY_LABEL = {
+    danger:  t('dashboard.alert_severity_danger'),
+    warning: t('dashboard.alert_severity_warning'),
+    info:    t('dashboard.alert_severity_info'),
+  }
   const color = alert.severity === 'danger' ? 'var(--danger)'
     : alert.severity === 'warning' ? 'var(--warning)'
     : 'var(--secondary)'
@@ -41,22 +45,18 @@ function AlertInsightCard({ alert }) {
           {SEVERITY_LABEL[alert.severity] ?? alert.severity}
         </span>
         <span className="alert-insight-card__title">{alert.title}</span>
-        <span className="alert-insight-card__count">{alert.row_count} résultat{alert.row_count > 1 ? 's' : ''}</span>
+        <span className="alert-insight-card__count">
+          {t(alert.row_count === 1 ? 'dashboard.alert_results_one' : 'dashboard.alert_results_other', { count: alert.row_count })}
+        </span>
       </div>
       {alert.row_count === 0 ? (
-        <p className="alert-insight-card__empty">Aucune alerte active.</p>
+        <p className="alert-insight-card__empty">{t('dashboard.alert_none')}</p>
       ) : (
         <p className="alert-insight-card__insight">{alert.insight}</p>
       )}
     </div>
   )
 }
-
-const PERIOD_OPTIONS = [
-  { key: 'all', label: 'Tout' },
-  { key: '30j', label: '30 j' },
-  { key: '7j',  label: '7 j' },
-]
 
 function FullscreenOverlay({ title, children, onClose }) {
   return (
@@ -75,6 +75,8 @@ function FullscreenOverlay({ title, children, onClose }) {
 }
 
 export function DashboardPage() {
+  const { t } = useTranslation()
+  const monthsShort = t('months.short', { returnObjects: true })
   const {
     caTotal, caMensuel, topProduits, genericsSplit,
     stocksAlerte, lotsPerimables, ruptures,
@@ -87,10 +89,17 @@ export function DashboardPage() {
   const caValue = caTotal.data?.rows?.[0]?.[0] ?? null
   const rupturesValue = ruptures.data?.rows?.[0]?.[0] ?? null
 
-  const caMensuelData  = buildChartData(caMensuel.data?.columns,  caMensuel.data?.rows)
+  const caMensuelData   = buildChartData(caMensuel.data?.columns,  caMensuel.data?.rows)
   const topProduitsData = buildChartData(topProduits.data?.columns, topProduits.data?.rows)
+  const sparklineData   = caMensuel.data?.rows?.map(r => ({ v: Number(r[1]) })) ?? []
 
-  const sparklineData = caMensuel.data?.rows?.map(r => ({ v: Number(r[1]) })) ?? []
+  const PERIOD_OPTIONS = [
+    { key: 'all', label: t('dashboard.period_all') },
+    { key: '30j', label: t('dashboard.period_30d') },
+    { key: '7j',  label: t('dashboard.period_7d') },
+  ]
+
+  const period_str = derivePeriod(caMensuel.data?.rows, monthsShort)
 
   return (
     <div className="dashboard">
@@ -98,13 +107,12 @@ export function DashboardPage() {
       {/* En-tête */}
       <div className="dashboard__header">
         <div>
-          <h1 className="dashboard__title">Tableau de bord</h1>
+          <h1 className="dashboard__title">{t('dashboard.title')}</h1>
           <p className="dashboard__subtitle">
-            Vue d'ensemble{derivePeriod(caMensuel.data?.rows) ? ` — données ${derivePeriod(caMensuel.data?.rows)}` : ''}
+            {t('dashboard.subtitle')}{period_str ? ` — ${t('dashboard.subtitle_period', { period: period_str })}` : ''}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Filtre période */}
           <div className="period-filter">
             {PERIOD_OPTIONS.map(opt => (
               <button
@@ -120,10 +128,10 @@ export function DashboardPage() {
             className="dashboard__refresh"
             onClick={() => { refetchAll(); refetchAlerts() }}
             disabled={isLoading || alertsLoading}
-            title="Actualiser"
+            title={t('dashboard.refresh')}
           >
             <RefreshCw size={15} className={(isLoading || alertsLoading) ? 'spin' : ''} />
-            Actualiser
+            {t('dashboard.refresh')}
           </button>
         </div>
       </div>
@@ -131,7 +139,7 @@ export function DashboardPage() {
       {/* KPI Cards */}
       <div className="dashboard__kpis">
         <KPICard
-          title="Chiffre d'affaires total"
+          title={t('dashboard.kpi_ca_total')}
           value={caValue}
           unit="FCFA"
           icon={DollarSign}
@@ -141,7 +149,7 @@ export function DashboardPage() {
           sparklineData={sparklineData}
         />
         <KPICard
-          title="Stocks sous seuil"
+          title={t('dashboard.kpi_stocks')}
           value={stocksAlerte.data?.rows?.length ?? null}
           unit="produits"
           icon={AlertTriangle}
@@ -150,7 +158,7 @@ export function DashboardPage() {
           error={stocksAlerte.error}
         />
         <KPICard
-          title="Lots expirant < 30j"
+          title={t('dashboard.kpi_lots')}
           value={lotsPerimables.data?.rows?.length ?? null}
           unit="lots"
           icon={Clock}
@@ -159,7 +167,7 @@ export function DashboardPage() {
           error={lotsPerimables.error}
         />
         <KPICard
-          title="Ruptures de stock"
+          title={t('dashboard.kpi_ruptures')}
           value={rupturesValue}
           unit="total"
           icon={ShoppingCart}
@@ -174,20 +182,20 @@ export function DashboardPage() {
         <div className="chart-card">
           <div className="chart-card__header">
             <h2 className="chart-card__title">
-              <TrendingUp size={16} /> Évolution CA par mois
+              <TrendingUp size={16} /> {t('dashboard.chart_ca_monthly')}
             </h2>
             <button className="chart-card__fullscreen-btn" onClick={() => setFullscreen('line')} title="Plein écran">
               <Maximize2 size={13} />
             </button>
           </div>
           <div className="chart-card__body">
-            {caMensuel.loading && <p className="chart-card__state">Chargement…</p>}
-            {caMensuel.error   && <p className="chart-card__state">Erreur</p>}
+            {caMensuel.loading && <p className="chart-card__state">{t('dashboard.loading')}</p>}
+            {caMensuel.error   && <p className="chart-card__state">{t('dashboard.kpi_error')}</p>}
             {!caMensuel.loading && caMensuelData.length > 0 && (
               <SalesLineChart data={caMensuelData} xKey="mois" yKey="ca_total" />
             )}
             {!caMensuel.loading && !caMensuel.error && caMensuelData.length === 0 && (
-              <p className="chart-card__state">Aucune donnée pour cette période.</p>
+              <p className="chart-card__state">{t('dashboard.chart_ca_empty')}</p>
             )}
           </div>
         </div>
@@ -195,15 +203,15 @@ export function DashboardPage() {
         <div className="chart-card">
           <div className="chart-card__header">
             <h2 className="chart-card__title">
-              <Package size={16} /> Top 5 produits vendus
+              <Package size={16} /> {t('dashboard.chart_top5')}
             </h2>
             <button className="chart-card__fullscreen-btn" onClick={() => setFullscreen('bar')} title="Plein écran">
               <Maximize2 size={13} />
             </button>
           </div>
           <div className="chart-card__body">
-            {topProduits.loading && <p className="chart-card__state">Chargement…</p>}
-            {topProduits.error   && <p className="chart-card__state">Erreur</p>}
+            {topProduits.loading && <p className="chart-card__state">{t('dashboard.loading')}</p>}
+            {topProduits.error   && <p className="chart-card__state">{t('dashboard.kpi_error')}</p>}
             {!topProduits.loading && topProduitsData.length > 0 && (
               <RankingBarChart data={topProduitsData} xKey="produit" yKey="quantite_vendue" />
             )}
@@ -213,15 +221,15 @@ export function DashboardPage() {
         <div className="chart-card">
           <div className="chart-card__header">
             <h2 className="chart-card__title">
-              <PieChart size={16} /> Génériques vs Princeps
+              <PieChart size={16} /> {t('dashboard.chart_generics')}
             </h2>
             <button className="chart-card__fullscreen-btn" onClick={() => setFullscreen('pie')} title="Plein écran">
               <Maximize2 size={13} />
             </button>
           </div>
           <div className="chart-card__body">
-            {genericsSplit.loading && <p className="chart-card__state">Chargement…</p>}
-            {genericsSplit.error   && <p className="chart-card__state">Erreur</p>}
+            {genericsSplit.loading && <p className="chart-card__state">{t('dashboard.loading')}</p>}
+            {genericsSplit.error   && <p className="chart-card__state">{t('dashboard.kpi_error')}</p>}
             {!genericsSplit.loading && genericsSplit.data?.rows?.length > 0 && (
               <GenericsPieChart rows={genericsSplit.data.rows} />
             )}
@@ -232,7 +240,7 @@ export function DashboardPage() {
       {/* Alertes */}
       <div className="dashboard__alerts">
         <AlertTable
-          title="Stocks sous seuil de sécurité"
+          title={t('dashboard.alert_stocks_title')}
           columns={stocksAlerte.data?.columns ?? []}
           rows={stocksAlerte.data?.rows ?? null}
           loading={stocksAlerte.loading}
@@ -240,7 +248,7 @@ export function DashboardPage() {
           severity="danger"
         />
         <AlertTable
-          title="Lots expirant dans 30 jours"
+          title={t('dashboard.alert_lots_title')}
           columns={lotsPerimables.data?.columns ?? []}
           rows={lotsPerimables.data?.rows ?? null}
           loading={lotsPerimables.loading}
@@ -252,10 +260,10 @@ export function DashboardPage() {
       {/* Alertes intelligentes */}
       <div className="dashboard__section">
         <h2 className="dashboard__section-title">
-          <Zap size={16} /> Alertes intelligentes
+          <Zap size={16} /> {t('dashboard.alerts_title')}
         </h2>
         {alertsLoading ? (
-          <p className="chart-card__state">Analyse en cours…</p>
+          <p className="chart-card__state">{t('dashboard.loading')}</p>
         ) : (
           <div className="alert-insights">
             {alerts.map(alert => (
@@ -267,24 +275,24 @@ export function DashboardPage() {
 
       {/* Plein écran overlay */}
       {fullscreen === 'line' && (
-        <FullscreenOverlay title="Évolution CA par mois" onClose={() => setFullscreen(null)}>
+        <FullscreenOverlay title={t('dashboard.chart_ca_monthly')} onClose={() => setFullscreen(null)}>
           {caMensuelData.length > 0
             ? <SalesLineChart data={caMensuelData} xKey="mois" yKey="ca_total" />
-            : <p className="chart-card__state">Aucune donnée.</p>}
+            : <p className="chart-card__state">{t('dashboard.chart_ca_empty')}</p>}
         </FullscreenOverlay>
       )}
       {fullscreen === 'bar' && (
-        <FullscreenOverlay title="Top 5 produits vendus" onClose={() => setFullscreen(null)}>
+        <FullscreenOverlay title={t('dashboard.chart_top5')} onClose={() => setFullscreen(null)}>
           {topProduitsData.length > 0
             ? <RankingBarChart data={topProduitsData} xKey="produit" yKey="quantite_vendue" />
-            : <p className="chart-card__state">Aucune donnée.</p>}
+            : <p className="chart-card__state">{t('dashboard.chart_ca_empty')}</p>}
         </FullscreenOverlay>
       )}
       {fullscreen === 'pie' && (
-        <FullscreenOverlay title="Génériques vs Princeps" onClose={() => setFullscreen(null)}>
+        <FullscreenOverlay title={t('dashboard.chart_generics')} onClose={() => setFullscreen(null)}>
           {genericsSplit.data?.rows?.length > 0
             ? <GenericsPieChart rows={genericsSplit.data.rows} />
-            : <p className="chart-card__state">Aucune donnée.</p>}
+            : <p className="chart-card__state">{t('dashboard.chart_ca_empty')}</p>}
         </FullscreenOverlay>
       )}
     </div>

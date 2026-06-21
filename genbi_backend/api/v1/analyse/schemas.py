@@ -1,4 +1,5 @@
 import re
+from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 _SQL_INJECTION_RE = re.compile(
@@ -15,15 +16,13 @@ class ConversationTurn(BaseModel):
 class AnalyseRequest(BaseModel):
     question: str = Field(min_length=3, max_length=500)
     conversation_history: list[ConversationTurn] = Field(default_factory=list, max_length=6)
+    language: Literal['fr', 'en'] = 'fr'
 
     @field_validator('question')
     @classmethod
     def reject_raw_sql(cls, v: str) -> str:
         if _SQL_INJECTION_RE.match(v):
-            raise ValueError(
-                "Ce système répond aux questions en langage naturel. "
-                "Les requêtes SQL directes ne sont pas acceptées."
-            )
+            raise ValueError("SQL_INJECTION")
         return v
 
 

@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { authApi } from '../../services/api'
 
 export function LoginPage({ onLogin }) {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
@@ -16,7 +18,7 @@ export function LoginPage({ onLogin }) {
       localStorage.setItem('genbi_token', access_token)
       onLogin()
     } catch (err) {
-      setError(err.message ?? 'Erreur de connexion.')
+      setError(err.message ?? t('login.error_default'))
     } finally {
       setLoading(false)
     }
@@ -26,11 +28,11 @@ export function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-card">
         <h1 className="login-title">RuwaGenBI</h1>
-        <p className="login-subtitle">Connectez-vous à votre pharmacie</p>
+        <p className="login-subtitle">{t('login.subtitle')}</p>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="login-field">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t('login.email_label')}</label>
             <input
               id="email"
               type="email"
@@ -44,7 +46,7 @@ export function LoginPage({ onLogin }) {
           </div>
 
           <div className="login-field">
-            <label htmlFor="password">Mot de passe</label>
+            <label htmlFor="password">{t('login.password_label')}</label>
             <input
               id="password"
               type="password"
@@ -66,7 +68,7 @@ export function LoginPage({ onLogin }) {
             disabled={loading}
             className="send-button login-submit"
           >
-            {loading ? 'Connexion…' : 'Connexion'}
+            {loading ? t('login.submitting') : t('login.submit')}
           </button>
         </form>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { User, MapPin, Building2, TrendingUp, Package, ShoppingCart, LogOut } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { authApi, chatApi } from '../../services/api'
 
 function formatNumber(val) {
@@ -20,6 +21,7 @@ function StatItem({ icon: Icon, label, value, unit }) {
 }
 
 export function ProfilePage({ onLogout }) {
+  const { t } = useTranslation()
   const [user, setUser] = useState(null)
   const [pharmacy, setPharmacy] = useState(null)
   const [stats, setStats] = useState(null)
@@ -61,7 +63,7 @@ export function ProfilePage({ onLogout }) {
   if (loading) {
     return (
       <div className="profile-page">
-        <div className="profile-loading">Chargement du profil…</div>
+        <div className="profile-loading">{t('profile.loading')}</div>
       </div>
     )
   }
@@ -75,17 +77,19 @@ export function ProfilePage({ onLogout }) {
         <div className="profile-identity">
           <h1 className="profile-name">{pharmacy?.name ?? `Pharmacie #${user?.pharmacy_id}`}</h1>
           <p className="profile-email">{user?.email}</p>
-          <span className="profile-role">{user?.role === 'admin' ? 'Administrateur' : 'Pharmacien'}</span>
+          <span className="profile-role">
+            {user?.role === 'admin' ? t('profile.role_admin') : t('profile.role_pharmacist')}
+          </span>
         </div>
-        <button className="profile-logout" onClick={onLogout} title="Se déconnecter">
+        <button className="profile-logout" onClick={onLogout} title={t('app.logout')}>
           <LogOut size={15} />
-          <span>Déconnexion</span>
+          <span>{t('profile.logout')}</span>
         </button>
       </div>
 
       <div className="profile-cards">
         <div className="profile-card">
-          <h2 className="profile-card__title">Informations</h2>
+          <h2 className="profile-card__title">{t('profile.section_info')}</h2>
           <div className="profile-info-list">
             {pharmacy?.city && (
               <div className="profile-info-item">
@@ -96,23 +100,23 @@ export function ProfilePage({ onLogout }) {
             {pharmacy?.district && (
               <div className="profile-info-item">
                 <MapPin size={14} className="profile-info-item__icon" />
-                <span>District : {pharmacy.district}</span>
+                <span>{t('profile.district')} {pharmacy.district}</span>
               </div>
             )}
             <div className="profile-info-item">
               <User size={14} className="profile-info-item__icon" />
-              <span>ID pharmacie : #{user?.pharmacy_id}</span>
+              <span>{t('profile.pharmacy_id')}{user?.pharmacy_id}</span>
             </div>
           </div>
         </div>
 
         {stats && (
           <div className="profile-card">
-            <h2 className="profile-card__title">Statistiques globales</h2>
+            <h2 className="profile-card__title">{t('profile.section_stats')}</h2>
             <div className="profile-stats-grid">
-              <StatItem icon={TrendingUp} label="CA total" value={stats.ca} unit="FCFA" />
-              <StatItem icon={Package} label="Total ventes" value={stats.ventes} unit="transactions" />
-              <StatItem icon={ShoppingCart} label="Ruptures" value={stats.ruptures} unit="enregistrées" />
+              <StatItem icon={TrendingUp} label={t('profile.stat_ca')} value={stats.ca} unit="FCFA" />
+              <StatItem icon={Package} label={t('profile.stat_sales')} value={stats.ventes} unit="transactions" />
+              <StatItem icon={ShoppingCart} label={t('profile.stat_ruptures')} value={stats.ruptures} unit="enregistrées" />
             </div>
           </div>
         )}

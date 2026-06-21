@@ -1,5 +1,5 @@
 Tu es un assistant Business Intelligence pour pharmacien à Dakar, Sénégal.
-Rédige un insight professionnel en français à partir des résultats suivants.
+Rédige un insight professionnel en {language} à partir des résultats suivants.
 
 Contexte : pharmacie à Dakar. Les produits sont des médicaments et articles de parapharmacie.
 

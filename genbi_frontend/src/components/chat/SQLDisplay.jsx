@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '../../hooks/useToast'
 
 export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteError }) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [editedSql, setEditedSql] = useState(sql ?? '')
   const [copied, setCopied] = useState(false)
@@ -19,7 +21,7 @@ export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteErr
     try {
       await navigator.clipboard.writeText(sql)
       setCopied(true)
-      toast?.('SQL copié dans le presse-papiers')
+      toast?.(t('chat.sql_copied'))
       setTimeout(() => setCopied(false), 2000)
     } catch (_) {}
   }
@@ -27,19 +29,19 @@ export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteErr
   return (
     <div data-testid="sql-display" className="sql-display">
       <div className="sql-display__header">
-        <span className="sql-display__label">SQL généré</span>
+        <span className="sql-display__label">{t('chat.sql_label')}</span>
         <div className="sql-display__actions">
           <button
             className="sql-display__edit-btn"
             onClick={handleCopy}
-            title="Copier le SQL"
-            aria-label="Copier le SQL"
+            title={t('chat.sql_copy_title')}
+            aria-label={t('chat.sql_copy_title')}
           >
             {copied ? <Check size={13} /> : <Copy size={13} />}
           </button>
           {onReexecute && !editing && (
             <button className="sql-display__edit-btn" onClick={() => setEditing(true)}>
-              Modifier
+              {t('chat.sql_edit')}
             </button>
           )}
         </div>
@@ -55,14 +57,14 @@ export function SQLDisplay({ sql, onReexecute, isExecuting = false, reexecuteErr
           />
           <div className="sql-display__editor-actions">
             <button className="sql-display__cancel-btn" onClick={() => setEditing(false)}>
-              Annuler
+              {t('chat.sql_cancel')}
             </button>
             <button
               className="sql-display__run-btn"
               onClick={handleReexecute}
               disabled={isExecuting}
             >
-              {isExecuting ? 'Exécution…' : 'Ré-exécuter'}
+              {isExecuting ? t('chat.sql_executing') : t('chat.sql_rerun')}
             </button>
           </div>
           {reexecuteError && (

@@ -1,3 +1,5 @@
+import i18n from '../i18n/index'
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 function _authHeaders() {
@@ -17,16 +19,19 @@ async function request(path, options = {}) {
 
   if (res.status === 401) {
     if (typeof localStorage !== 'undefined') localStorage.removeItem('genbi_token')
-    throw new Error('Session expirée. Veuillez vous reconnecter.')
+    throw new Error(i18n.t('errors.session_expired'))
   }
 
   if (!res.ok) {
-    let detail = `Erreur ${res.status}`
+    let detail = i18n.t('errors.http_error', { status: res.status })
     try {
       const body = await res.json()
       if (Array.isArray(body.detail)) {
         // Pydantic validation error → [{msg: "Value error, ..."}]
-        detail = body.detail[0]?.msg?.replace(/^Value error,\s*/i, '') ?? detail
+        const raw = body.detail[0]?.msg?.replace(/^Value error,\s*/i, '') ?? detail
+        detail = raw === 'SQL_INJECTION'
+          ? i18n.t('errors.sql_injection')
+          : raw
       } else {
         detail = body.error ?? body.detail ?? detail
       }
@@ -66,10 +71,10 @@ export const chatApi = {
       body: JSON.stringify({ question, sql_generated, rating, comment }),
     }),
 
-  analyse: (question, conversationHistory = []) =>
+  analyse: (question, conversationHistory = [], language = 'fr') =>
     request('/api/v1/analyse', {
       method: 'POST',
-      body: JSON.stringify({ question, conversation_history: conversationHistory }),
+      body: JSON.stringify({ question, conversation_history: conversationHistory, language }),
     }),
 
   getAlerts: () => request('/api/v1/alerts'),

@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { Download, Printer, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '../../hooks/useToast'
 
-const FR_MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']
-
-function formatCell(value) {
+function formatCell(value, months) {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
     const d = new Date(value)
-    if (!isNaN(d)) return `${FR_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+    if (!isNaN(d)) return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
   }
   const num = Number(value)
   if (!isNaN(num) && String(value).trim() !== '') {
@@ -35,12 +34,14 @@ function SortIcon({ colIdx, sortState }) {
 }
 
 export function DataTable({ columns, rows, rowCount }) {
+  const { t } = useTranslation()
+  const months = t('months.long', { returnObjects: true })
   const [visibleCount, setVisibleCount] = useState(50)
   const [sortState, setSortState] = useState({ col: null, dir: 'asc' })
   const toast = useToast()
 
   if (!rows || rows.length === 0) {
-    return <p className="datatable__empty">Aucun résultat trouvé.</p>
+    return <p className="datatable__empty">{t('table.empty')}</p>
   }
 
   function toggleSort(colIdx) {
@@ -77,7 +78,7 @@ export function DataTable({ columns, rows, rowCount }) {
     a.download = 'export.csv'
     a.click()
     URL.revokeObjectURL(url)
-    toast?.('Export téléchargé')
+    toast?.(t('table.export_done'))
   }
 
   function printTable() {
@@ -89,15 +90,17 @@ export function DataTable({ columns, rows, rowCount }) {
   return (
     <div className="datatable__wrapper" data-testid="results-table">
       <div className="datatable__toolbar">
-        <span className="datatable__count">{rows.length} ligne{rows.length > 1 ? 's' : ''}</span>
+        <span className="datatable__count">
+          {t(rows.length === 1 ? 'table.rows_one' : 'table.rows_other', { count: rows.length })}
+        </span>
         <div style={{ display: 'flex', gap: '0.4rem' }}>
-          <button className="datatable__export-btn" onClick={printTable} title="Imprimer / PDF">
+          <button className="datatable__export-btn" onClick={printTable} title={t('table.print')}>
             <Printer size={13} />
-            <span>PDF</span>
+            <span>{t('table.print_short')}</span>
           </button>
-          <button className="datatable__export-btn" onClick={exportCSV} title="Exporter en CSV">
+          <button className="datatable__export-btn" onClick={exportCSV} title={t('table.export_csv')}>
             <Download size={13} />
-            <span>CSV</span>
+            <span>{t('table.export_short')}</span>
           </button>
         </div>
       </div>
@@ -122,7 +125,7 @@ export function DataTable({ columns, rows, rowCount }) {
           {visible.map((row, i) => (
             <tr key={i} className="datatable__row">
               {row.map((cell, j) => (
-                <td key={j} className="datatable__td">{formatCell(cell)}</td>
+                <td key={j} className="datatable__td">{formatCell(cell, months)}</td>
               ))}
             </tr>
           ))}
@@ -133,12 +136,12 @@ export function DataTable({ columns, rows, rowCount }) {
           className="datatable__load-more"
           onClick={() => setVisibleCount(c => c + 50)}
         >
-          Afficher {remaining} ligne{remaining > 1 ? 's' : ''} suivante{remaining > 1 ? 's' : ''}
+          {t(remaining === 1 ? 'table.load_more_one' : 'table.load_more_other', { count: remaining })}
         </button>
       )}
       {isTruncated && (
         <p className="datatable__truncated">
-          {rows.length} premiers résultats sur {rowCount.toLocaleString('fr-FR')} au total
+          {t('table.pagination', { shown: rows.length, total: rowCount.toLocaleString('fr-FR') })}
         </p>
       )}
     </div>

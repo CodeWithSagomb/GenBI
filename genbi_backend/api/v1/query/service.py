@@ -20,6 +20,11 @@ _MOIS_FR = {
     5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
     9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
 }
+_MOIS_EN = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December",
+}
 _MONTH_COLS = {"mois", "sale_month", "missed_month"}
 
 
@@ -35,13 +40,14 @@ def _serialize_row(row):
     return [_serialize_val(v) for v in row]
 
 
-def _humanize_months(columns: list[str], rows: list[list]) -> list[list]:
-    """Convertit les numéros de mois ISO en noms français pour les colonnes mois."""
+def _humanize_months(columns: list[str], rows: list[list], language: str = 'fr') -> list[list]:
+    """Convertit les numéros de mois ISO en noms (français ou anglais) pour les colonnes mois."""
+    month_map = _MOIS_EN if language == 'en' else _MOIS_FR
     month_indices = [i for i, c in enumerate(columns) if c in _MONTH_COLS]
     if not month_indices:
         return rows
     return [
-        [_MOIS_FR.get(v, v) if i in month_indices else v for i, v in enumerate(row)]
+        [month_map.get(v, v) if i in month_indices else v for i, v in enumerate(row)]
         for row in rows
     ]
 
@@ -57,6 +63,7 @@ async def query_pipeline(
     semantic_catalog: dict | None = None,
     schema_embeddings: dict | None = None,
     conversation_history: list | None = None,
+    language: str = 'fr',
 ) -> dict:
     """Pipeline complet : question → SQL → exécution → insight (optionnel).
 
@@ -101,12 +108,12 @@ async def query_pipeline(
     if last_error is not None:
         raise DatabaseError(f"Erreur d'exécution SQL : {last_error}") from last_error
 
-    rows = _humanize_months(columns, rows)
+    rows = _humanize_months(columns, rows, language)
     results = {"columns": columns, "rows": rows}
     if with_insight and rows:
-        insight = await generate_insight(question, results)
+        insight = await generate_insight(question, results, language=language)
     elif with_insight and not rows:
-        insight = "Aucune donnée disponible pour cette période ou cette sélection."
+        insight = "Aucune donnée disponible pour cette période ou cette sélection." if language == 'fr' else "No data available for this period or selection."
     else:
         insight = ""
 

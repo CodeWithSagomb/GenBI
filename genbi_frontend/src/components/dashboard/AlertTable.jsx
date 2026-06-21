@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 function formatHeader(col) {
   return col.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
@@ -12,6 +14,7 @@ function formatCell(val) {
 }
 
 export function AlertTable({ title, columns, rows, loading, error, severity = 'warning' }) {
+  const { t } = useTranslation()
   return (
     <div className={`alert-card alert-card--${severity}`}>
       <div className="alert-card__header">
@@ -23,10 +26,10 @@ export function AlertTable({ title, columns, rows, loading, error, severity = 'w
       </div>
 
       <div className="alert-card__body">
-        {loading && <p className="alert-card__state">Chargement…</p>}
-        {error   && <p className="alert-card__state alert-card__state--error">Erreur de chargement</p>}
+        {loading && <p className="alert-card__state">{t('dashboard.alert_loading')}</p>}
+        {error   && <p className="alert-card__state alert-card__state--error">{t('dashboard.alert_error')}</p>}
         {!loading && !error && (!rows || rows.length === 0) && (
-          <p className="alert-card__state alert-card__state--ok">✓ Aucune alerte</p>
+          <p className="alert-card__state alert-card__state--ok">{t('dashboard.alert_ok')}</p>
         )}
         {!loading && !error && rows && rows.length > 0 && (
           <div className="alert-table__wrapper">

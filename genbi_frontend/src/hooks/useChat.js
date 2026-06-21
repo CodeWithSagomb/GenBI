@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import i18n from '../i18n/index'
 import { chatApi } from '../services/api'
 
 function _buildHistory(msgs) {
@@ -23,12 +24,13 @@ export function useChat() {
     const userId = nextId.current++
     const aiId = nextId.current++
     const history = _buildHistory(messages)
+    const language = i18n.language || 'fr'
 
     setMessages(prev => [...prev, { id: userId, role: 'user', content: q }])
     setStatus('loading')
 
     try {
-      const result = await chatApi.analyse(q, history)
+      const result = await chatApi.analyse(q, history, language)
       setMessages(prev => [...prev, {
         id: aiId,
         role: 'ai',
@@ -43,7 +45,7 @@ export function useChat() {
       setMessages(prev => [...prev, {
         id: aiId,
         role: 'ai',
-        error: err.message ?? 'Une erreur inattendue est survenue.',
+        error: err.message ?? i18n.t('chat.error_default'),
         feedback: null,
       }])
     } finally {

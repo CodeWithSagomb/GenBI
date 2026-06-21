@@ -76,7 +76,7 @@ def build_sql_prompt(
     return template.format(**fmt_kwargs)
 
 
-def build_insight_prompt(question: str, results: dict) -> str:
+def build_insight_prompt(question: str, results: dict, language: str = 'fr') -> str:
     """Construit le prompt pour la génération d'insight.
 
     Annote les types de colonnes avant sérialisation pour guider le LLM
@@ -87,7 +87,8 @@ def build_insight_prompt(question: str, results: dict) -> str:
     annotations = annotate_column_types(columns)
     data_str = json.dumps(results, ensure_ascii=False, indent=2)
     enriched = f"Types de colonnes:\n{annotations}\n\nDonnées:\n{data_str}"
-    return template.format(question=question, results=enriched)
+    lang_label = "français" if language == 'fr' else "English"
+    return template.format(question=question, results=enriched, language=lang_label)
 
 
 async def generate_sql(
@@ -173,7 +174,7 @@ async def repair_sql(
 
 
 async def generate_insight(
-    question: str, results: dict, timeout: Optional[int] = None
+    question: str, results: dict, timeout: Optional[int] = None, language: str = 'fr'
 ) -> str:
     """Appelle Ollama pour rédiger un insight en français.
 
@@ -181,7 +182,7 @@ async def generate_insight(
     Lève LLMTimeoutError si Ollama ne répond pas dans le délai imparti.
     """
     timeout_s = timeout if timeout is not None else settings.LLM_INSIGHT_TIMEOUT
-    prompt = build_insight_prompt(question, results)
+    prompt = build_insight_prompt(question, results, language=language)
     try:
         response = await asyncio.wait_for(
             litellm.acompletion(
