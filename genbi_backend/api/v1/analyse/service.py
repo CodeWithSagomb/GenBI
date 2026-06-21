@@ -14,7 +14,9 @@ _PATTERNS: list[tuple[re.Pattern, list[str]]] = [
     (
         re.compile(
             r"analyse compl[eè]te|tableau de bord|bilan complet"
-            r"|r[eé]sum[eé] complet|vue d.ensemble|[eé]tat g[eé]n[eé]ral",
+            r"|r[eé]sum[eé] complet|vue d.ensemble|[eé]tat g[eé]n[eé]ral"
+            r"|full analysis|complete analysis|complete overview|overall summary"
+            r"|dashboard overview|general overview|complete report",
             re.I,
         ),
         [
@@ -26,14 +28,22 @@ _PATTERNS: list[tuple[re.Pattern, list[str]]] = [
         ],
     ),
     (
-        re.compile(r"[eé]tat des stocks|analyse des stocks|stocks? complet", re.I),
+        re.compile(
+            r"[eé]tat des stocks|analyse des stocks|stocks? complet"
+            r"|stock status|stock analysis|inventory analysis|complete inventory",
+            re.I,
+        ),
         [
             "combien de produits sont sous le seuil de sécurité ?",
             "combien de lots expirent dans moins de 30 jours ?",
         ],
     ),
     (
-        re.compile(r"analyse des ruptures|bilan.{0,10}ruptures|ruptures? complet", re.I),
+        re.compile(
+            r"analyse des ruptures|bilan.{0,10}ruptures|ruptures? complet"
+            r"|stock.?out analysis|stock.?out report|complete stock.?out",
+            re.I,
+        ),
         [
             "combien de ruptures de stock ?",
             "quels sont les 5 produits avec le plus de ruptures ?",
@@ -43,7 +53,8 @@ _PATTERNS: list[tuple[re.Pattern, list[str]]] = [
     (
         re.compile(
             r"priorit[eé]s?.{0,20}commander|commander.{0,20}priorit[eé]"
-            r"|quoi commander|que commander|produits?.{0,15}commander",
+            r"|quoi commander|que commander|produits?.{0,15}commander"
+            r"|what to order|products? to order|order priorit|what should.{0,10}order",
             re.I,
         ),
         [
