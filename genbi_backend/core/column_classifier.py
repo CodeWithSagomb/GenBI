@@ -6,7 +6,7 @@ un COUNT avec un montant FCFA. Ajouter ici les nouveaux types de colonnes
 """
 
 _FINANCIAL = frozenset({"amount", "ca", "revenue", "montant", "fcfa", "price", "prix", "sales"})
-_COUNT = frozenset({"count", "nombre", "nb", "nb_ventes", "nb_orders", "nb_transactions", "total_ventes"})
+_COUNT = frozenset({"count", "nombre", "nb", "nb_ventes", "nb_orders", "nb_transactions", "total_ventes", "panier"})
 _QUANTITY = frozenset({"quantity", "quantite", "qty", "total_quantity", "units_sold", "total_units"})
 
 

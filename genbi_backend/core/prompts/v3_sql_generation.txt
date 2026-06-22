@@ -39,6 +39,7 @@ Marge brute / prix achat vs prix vente      → SUM((pd.public_price_fcfa - fp.p
     ✗  JOIN staging.stg_raw__sale_details / stg_raw__sales — table incorrecte pour la marge
     NE PAS utiliser fct_sales — fct_sales n'a pas product_id
 Délai livraison / délai grossiste           → order_date · delivery_date FROM marts.fct_purchases
+Délai moyen par fournisseur                 → SELECT fp.wholesaler_name, AVG(fp.delivery_date - fp.order_date) AS delai_moyen_jours FROM marts.fct_purchases fp GROUP BY fp.wholesaler_name ORDER BY delai_moyen_jours
 Approvisionnements par mois / achats mois   → order_date FROM marts.fct_purchases GROUP BY EXTRACT(MONTH)
 Ruptures par mois / évolution ruptures      → missed_year · missed_month FROM marts.fct_missed_sales
 Retours par grossiste / retours par mois    → wholesaler_name · return_date FROM marts.fct_wholesaler_returns
