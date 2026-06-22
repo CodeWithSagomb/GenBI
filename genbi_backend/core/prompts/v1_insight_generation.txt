@@ -11,31 +11,35 @@ Rédige un insight factuel en {language} à partir des résultats suivants.
 
 Consignes :
 - 1 à 2 phrases maximum. Concis, direct, factuel.
-- Commence IMMÉDIATEMENT par le chiffre ou le fait principal — jamais par un sujet générique désignant la pharmacie ("Le pharmacien", "Le pharmacien d'", "La pharmacie", "Votre pharmacie", "Les résultats montrent", "Voici").
-- Ne mentionne jamais "Dakar", "pharmacie à Dakar", "réseau pharmacien" — ces termes sont vagues et inutiles.
+- TOUJOURS formuler une phrase complète — un chiffre isolé n'est jamais acceptable.
+  ✓  "Le chiffre d'affaires total s'élève à 16 530 900 FCFA."
+  ✓  "Total revenue amounts to 16 530 900 FCFA."
+  ✗  "16 530 900 FCFA"  (chiffre seul — interdit)
+- Ne commence JAMAIS par : "Le pharmacien", "La pharmacie", "Votre pharmacie", "Les résultats montrent", "Voici", "D'après les données".
+  ✓  "16 530 900 FCFA de chiffre d'affaires total."
+  ✗  "Le pharmacien génère un chiffre d'affaires..."  (interdit — "Le pharmacien" est banni)
+- Ne mentionne jamais "Dakar", "pharmacie à Dakar", "réseau pharmacien" — termes vagues et inutiles.
 - Ne mentionne pas le SQL ni la base de données.
-- Pas de listes à puces ni de tirets — phrases courtes uniquement.
+- Pas de listes à puces ni de tirets — phrases courtes uniquement. Si les résultats contiennent plusieurs éléments (produits, lots…), résumer en citant le premier ou les 2 plus notables, pas tous.
+  ✓  "9 products are below the safety threshold, including Doliprane Pédiatrique (8 units) and Glucophage (6 units)."
+  ✗  "The following products are below the threshold:\n- Doliprane Pédiatrique\n- Glucophage\n- ..."  (liste → interdit)
 - Pas de markdown (pas de **, *, ##, _) — texte brut uniquement.
 - Pas de commentaire après le fait principal ("Cela représente", "Cela indique", "Il convient de noter") — s'arrêter aux données.
-- COMMANDES/ACHATS : si la question porte sur les fournisseurs, achats ou approvisionnements, utiliser "commandes" — jamais "ventes", "transactions", "orders" ni tout mot anglais.
-  ✓  "UBIPHARM Sénégal a passé le plus de commandes avec 10 commandes."
-  ✗  "UBIPHARM Sénégal a le plus d'orders avec 10 transactions."
 - Respecte STRICTEMENT les types de colonnes indiqués dans "Types de colonnes" :
   * MONTANT FINANCIER → exprimer en FCFA avec espaces comme séparateurs (ex : 3 602 350 FCFA).
   * NOMBRE DE TRANSACTIONS → exprimer comme "X ventes" ou "X transactions", jamais en FCFA.
   * NOMBRE D'UNITÉS → exprimer comme "X unités", jamais en FCFA.
 - Les chiffres dans les données sont les SEULES valeurs disponibles. Ne pas en inventer d'autres.
-- JAMAIS calculer de pourcentages à partir des données brutes — citer les valeurs absolues uniquement. Si les données contiennent déjà un pourcentage calculé, on peut le citer.
-- JAMAIS convertir en "millions" ou abréger les montants — toujours citer la valeur FCFA complète avec espaces comme séparateurs de milliers.
+- JAMAIS calculer ni additionner des valeurs pour obtenir un total non présent dans les données. Si le total n'est pas dans les données, ne pas l'écrire.
+  ✗  Données: [Wave 6 603 700, Espèces 2 960 350, ...] → NE PAS écrire "total de 6 403 720 FCFA" (total inventé)
+  ✓  Citer uniquement les valeurs fournies : "Wave génère 6 603 700 FCFA, soit la part la plus élevée."
+- JAMAIS calculer de pourcentages à partir des données brutes — citer les valeurs absolues uniquement.
+- JAMAIS convertir en "millions" ou abréger les montants — toujours citer la valeur FCFA complète avec espaces.
   ✓  "2 870 650 FCFA"     ✗  "2,87 millions FCFA"     ✗  "39,3 millions FCFA"
-- JAMAIS utiliser des mots anglais (quarter, orders, sales, best) — tout en français.
-- MOIS : si les données contiennent une colonne `mois`, `sale_month` ou `missed_month`, la valeur est le numéro ISO du mois (1=janvier, 2=février, 3=mars, 4=avril, 5=mai, 6=juin, 7=juillet, 8=août, 9=septembre, 10=octobre, 11=novembre, 12=décembre). Ne jamais décaler : mois 2 = février (pas janvier), mois 4 = avril (pas mars).
-- RUPTURES : si la question porte sur les "ruptures de stock" ou "ventes manquées", les valeurs dans les résultats sont des RUPTURES — jamais des "ventes". Utiliser les mots "ruptures" ou "ventes manquées", jamais "ventes".
-- IMPORTANT : l'insight doit UNIQUEMENT répondre à la question posée, en s'appuyant EXCLUSIVEMENT sur les données fournies. Ne jamais introduire d'informations connexes absentes des résultats (ex : si la question porte sur les péremptions, ne pas mentionner les ruptures de stock ; si la question est un simple comptage, commenter ce chiffre sans inventer de détails).
-- TENDANCES : ne jamais affirmer "croissance constante", "tendance à la hausse/baisse", "évolution positive" sauf si les données montrent clairement une direction monotone. Si les valeurs montent et descendent, décrire les extremes (mois le plus fort, mois le plus faible) sans inventer de tendance.
+- RUPTURES : si la question porte sur les "ruptures de stock" ou "ventes manquées", utiliser "ruptures" ou "ventes manquées" — jamais "ventes".
+- TENDANCES : ne jamais affirmer "croissance constante", "tendance à la hausse/baisse" sauf si les données montrent clairement une direction monotone.
 - MOYENNES : calculer la moyenne réelle à partir des données fournies. Ne jamais arrondir à un chiffre non vérifié.
-- PÉRIODES : ne jamais utiliser "trimestre", "semestre", "premier trimestre" ou tout autre regroupement calendaire. Citer les mois exacts présents dans les données (ex : "de janvier à mai 2026").
-- COMPTAGE DE LIGNES : si les résultats contiennent plusieurs lignes représentant des éléments distincts (produits, lots, jours…), le nombre d'éléments est exactement le nombre de lignes fournies — jamais la valeur d'une cellule.
-  ✓  30 lignes de résultats → "30 lots" ou "30 produits"
-  ✗  30 lignes dont chaque colonne days_until_expiry=7 → NE PAS dire "7 lots" (7 est une durée en jours, pas un comptage)
-  ✗  27 lignes → NE PAS dire "30 produits" (inventer un chiffre supérieur au nombre de lignes)
+- PÉRIODES : ne jamais utiliser "trimestre", "semestre". Citer les mois exacts présents dans les données.
+- COMPTAGE DE LIGNES : si les résultats contiennent plusieurs lignes représentant des éléments distincts, le nombre d'éléments = nombre de lignes fournies — jamais la valeur d'une cellule.
+  ✓  30 lignes → "30 lots"     ✗  days_until_expiry=7 → NE PAS dire "7 lots"
+{lang_rules}

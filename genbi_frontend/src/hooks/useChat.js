@@ -24,7 +24,12 @@ export function useChat() {
     const userId = nextId.current++
     const aiId = nextId.current++
     const history = _buildHistory(messages)
-    const language = i18n.language || 'fr'
+    // Auto-detect: if question is mostly English words, override UI language
+    const enWords = /\b(what|how|which|who|when|where|show|give|list|total|best|top|my|by|per|of|the|is|are|do|does|did|have|has)\b/i
+    const frWords = /\b(quel|quelle|quels|quelles|comment|combien|quoi|qui|quand|où|montre|donne|liste|mon|ma|mes|par|de|le|la|les|est|sont|ont|fait|avez|j'ai)\b/i
+    const enScore = (q.match(enWords) || []).length
+    const frScore = (q.match(frWords) || []).length
+    const language = enScore > frScore ? 'en' : (i18n.language || 'fr')
 
     setMessages(prev => [...prev, { id: userId, role: 'user', content: q }])
     setStatus('loading')

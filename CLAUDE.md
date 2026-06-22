@@ -71,6 +71,24 @@ raw.*  →  staging.*  →  marts.*
 32. **Chat multi-tour — historique limité** — `useChat.js/_buildHistory()` envoie max 3 tours (6 messages : 3 user + 3 SQL assistant). Seuls les tours avec SQL valide sont inclus. qwen2.5-coder:7b suit le contexte sur 1-2 tours fiablement, moins sur 3+.
 
 ## État d'avancement
+- ✅ Session batterie 50q EN + 10 bugs insight/SQL — validé 2026-06-22 — **237/237 tests PASS**
+  - Insight bilingue : `{lang_rules}` FR/EN injecté dans `build_insight_prompt()` — plus de confusion "JAMAIS mots anglais" vs `language=en`
+  - Phrase complète obligatoire : règle + exemples ✓/✗ pour empêcher chiffre brut seul
+  - Mois alias `month` ajouté à `_MONTH_COLS` → "octobre" pour mois 5 (mai) corrigé
+  - `_clean_sql` tronque au premier `;` → texte explicatif LLM après la requête supprimé
+  - Auto-détection langue question dans `useChat.js` (score lexical EN > FR → force `language=en`)
+  - v3 prompt R14 : COUNT doit utiliser alias `nb_*` (jamais `total_sales` → FCFA)
+  - v3 prompt : top N marge → JOIN direct `fct_purchases→dim_products` (pas `fp.sale_id`)
+  - v3 prompt : "répartition ventes par type client" → `GROUP BY client_type FROM fct_sales` (pas dim_clients)
+  - v3 prompt : "out of stock" → `fct_missed_sales` (jamais `quantity <= 0`)
+  - v3 prompt : mapping explicite FO001 "most often" → `COUNT(*) AS nb_commandes GROUP BY wholesaler_name`
+  - v1 insight : anti-bullet-list avec exemple ✓/✗ multi-éléments
+  - v1 insight : "JAMAIS additionner pour obtenir un total absent des données"
+- ✅ Session viz_classifier + qualité insight — validé 2026-06-22 — **237/237 tests PASS** — commit `07e5cc3`
+  - `_TEMPORAL_RE` : ajout `évolue` + lookahead `par jour(?!\s+de\s+la)` → "par jour de la semaine" → bar (pas line)
+  - `_RANKING_RE` : ajout mots-clés FR `le plus`, `meilleur`, `pire` → questions ranking FR → bar (pas pie)
+  - `v1_insight_generation.txt` : exemples concrets ✓/✗ pour la règle anti-millions
+  - 4 nouveaux tests viz_classifier (test_evolue_is_line, test_par_jour_de_la_semaine_is_bar, test_le_plus_fr_is_bar, test_meilleur_fr_is_bar)
 - ✅ Roadmap Innovations — branch `feat/rag-360-coverage` — validé 2026-06-14 — **193/193 tests PASS**
   - Phase 1 `1126353` — MARS-SQL : auto-repair SQL execution-feedback loop (2 tentatives, `SQL_MAX_REPAIR_ATTEMPTS=2`)
   - Phase 2 `68b45fa` — CALM : alertes proactives LLM — 3 alertes (stock critique, lots expirants, taux service) via `/api/v1/alerts`

@@ -34,6 +34,10 @@ def _clean_sql(raw: str) -> str:
     select_match = re.search(r"\bSELECT\b", raw, re.IGNORECASE)
     if select_match:
         raw = raw[select_match.start():]
+    # Tronque au premier point-virgule (supprime tout texte explicatif après la requête)
+    semi_match = re.search(r";", raw)
+    if semi_match:
+        raw = raw[:semi_match.start()]
     # Remplace les apostrophes françaises dans les identifiants SQL
     # Ex: AS jours_jusqu'à_expiration → AS jours_jusqu_à_expiration
     # Sûr : \w'\w ne matche pas les délimiteurs de chaînes SQL 'Tiers-Payant'
@@ -76,11 +80,28 @@ def build_sql_prompt(
     return template.format(**fmt_kwargs)
 
 
+_LANG_RULES_FR = """\
+- LANGUE : Tout en français. JAMAIS de mots anglais (quarter, orders, sales, best, revenue, trend, breakdown).
+- COMMANDES/ACHATS : utiliser "commandes" pour les fournisseurs/approvisionnements — jamais "ventes", "transactions", "orders".
+  ✓  "UBIPHARM Sénégal a passé le plus de commandes avec 10 commandes."
+  ✗  "UBIPHARM Sénégal a le plus d'orders avec 10 transactions."
+- MOIS FR : 1=janvier · 2=février · 3=mars · 4=avril · 5=mai · 6=juin · 7=juillet · 8=août · 9=septembre · 10=octobre · 11=novembre · 12=décembre. Mois 2 = février (jamais janvier)."""
+
+_LANG_RULES_EN = """\
+- LANGUAGE: Write entirely in English. Never mix French words into the insight.
+- MONTHS EN: 1=January · 2=February · 3=March · 4=April · 5=May · 6=June · 7=July · 8=August · 9=September · 10=October · 11=November · 12=December.
+- SUPPLIERS/ORDERS: use "orders" for supplier purchases — never "ventes", "transactions".
+  ✓  "UBIPHARM Sénégal placed the most orders with 10 orders."
+- AMOUNTS: always cite FCFA amounts in full with spaces as thousand separators (e.g., 16 530 900 FCFA).
+- STOCKOUTS: use "stockouts" or "missed sales" — never "ruptures" or "ventes manquées"."""
+
+
 def build_insight_prompt(question: str, results: dict, language: str = 'fr') -> str:
     """Construit le prompt pour la génération d'insight.
 
     Annote les types de colonnes avant sérialisation pour guider le LLM
     et éviter les hallucinations de montants FCFA sur des colonnes COUNT.
+    Injecte des règles linguistiques séparées selon fr/en pour éviter les conflits.
     """
     template = load_prompt("v1_insight_generation")
     columns = results.get("columns", [])
@@ -88,7 +109,8 @@ def build_insight_prompt(question: str, results: dict, language: str = 'fr') -> 
     data_str = json.dumps(results, ensure_ascii=False, indent=2)
     enriched = f"Types de colonnes:\n{annotations}\n\nDonnées:\n{data_str}"
     lang_label = "français" if language == 'fr' else "English"
-    return template.format(question=question, results=enriched, language=lang_label)
+    lang_rules = _LANG_RULES_FR if language == 'fr' else _LANG_RULES_EN
+    return template.format(question=question, results=enriched, language=lang_label, lang_rules=lang_rules)
 
 
 async def generate_sql(

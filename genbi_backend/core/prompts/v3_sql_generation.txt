@@ -10,13 +10,20 @@ Répartition / part par mode de paiement    → GROUP BY payment_method  (valeur
 Ruptures / ventes manquées / stockout       → COUNT(*) FROM marts.fct_missed_sales
 Combien de produits en rupture / ont manqué → SELECT COUNT(DISTINCT ms.product_id) AS nb_produits_en_rupture FROM marts.fct_missed_sales ms
 Quels produits en rupture / liste ruptures  → SELECT DISTINCT pd.commercial_name FROM marts.fct_missed_sales ms JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+How many products out of stock / out of stock → SELECT COUNT(DISTINCT ms.product_id) AS nb_produits_en_rupture FROM marts.fct_missed_sales ms
+    ✗ NE PAS utiliser stg_raw__sale_details WHERE quantity <= 0 — cela donne toujours 0 résultat
+    ✗ NE PAS utiliser dim_stocks WHERE quantity_in_stock = 0 — aucun produit n'atteint 0 dans les données
 Stocks / péremptions / seuil sécurité       → FROM marts.dim_stocks
 Produits sous seuil / out of stock / below threshold → WHERE is_below_safety_threshold = TRUE FROM marts.dim_stocks  (NE PAS utiliser quantity_in_stock <= 0 — aucun produit n'atteint 0 dans les données)
 CA ou ventes par produit                    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
 Top N catégories / quelles catégories       → GROUP BY pd.therapeutic_class LIMIT N  (JAMAIS pd.product_category qui n'a que 2 valeurs)
 Médicaments vs parapharmacie uniquement     → GROUP BY pd.product_category
+Répartition des VENTES par type de client / breakdown sales by customer type → GROUP BY client_type FROM marts.fct_sales
+    ✓  SELECT client_type, COUNT(*) AS nb_ventes FROM marts.fct_sales GROUP BY client_type
+    ✗  NE PAS utiliser dim_clients — dim_clients compte les fiches clients, pas les transactions
 Clients chroniques                          → FROM marts.dim_clients WHERE is_chronic = TRUE
 Clients assurés (nombre de clients)         → FROM marts.dim_clients WHERE client_type = 'Assuré'
+Quel fournisseur livre le plus souvent / which supplier most often → SELECT wholesaler_name, COUNT(*) AS nb_commandes FROM marts.fct_purchases GROUP BY wholesaler_name ORDER BY nb_commandes DESC LIMIT 1
 Achats / approvisionnements                 → FROM marts.fct_purchases (wholesaler_name, purchase_price_fcfa, quantity_received)
 Retours fournisseurs / avoirs               → FROM marts.fct_wholesaler_returns
 Assureurs / répartition par assureur        → JOIN marts.dim_insurers ON s.insurer_id = ins.insurer_id
@@ -34,6 +41,9 @@ Marge brute / prix achat vs prix vente      → SUM((pd.public_price_fcfa - fp.p
     Formule : public_price_fcfa (prix vente) MOINS purchase_price_fcfa (prix achat) MULTIPLIÉ par quantity_ordered — JAMAIS l'inverse
     ✓  SELECT SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
     ✓  SELECT pd.commercial_name, AVG(pd.public_price_fcfa - fp.purchase_price_fcfa) AS marge_moyenne FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name
+Top N produits les plus rentables / most profitable products by margin → SELECT pd.commercial_name, SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_produit FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name ORDER BY marge_produit DESC LIMIT N
+    ✗  NE PAS joindre stg_raw__sale_details — fct_purchases a déjà product_id, JOIN direct sur dim_products
+    ✗  NE PAS utiliser fp.sale_id — fct_purchases n'a pas de colonne sale_id
     ✗  SUM(pd.public_price_fcfa - fp.purchase_price_fcfa)  (sans quantity_ordered → sous-estime la marge ×100 au lieu de prendre le volume)
     ✗  fp.purchase_price_fcfa - pd.public_price_fcfa  (formule inversée → marges négatives)
     ✗  JOIN staging.stg_raw__sale_details / stg_raw__sales — table incorrecte pour la marge
@@ -62,6 +72,11 @@ RÈGLES TECHNIQUES :
 3. RLS actif : ne pas ajouter WHERE pharmacy_id (filtrage automatique)
 4. Colonnes : utiliser uniquement celles du schéma ci-dessous — ne rien inventer
 5. Marge : utiliser marts.fct_purchases (a product_id) — fct_sales N'A PAS product_id
+14. ALIAS COUNT obligatoires : COUNT(*) doit utiliser un alias clair parmi nb_*, count_*, nombre_* — JAMAIS total_sales, total_orders, total_amount (ces noms sont réservés aux montants FCFA)
+    ✓  SELECT COUNT(*) AS nb_ventes FROM marts.fct_sales
+    ✓  SELECT COUNT(*) AS nb_commandes FROM marts.fct_purchases
+    ✗  SELECT COUNT(*) AS total_sales ...  (total_sales sera interprété comme montant FCFA — confusion garantie)
+    ✗  SELECT COUNT(*) AS total_orders ...  (idem)
 6. Produit par vente : passer par staging.stg_raw__sale_details sd JOIN marts.fct_sales s ON sd.sale_id = s.sale_id
 7. COUNT DISTINCT produits → toujours via sd.product_id qualifié — fct_sales n'a pas product_id
    ✓  SELECT COUNT(DISTINCT sd.product_id) FROM marts.fct_sales s JOIN staging.stg_raw__sale_details sd ON sd.sale_id = s.sale_id
