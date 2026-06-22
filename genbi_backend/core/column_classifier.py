@@ -5,9 +5,9 @@ un COUNT avec un montant FCFA. Ajouter ici les nouveaux types de colonnes
 (ex: score RAG, distance embedding) au fur et à mesure des phases.
 """
 
-_FINANCIAL = frozenset({"amount", "ca", "revenue", "montant", "fcfa", "price", "prix"})
-_COUNT = frozenset({"count", "total_sales", "nombre", "nb", "sales", "nb_ventes"})
-_QUANTITY = frozenset({"quantity", "quantite", "qty", "total_quantity"})
+_FINANCIAL = frozenset({"amount", "ca", "revenue", "montant", "fcfa", "price", "prix", "sales"})
+_COUNT = frozenset({"count", "nombre", "nb", "nb_ventes", "nb_orders", "nb_transactions"})
+_QUANTITY = frozenset({"quantity", "quantite", "qty", "total_quantity", "units_sold", "total_units"})
 
 
 def classify_column(col: str) -> str:

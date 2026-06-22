@@ -27,7 +27,13 @@ Locaux vs importés / origine produits       → dim_products.origin ('Local' ·
 Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
 Ventes par forme galénique / galénique      → dim_products.form (Comprimé · Sirop · Gélule…) via JOIN stg_raw__sale_details
 Ventes par laboratoire / labo fabricant     → dim_products.laboratory via JOIN stg_raw__sale_details
-Marge brute / prix achat vs prix vente      → JOIN marts.fct_purchases fp ON fp.product_id = dp.product_id + marts.dim_products dp  (NE PAS utiliser fct_sales — fct_sales n'a pas product_id)
+Marge brute / prix achat vs prix vente      → pd.public_price_fcfa - fp.purchase_price_fcfa AS marge_unitaire
+    FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
+    Formule : public_price_fcfa (prix vente) MOINS purchase_price_fcfa (prix achat) — JAMAIS l'inverse
+    ✓  SELECT pd.commercial_name, AVG(pd.public_price_fcfa - fp.purchase_price_fcfa) AS marge_moyenne FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name
+    ✗  fp.purchase_price_fcfa - pd.public_price_fcfa  (formule inversée → marges négatives)
+    ✗  JOIN staging.stg_raw__sale_details / stg_raw__sales — table incorrecte pour la marge
+    NE PAS utiliser fct_sales — fct_sales n'a pas product_id
 Délai livraison / délai grossiste           → order_date · delivery_date FROM marts.fct_purchases
 Approvisionnements par mois / achats mois   → order_date FROM marts.fct_purchases GROUP BY EXTRACT(MONTH)
 Ruptures par mois / évolution ruptures      → missed_year · missed_month FROM marts.fct_missed_sales

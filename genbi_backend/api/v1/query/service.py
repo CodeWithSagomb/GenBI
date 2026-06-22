@@ -28,6 +28,10 @@ _MOIS_EN = {
 }
 _MONTH_COLS = {"mois", "sale_month", "missed_month"}
 
+_DOW_FR = {0: "Dimanche", 1: "Lundi", 2: "Mardi", 3: "Mercredi", 4: "Jeudi", 5: "Vendredi", 6: "Samedi"}
+_DOW_EN = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday"}
+_DOW_COLS = {"sale_dow", "dow", "day_of_week"}
+
 
 def _serialize_val(v):
     if isinstance(v, Decimal):
@@ -39,6 +43,19 @@ def _serialize_val(v):
 
 def _serialize_row(row):
     return [_serialize_val(v) for v in row]
+
+
+def _humanize_dow(columns: list[str], rows: list[list], language: str = 'fr') -> list[list]:
+    """Convertit les entiers sale_dow (0=Dim … 6=Sam) en noms de jours."""
+    dow_map = _DOW_EN if language == 'en' else _DOW_FR
+    dow_indices = [i for i, c in enumerate(columns) if c in _DOW_COLS]
+    if not dow_indices:
+        return rows
+    return [
+        [dow_map.get(int(v), v) if i in dow_indices and isinstance(v, (int, float)) else v
+         for i, v in enumerate(row)]
+        for row in rows
+    ]
 
 
 def _humanize_months(columns: list[str], rows: list[list], language: str = 'fr') -> list[list]:
@@ -110,6 +127,7 @@ async def query_pipeline(
         raise DatabaseError(f"Erreur d'exécution SQL : {last_error}") from last_error
 
     rows = _humanize_months(columns, rows, language)
+    rows = _humanize_dow(columns, rows, language)
     results = {"columns": columns, "rows": rows}
     if with_insight and rows:
         insight = await generate_insight(question, results, language=language)
