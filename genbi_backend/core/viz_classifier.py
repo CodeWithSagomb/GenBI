@@ -2,8 +2,8 @@ import re
 from typing import Optional
 
 _TEMPORAL_RE = re.compile(
-    r"évolution|par mois|tendance|trend|monthly|mensuel|over.?time"
-    r"|par semaine|weekly|par jour|daily|historique|history",
+    r"évolution|évolue|par mois|tendance|trend|monthly|mensuel|over.?time"
+    r"|par semaine|weekly|par jour(?!\s+de\s+la)|daily|historique|history",
     re.IGNORECASE,
 )
 
@@ -25,7 +25,8 @@ _COMPOSITION_RE = re.compile(
 
 _RANKING_RE = re.compile(
     r"\bmost\b|\bbest\b|\bhighest\b|\blargest\b|\bbiggest\b"
-    r"|\bleading\b|\blowest\b|\bworst\b|\bfewest\b",
+    r"|\bleading\b|\blowest\b|\bworst\b|\bfewest\b"
+    r"|\ble\s+plus\b|\bmeilleur\b|\bpire\b",
     re.IGNORECASE,
 )
 

@@ -26,7 +26,8 @@ Consignes :
   * NOMBRE D'UNITÉS → exprimer comme "X unités", jamais en FCFA.
 - Les chiffres dans les données sont les SEULES valeurs disponibles. Ne pas en inventer d'autres.
 - JAMAIS calculer de pourcentages à partir des données brutes — citer les valeurs absolues uniquement. Si les données contiennent déjà un pourcentage calculé, on peut le citer.
-- JAMAIS convertir en "millions" — toujours citer la valeur FCFA complète avec espaces (ex : 2 870 650 FCFA, jamais "2,87 millions").
+- JAMAIS convertir en "millions" ou abréger les montants — toujours citer la valeur FCFA complète avec espaces comme séparateurs de milliers.
+  ✓  "2 870 650 FCFA"     ✗  "2,87 millions FCFA"     ✗  "39,3 millions FCFA"
 - JAMAIS utiliser des mots anglais (quarter, orders, sales, best) — tout en français.
 - MOIS : si les données contiennent une colonne `mois`, `sale_month` ou `missed_month`, la valeur est le numéro ISO du mois (1=janvier, 2=février, 3=mars, 4=avril, 5=mai, 6=juin, 7=juillet, 8=août, 9=septembre, 10=octobre, 11=novembre, 12=décembre). Ne jamais décaler : mois 2 = février (pas janvier), mois 4 = avril (pas mars).
 - RUPTURES : si la question porte sur les "ruptures de stock" ou "ventes manquées", les valeurs dans les résultats sont des RUPTURES — jamais des "ventes". Utiliser les mots "ruptures" ou "ventes manquées", jamais "ventes".

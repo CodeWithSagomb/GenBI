@@ -46,6 +46,21 @@ class TestLineDetection:
         assert _hint("quelle est la tendance des ventes ?", "SELECT m, v FROM t", ["m", "v"],
                      [[1, 10], [2, 20], [3, 15]]) == "line"
 
+    def test_evolue_is_line(self):
+        # "comment évoluent" — conjugaison non couverte par "évolution"
+        assert _hint("comment évoluent les ventes de janvier à mai ?",
+                     "SELECT mois, ca FROM t", ["mois", "ca"],
+                     [["Janvier", 100], ["Février", 120], ["Mars", 110],
+                      ["Avril", 150], ["Mai", 130]]) == "line"
+
+    def test_par_jour_de_la_semaine_is_bar(self):
+        # "par jour de la semaine" = répartition par jour, pas une série temporelle
+        assert _hint("ventes par jour de la semaine",
+                     "SELECT sale_dow, COUNT(*) FROM t GROUP BY sale_dow",
+                     ["sale_dow", "nb_ventes"],
+                     [["Vendredi", 242], ["Jeudi", 252], ["Mercredi", 248],
+                      ["Mardi", 210], ["Lundi", 130], ["Samedi", 256], ["Dimanche", 82]]) == "bar"
+
 
 # ---------------------------------------------------------------------------
 # BAR — LIMIT dans le SQL (top-N, données partielles)
@@ -207,6 +222,20 @@ class TestBarFromRanking:
                      "SELECT commercial_name, SUM(total_units_sold) AS units FROM t GROUP BY commercial_name",
                      ["commercial_name", "units"],
                      [["ProdA", 200], ["ProdB", 150], ["ProdC", 100]]) == "bar"
+
+    def test_le_plus_fr_is_bar(self):
+        # "le plus" en français = ranking → bar même si 4 lignes 2 colonnes
+        assert _hint("quel fournisseur a le plus de commandes ?",
+                     "SELECT wholesaler_name, COUNT(*) AS nb FROM t GROUP BY wholesaler_name",
+                     ["wholesaler_name", "nb"],
+                     [["UBIPHARM", 10], ["LABOREX", 7], ["TEDIS", 6], ["COPHARMA", 4]]) == "bar"
+
+    def test_meilleur_fr_is_bar(self):
+        assert _hint("meilleur jour de la semaine pour les ventes",
+                     "SELECT sale_dow, SUM(ca) AS ca FROM t GROUP BY sale_dow",
+                     ["sale_dow", "ca"],
+                     [["Vendredi", 2744500], ["Jeudi", 2533900], ["Mercredi", 2506400],
+                      ["Mardi", 2411200], ["Lundi", 2294800], ["Samedi", 2289100], ["Dimanche", 1461400]]) == "bar"
 
 
 # ---------------------------------------------------------------------------
