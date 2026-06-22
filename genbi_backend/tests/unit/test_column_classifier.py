@@ -14,6 +14,7 @@ def test_classifie_comptage():
     assert classify_column("nb_ventes") == "count"
     assert classify_column("nombre_ventes") == "count"
     assert classify_column("count_transactions") == "count"
+    assert classify_column("total_ventes") == "count"   # COUNT(*) AS total_ventes → jamais FCFA
 
 
 def test_classifie_sales_comme_financier():

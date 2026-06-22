@@ -8,6 +8,8 @@ Nombre de ventes / transactions             → COUNT(*) FROM marts.fct_sales
 Tiers-payant                                → marts.fct_sales WHERE payment_method = 'Tiers-Payant'
 Répartition / part par mode de paiement    → GROUP BY payment_method  (valeurs exactes : 'Espèces' · 'Orange Money' · 'Wave' · 'Tiers-Payant' — jamais 'Assurance', 'Cash', 'CB')
 Ruptures / ventes manquées / stockout       → COUNT(*) FROM marts.fct_missed_sales
+Combien de produits en rupture / ont manqué → SELECT COUNT(DISTINCT ms.product_id) AS nb_produits_en_rupture FROM marts.fct_missed_sales ms
+Quels produits en rupture / liste ruptures  → SELECT DISTINCT pd.commercial_name FROM marts.fct_missed_sales ms JOIN marts.dim_products pd ON ms.product_id = pd.product_id
 Stocks / péremptions / seuil sécurité       → FROM marts.dim_stocks
 Produits sous seuil / out of stock / below threshold → WHERE is_below_safety_threshold = TRUE FROM marts.dim_stocks  (NE PAS utiliser quantity_in_stock <= 0 — aucun produit n'atteint 0 dans les données)
 CA ou ventes par produit                    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
@@ -27,10 +29,12 @@ Locaux vs importés / origine produits       → dim_products.origin ('Local' ·
 Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
 Ventes par forme galénique / galénique      → dim_products.form (Comprimé · Sirop · Gélule…) via JOIN stg_raw__sale_details
 Ventes par laboratoire / labo fabricant     → dim_products.laboratory via JOIN stg_raw__sale_details
-Marge brute / prix achat vs prix vente      → pd.public_price_fcfa - fp.purchase_price_fcfa AS marge_unitaire
+Marge brute / prix achat vs prix vente      → SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale
     FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
-    Formule : public_price_fcfa (prix vente) MOINS purchase_price_fcfa (prix achat) — JAMAIS l'inverse
+    Formule : public_price_fcfa (prix vente) MOINS purchase_price_fcfa (prix achat) MULTIPLIÉ par quantity_ordered — JAMAIS l'inverse
+    ✓  SELECT SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
     ✓  SELECT pd.commercial_name, AVG(pd.public_price_fcfa - fp.purchase_price_fcfa) AS marge_moyenne FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name
+    ✗  SUM(pd.public_price_fcfa - fp.purchase_price_fcfa)  (sans quantity_ordered → sous-estime la marge ×100 au lieu de prendre le volume)
     ✗  fp.purchase_price_fcfa - pd.public_price_fcfa  (formule inversée → marges négatives)
     ✗  JOIN staging.stg_raw__sale_details / stg_raw__sales — table incorrecte pour la marge
     NE PAS utiliser fct_sales — fct_sales n'a pas product_id
@@ -62,7 +66,10 @@ RÈGLES TECHNIQUES :
    ✓  SELECT COUNT(DISTINCT sd.product_id) FROM marts.fct_sales s JOIN staging.stg_raw__sale_details sd ON sd.sale_id = s.sale_id
    ✗  SELECT COUNT(DISTINCT product_id) ...
 8. Différence de dates en jours → (date_col - CURRENT_DATE) retourne un INTEGER directement — ne jamais utiliser INTERVAL pour calculer des jours
-   ✓  WHERE (sk.expiration_date - CURRENT_DATE) < 30
+   Lots expirant dans X jours → toujours écrire la condition complète avec BETWEEN
+   ✓  WHERE (sk.expiration_date - CURRENT_DATE) BETWEEN 0 AND 30
+   ✓  WHERE (sk.expiration_date - CURRENT_DATE) < 30 AND (sk.expiration_date - CURRENT_DATE) >= 0
+   ✗  WHERE sk.days_until_expiry  (incomplet — toujours inclure l'opérateur et la valeur)
    ✗  WHERE (sk.expiration_date - CURRENT_DATE) * INTERVAL '1 day' ...
 9. dim_stocks JOIN ventes → toujours GROUP BY pd.commercial_name + MIN(sk.quantity_in_stock) — un produit a plusieurs lots, le JOIN crée des doublons sinon
    ✓  SELECT pd.commercial_name, MIN(sk.quantity_in_stock) AS stock ... GROUP BY pd.commercial_name

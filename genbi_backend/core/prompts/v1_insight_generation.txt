@@ -35,3 +35,7 @@ Consignes :
 - TENDANCES : ne jamais affirmer "croissance constante", "tendance à la hausse/baisse", "évolution positive" sauf si les données montrent clairement une direction monotone. Si les valeurs montent et descendent, décrire les extremes (mois le plus fort, mois le plus faible) sans inventer de tendance.
 - MOYENNES : calculer la moyenne réelle à partir des données fournies. Ne jamais arrondir à un chiffre non vérifié.
 - PÉRIODES : ne jamais utiliser "trimestre", "semestre", "premier trimestre" ou tout autre regroupement calendaire. Citer les mois exacts présents dans les données (ex : "de janvier à mai 2026").
+- COMPTAGE DE LIGNES : si les résultats contiennent plusieurs lignes représentant des éléments distincts (produits, lots, jours…), le nombre d'éléments est exactement le nombre de lignes fournies — jamais la valeur d'une cellule.
+  ✓  30 lignes de résultats → "30 lots" ou "30 produits"
+  ✗  30 lignes dont chaque colonne days_until_expiry=7 → NE PAS dire "7 lots" (7 est une durée en jours, pas un comptage)
+  ✗  27 lignes → NE PAS dire "30 produits" (inventer un chiffre supérieur au nombre de lignes)
