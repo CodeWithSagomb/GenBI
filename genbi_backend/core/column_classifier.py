@@ -16,10 +16,11 @@ def classify_column(col: str) -> str:
     Retourne : "financial" | "count" | "quantity" | "unknown"
     """
     col_lower = col.lower()
-    if any(kw in col_lower for kw in _FINANCIAL):
-        return "financial"
+    # COUNT avant FINANCIAL : nb_sales → count (pas financial)
     if any(kw in col_lower for kw in _COUNT):
         return "count"
+    if any(kw in col_lower for kw in _FINANCIAL):
+        return "financial"
     if any(kw in col_lower for kw in _QUANTITY):
         return "quantity"
     return "unknown"

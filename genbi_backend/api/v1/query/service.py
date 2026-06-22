@@ -32,6 +32,14 @@ _DOW_FR = {0: "Dimanche", 1: "Lundi", 2: "Mardi", 3: "Mercredi", 4: "Jeudi", 5: 
 _DOW_EN = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday"}
 _DOW_COLS = {"sale_dow", "dow", "day_of_week"}
 
+# Booléens métier → libellés lisibles (évite "True/False" dans les insights)
+_BOOL_LABELS: dict[str, dict] = {
+    "is_generic":               {True: "Génériques",  False: "Princeps"},
+    "is_anonymous":             {True: "Anonyme",     False: "Identifié"},
+    "is_chronic":               {True: "Chronique",   False: "Ponctuel"},
+    "is_below_safety_threshold":{True: "Sous seuil",  False: "Stock OK"},
+}
+
 
 def _serialize_val(v):
     if isinstance(v, Decimal):
@@ -43,6 +51,21 @@ def _serialize_val(v):
 
 def _serialize_row(row):
     return [_serialize_val(v) for v in row]
+
+
+def _humanize_booleans(columns: list[str], rows: list[list]) -> list[list]:
+    """Convertit les colonnes booléennes connues en libellés lisibles."""
+    bool_indices = [(i, _BOOL_LABELS[col]) for i, col in enumerate(columns) if col in _BOOL_LABELS]
+    if not bool_indices:
+        return rows
+    result = []
+    for row in rows:
+        new_row = list(row)
+        for idx, label_map in bool_indices:
+            if idx < len(new_row):
+                new_row[idx] = label_map.get(new_row[idx], new_row[idx])
+        result.append(new_row)
+    return result
 
 
 def _humanize_dow(columns: list[str], rows: list[list], language: str = 'fr') -> list[list]:
@@ -128,6 +151,7 @@ async def query_pipeline(
 
     rows = _humanize_months(columns, rows, language)
     rows = _humanize_dow(columns, rows, language)
+    rows = _humanize_booleans(columns, rows)
     results = {"columns": columns, "rows": rows}
     if with_insight and rows:
         insight = await generate_insight(question, results, language=language)
