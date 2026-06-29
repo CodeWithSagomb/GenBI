@@ -2,8 +2,9 @@ import re
 from typing import Optional
 
 _TEMPORAL_RE = re.compile(
-    r"évolution|évolue|par mois|tendance|trend|monthly|mensuel|over.?time"
-    r"|par semaine|weekly|par jour(?!\s+de\s+la)|daily|historique|history",
+    r"évolution|évolue|\bevolv\b|par mois|tendance|trend|monthly|mensuel|over.?time"
+    r"|par semaine|weekly|par jour(?!\s+de\s+la)|daily|historique|history"
+    r"|over the month|over the week|over time|per month|by month",
     re.IGNORECASE,
 )
 

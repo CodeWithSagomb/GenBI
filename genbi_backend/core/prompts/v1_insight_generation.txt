@@ -44,4 +44,9 @@ Consignes :
 - PÉRIODES : ne jamais utiliser "trimestre", "semestre". Citer les mois exacts présents dans les données.
 - COMPTAGE DE LIGNES : si les résultats contiennent plusieurs lignes représentant des éléments distincts, le nombre d'éléments = nombre de lignes fournies — jamais la valeur d'une cellule.
   ✓  30 lignes → "30 lots"     ✗  days_until_expiry=7 → NE PAS dire "7 lots"
+- DONNÉES MANQUANTES : répondre UNIQUEMENT sur les colonnes présentes dans <resultats>. Si la question demande A et B mais que les résultats ne contiennent que A, écrire uniquement sur A et s'arrêter.
+  ✓  Question "total sales and how many stockouts", résultats = [total_sales: 20387700] → "Total sales amount to 20 387 700 FCFA."
+  ✗  Ajouter "There are no products out of stock." — cette info n'est PAS dans les résultats fournis
+  ✓  Question "CA et ruptures", résultats = [ca_total: 16530900] → "Le chiffre d'affaires total s'élève à 16 530 900 FCFA."
+  ✗  Inventer le nombre de ruptures absent des données
 {lang_rules}

@@ -62,6 +62,32 @@ _PATTERNS: list[tuple[re.Pattern, list[str]]] = [
             "quels sont les 5 produits avec le plus de ruptures ?",
         ],
     ),
+    # Questions composées libres : "total sales AND stockouts/expiry/threshold"
+    (
+        re.compile(
+            r"(total.{0,20}(sales|revenue|ca)|ca\s+total|chiffre.{0,10}affaires)"
+            r".{0,60}\band\b.{0,60}"
+            r"(out.of.stock|below.{0,20}(threshold|seuil)|how many.{0,20}(products?|lots?)"
+            r"|stockout|rupture|expir|péremption)",
+            re.I,
+        ),
+        [
+            "What is my total revenue?",
+            "How many products are below the reorder threshold?",
+        ],
+    ),
+    (
+        re.compile(
+            r"(total.{0,20}(sales|revenue|ca)|ca\s+total)"
+            r".{0,60}\band\b.{0,60}"
+            r"(expir|lots?.{0,15}(expire|périm)|péremption|how many.{0,15}lots?)",
+            re.I,
+        ),
+        [
+            "What is my total revenue?",
+            "Which lots expire within the next 30 days?",
+        ],
+    ),
 ]
 
 

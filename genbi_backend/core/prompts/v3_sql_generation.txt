@@ -37,7 +37,13 @@ Panier moyen / nb articles par vente        → AVG(nb_products_in_cart) FROM ma
 Part patient / part assureur (montants)     → patient_share_fcfa · insurer_share_fcfa FROM marts.fct_sales
 Ventes par jour / activité hebdomadaire     → sale_dow FROM marts.fct_sales  (0=Dim 1=Lun 2=Mar 3=Mer 4=Jeu 5=Ven 6=Sam)
 TVA collectée / montant TVA                 → SUM(vat_amount_fcfa) FROM marts.fct_sales
-Génériques vs princeps / part génériques    → dim_products.is_generic (TRUE=générique · FALSE=princeps)
+Génériques vs princeps / part génériques / generic vs branded / breakdown generic    →
+    SELECT CASE WHEN pd.is_generic THEN 'Générique' ELSE 'Princeps' END AS type_produit, SUM(sd.total_line_amount_fcfa) AS ca_total
+    FROM marts.fct_sales s JOIN staging.stg_raw__sale_details sd ON sd.sale_id = s.sale_id JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+    GROUP BY pd.is_generic ORDER BY ca_total DESC
+    ✓ CASE WHEN obligatoire — jamais is_generic directement (retourne True/False non lisible)
+    ✓ 2 colonnes exactement pour le pie chart
+    ✗ SELECT is_generic, COUNT(*), SUM(...) → 3 colonnes, labels illisibles
 Locaux vs importés / origine produits       → dim_products.origin ('Local' · 'Importé') via JOIN stg_raw__sale_details
 Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
 Ventes par forme galénique / galénique      → dim_products.form (Comprimé · Sirop · Gélule…) via JOIN stg_raw__sale_details
