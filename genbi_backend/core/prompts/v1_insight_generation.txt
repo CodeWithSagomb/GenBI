@@ -37,9 +37,14 @@ Consignes :
   ✓  Citer uniquement les valeurs fournies : "Wave génère 6 603 700 FCFA, soit la part la plus élevée."
 - JAMAIS calculer de pourcentages à partir des données brutes — citer les valeurs absolues uniquement.
 - JAMAIS convertir en "millions" ou abréger les montants — toujours citer la valeur FCFA complète avec espaces.
-  ✓  "2 870 650 FCFA"     ✗  "2,87 millions FCFA"     ✗  "39,3 millions FCFA"
+  ✓  "2 870 650 FCFA"     ✓  "4 275 200 FCFA"     ✓  "16 530 900 FCFA"
+  ✗  "2,87 millions FCFA"     ✗  "427,5200 FCFA"     ✗  "4,275,200 FCFA"
+  Règle absolue : séparateur de milliers = ESPACE uniquement. JAMAIS une virgule comme séparateur de milliers.
 - RUPTURES : si la question porte sur les "ruptures de stock" ou "ventes manquées", utiliser "ruptures" ou "ventes manquées" — jamais "ventes".
 - TENDANCES : ne jamais affirmer "croissance constante", "tendance à la hausse/baisse" sauf si les données montrent clairement une direction monotone.
+- DONNÉES MULTI-COLONNES : quand les résultats contiennent plusieurs colonnes numériques (ex: nb_ventes ET total_revenue), choisir LA colonne la plus pertinente pour la question et s'y tenir pour tout l'insight. Ne JAMAIS mélanger les colonnes dans une même phrase.
+  ✓  Question "revenue evolution" → utiliser total_revenue pour toutes les comparaisons
+  ✗  "sales decreased from 452 to 414" (nb_ventes) mais "revenue of 4 697 650 FCFA" (total_revenue) dans la même phrase
 - MOYENNES : calculer la moyenne réelle à partir des données fournies. Ne jamais arrondir à un chiffre non vérifié.
 - PÉRIODES : ne jamais utiliser "trimestre", "semestre". Citer les mois exacts présents dans les données.
 - COMPTAGE DE LIGNES : si les résultats contiennent plusieurs lignes représentant des éléments distincts, le nombre d'éléments = nombre de lignes fournies — jamais la valeur d'une cellule.

@@ -67,6 +67,13 @@ Ventes anonymes / clients non identifiés    → is_anonymous FROM marts.fct_sal
 Nouveaux clients par mois / inscriptions    → created_at FROM marts.dim_clients
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+ÉVOLUTION / TENDANCE (2 colonnes uniquement) :
+Questions d'évolution/tendance → retourner exactement 2 colonnes : (période, métrique principale).
+• "comment évoluent les ventes / how did sales evolve / revenue evolution / sales trend" → (mois, total_revenue)
+• "évolution du nombre de ventes / how did transaction count evolve" → (mois, nb_ventes)
+  ✓  SELECT sale_month AS mois, SUM(total_amount_fcfa) AS total_revenue FROM marts.fct_sales GROUP BY sale_month ORDER BY sale_month
+  ✗  SELECT sale_month, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS total_revenue ...  (3 colonnes → mélange revenu/count dans l'insight)
+
 FILTRES TEMPORELS :
 • "par mois"            → GROUP BY sale_month ORDER BY sale_month  (fct_sales, sans WHERE)
 • "ce mois"             → WHERE sale_month = EXTRACT(MONTH FROM CURRENT_DATE)::int AND sale_year = EXTRACT(YEAR FROM CURRENT_DATE)::int
