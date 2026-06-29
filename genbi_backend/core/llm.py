@@ -16,6 +16,37 @@ litellm.suppress_debug_info = True
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 
+def _replace_millions_fcfa(text: str) -> str:
+    """Convertit 'X,Y millions FCFA' → chiffres complets avec espaces.
+
+    Le LLM écrit parfois 'millions' pour les grands montants malgré les règles.
+    Ce post-processing garantit le format correct indépendamment de la réponse LLM.
+    Exemples :
+      "4,5 millions FCFA"  → "4 500 000 FCFA"
+      "3 millions de FCFA" → "3 000 000 FCFA"
+      "1,23 millions FCFA" → "1 230 000 FCFA"
+    """
+    def _with_decimal(m: re.Match) -> str:
+        integer_part = int(m.group(1))
+        decimal_str  = m.group(2).ljust(6, "0")[:6]
+        total = integer_part * 1_000_000 + int(decimal_str)
+        return f"{total:,}".replace(",", " ") + " FCFA"
+
+    def _integer_only(m: re.Match) -> str:
+        total = int(m.group(1)) * 1_000_000
+        return f"{total:,}".replace(",", " ") + " FCFA"
+
+    text = re.sub(
+        r"(\d+)[,.](\d+)\s+millions?\s+(?:de\s+)?FCFA",
+        _with_decimal, text, flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        r"(\d+)\s+millions?\s+(?:de\s+)?FCFA",
+        _integer_only, text, flags=re.IGNORECASE,
+    )
+    return text
+
+
 def _clean_sql(raw: str) -> str:
     """Extrait le SQL pur d'une réponse LLM potentiellement enveloppée en markdown.
 
@@ -60,6 +91,7 @@ def build_sql_prompt(
     question: str,
     examples: list | None = None,
     semantic_context: str = "",
+    extra_reminder: str = "",
 ) -> str:
     """Construit le prompt pour la génération SQL.
 
@@ -77,7 +109,35 @@ def build_sql_prompt(
     fmt_kwargs = {"schema": schema, "question": question, "examples": examples_block}
     if "{semantic_context}" in template:
         fmt_kwargs["semantic_context"] = semantic_context
-    return template.format(**fmt_kwargs)
+    prompt = template.format(**fmt_kwargs)
+    # Inject critical reminders right before <question> so they sit in high-recency context.
+    # RAG examples can pull old patterns — these reminders override them.
+    _reminders: list[str] = []
+    _margin_kw = ("marge", "rentab", "profitable", "profit", "margin")
+    if any(kw in question.lower() for kw in _margin_kw):
+        _reminders.append(
+            "RAPPEL CRITIQUE MARGE : 2 tables UNIQUEMENT — FROM marts.fct_purchases fp "
+            "JOIN marts.dim_products pd ON fp.product_id = pd.product_id — "
+            "formule SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) — "
+            "quantity_ordered OBLIGATOIRE — "
+            "JAMAIS fct_sales (pas même en sous-requête ou JOIN) — "
+            "JAMAIS stg_raw__sale_details — aucune autre table supplémentaire."
+        )
+    _insured_kw = ("assurée", "assurées", "assurés", "insured", "non assur")
+    if any(kw in question.lower() for kw in _insured_kw):
+        _reminders.append(
+            "RAPPEL CRITIQUE ASSURÉES : utiliser client_type avec GROUP BY — "
+            "SELECT client_type, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS ca_fcfa "
+            "FROM marts.fct_sales GROUP BY client_type ORDER BY client_type — "
+            "JAMAIS insurer_id IS NOT NULL — JAMAIS JOIN dim_insurers — "
+            "JAMAIS patient_share_fcfa — JAMAIS SUM(CASE WHEN insurer_id...)."
+        )
+    if extra_reminder:
+        _reminders.append(extra_reminder)
+    if _reminders:
+        block = "\n" + "\n".join(_reminders) + "\n"
+        prompt = prompt.replace("<question>", block + "<question>", 1)
+    return prompt
 
 
 _LANG_RULES_FR = """\
@@ -85,6 +145,9 @@ _LANG_RULES_FR = """\
 - COMMANDES/ACHATS : utiliser "commandes" pour les fournisseurs/approvisionnements — jamais "ventes", "transactions", "orders".
   ✓  "UBIPHARM Sénégal a passé le plus de commandes avec 10 commandes."
   ✗  "UBIPHARM Sénégal a le plus d'orders avec 10 transactions."
+- MONTANTS FCFA : toujours écrire en chiffres complets avec espaces comme séparateurs de milliers — JAMAIS en millions.
+  ✓  "Le montant total est de 2 530 000 FCFA."
+  ✗  "Le montant total est de 2,5 millions FCFA."  ✗  "2 millions de FCFA"
 - MOIS FR : 1=janvier · 2=février · 3=mars · 4=avril · 5=mai · 6=juin · 7=juillet · 8=août · 9=septembre · 10=octobre · 11=novembre · 12=décembre. Mois 2 = février (jamais janvier)."""
 
 _LANG_RULES_EN = """\
@@ -120,16 +183,18 @@ async def generate_sql(
     semantic_context: str = "",
     conversation_history: list | None = None,
     timeout: Optional[int] = None,
+    extra_reminder: str = "",
 ) -> str:
     """Appelle Ollama pour générer un SELECT SQL.
 
     temperature=0.0 pour le déterminisme.
     conversation_history : liste de dicts {role, content} — turns précédents injectés
     en multi-turn natif LiteLLM pour le chat multi-tour (Phase 4).
+    extra_reminder : hint injecté par la validation sémantique pour corriger le SQL.
     Lève LLMTimeoutError si Ollama ne répond pas dans le délai imparti.
     """
     timeout_s = timeout if timeout is not None else settings.LLM_SQL_TIMEOUT
-    prompt = build_sql_prompt(schema, question, examples, semantic_context)
+    prompt = build_sql_prompt(schema, question, examples, semantic_context, extra_reminder)
     messages: list[dict] = []
     if conversation_history:
         for turn in conversation_history[-6:]:
@@ -200,7 +265,7 @@ async def generate_insight(
 ) -> str:
     """Appelle Ollama pour rédiger un insight en français.
 
-    temperature=0.3 pour un style plus naturel.
+    temperature=0.1 pour un bon équilibre style naturel / respect strict des règles de formatage.
     Lève LLMTimeoutError si Ollama ne répond pas dans le délai imparti.
     """
     timeout_s = timeout if timeout is not None else settings.LLM_INSIGHT_TIMEOUT
@@ -210,7 +275,7 @@ async def generate_insight(
             litellm.acompletion(
                 model=f"ollama/{settings.OLLAMA_MODEL}",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
+                temperature=0.1,
                 api_base=settings.OLLAMA_BASE_URL,
             ),
             timeout=float(timeout_s),
@@ -219,4 +284,45 @@ async def generate_insight(
         raise LLMTimeoutError(
             f"Ollama n'a pas répondu en {timeout_s}s. Réessayez dans quelques instants."
         )
-    return response.choices[0].message.content.strip()
+    insight = response.choices[0].message.content.strip()
+    return _replace_millions_fcfa(insight)
+
+
+async def generate_insight_stream(
+    question: str, results: dict, timeout: Optional[int] = None, language: str = 'fr'
+):
+    """Version streaming de generate_insight — async generator qui yield des tokens.
+
+    Yield chaque token brut au fil de la génération.
+    Retourne l'insight complet post-processé (_replace_millions_fcfa) via StopIteration.value
+    ou via le dernier yield de type sentinel — l'appelant lit `full_insight` après épuisement.
+
+    Usage :
+        buffer = ""
+        gen = generate_insight_stream(q, results, language=language)
+        async for token in gen:
+            buffer += token
+            yield token   # stream vers le client
+        corrected = _replace_millions_fcfa(buffer.strip())
+    """
+    timeout_s = timeout if timeout is not None else settings.LLM_INSIGHT_TIMEOUT
+    prompt = build_insight_prompt(question, results, language=language)
+    try:
+        response = await asyncio.wait_for(
+            litellm.acompletion(
+                model=f"ollama/{settings.OLLAMA_MODEL}",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                stream=True,
+                api_base=settings.OLLAMA_BASE_URL,
+            ),
+            timeout=float(timeout_s),
+        )
+    except (asyncio.TimeoutError, TimeoutError):
+        raise LLMTimeoutError(
+            f"Ollama n'a pas répondu en {timeout_s}s. Réessayez dans quelques instants."
+        )
+    async for chunk in response:
+        token = chunk.choices[0].delta.content or ""
+        if token:
+            yield token

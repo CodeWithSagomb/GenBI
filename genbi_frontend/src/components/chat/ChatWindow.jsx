@@ -80,9 +80,15 @@ export function ChatWindow() {
     const sub = msg.sub_analyses?.[0] ?? {}
     const display = getSimpleDisplayData(msg)
     const conf = getConfidence(display.rows)
+    const isStreaming = status === 'streaming' && msg.id === messages[messages.length - 1]?.id
     return (
       <>
-        {sub.insight && <p className="chat-insight">{sub.insight}</p>}
+        {isStreaming && !sub.insight
+          ? <p className="chat-insight chat-insight--streaming">&#8203;</p>
+          : sub.insight
+            ? <p className={`chat-insight${isStreaming ? ' chat-insight--streaming' : ''}`}>{sub.insight}</p>
+            : null
+        }
         <div className={`confidence-badge confidence-badge--${conf.level}`}>
           <span className={`confidence-dot confidence-dot--${conf.level}`} />
           {conf.label}
@@ -184,7 +190,7 @@ export function ChatWindow() {
       )}
 
       <div ref={bottomRef} />
-      <QueryInput onSubmit={sendQuestion} disabled={status === 'loading'} />
+      <QueryInput onSubmit={sendQuestion} disabled={status === 'loading' || status === 'streaming'} />
     </div>
   )
 }

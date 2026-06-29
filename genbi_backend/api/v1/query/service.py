@@ -9,6 +9,7 @@ from core.llm import generate_sql, generate_insight, repair_sql
 from core.rag import retrieve_examples
 from core.schema_filter import filter_schema_for_question
 from core.semantic_layer import resolve_semantics
+from core.semantic_validator import check_result_coherence
 from core.sql_validator import validate_sql
 from core.viz_classifier import detect_viz_hint
 from core.exceptions import DatabaseError
@@ -148,6 +149,28 @@ async def query_pipeline(
                 paginated = f"SELECT * FROM ({sql}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
     if last_error is not None:
         raise DatabaseError(f"Erreur d'exécution SQL : {last_error}") from last_error
+
+    # Validation sémantique : vérifie que la cardinalité correspond à l'intention.
+    # Une seule tentative de correction — en cas d'échec on garde le résultat original.
+    hint = check_result_coherence(question, columns, rows)
+    if hint:
+        logger.warning("[SEMANTIC-VALIDATION] %s", hint[:120])
+        try:
+            sql_fixed = await generate_sql(
+                filtered_schema, question, examples or None,
+                semantic_context, conversation_history, extra_reminder=hint,
+            )
+            validate_sql(sql_fixed)
+            paginated_fixed = f"SELECT * FROM ({sql_fixed}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
+            with conn.cursor() as cur:
+                cur.execute(paginated_fixed)
+                columns = [desc[0] for desc in cur.description]
+                rows    = [_serialize_row(row) for row in cur.fetchall()]
+            sql = sql_fixed
+            logger.info("[SEMANTIC-VALIDATION] SQL corrigé — %d lignes", len(rows))
+        except Exception as exc:
+            logger.warning("[SEMANTIC-VALIDATION] correction échouée, résultat original conservé: %s", exc)
+            conn.rollback()
 
     rows = _humanize_months(columns, rows, language)
     rows = _humanize_dow(columns, rows, language)

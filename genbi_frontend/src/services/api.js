@@ -77,6 +77,43 @@ export const chatApi = {
       body: JSON.stringify({ question, conversation_history: conversationHistory, language }),
     }),
 
+  // Streaming SSE : async generator qui yield des événements {type, ...}
+  async *analyseStream(question, conversationHistory = [], language = 'fr') {
+    const res = await fetch(`${BASE_URL}/api/v1/analyse/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ..._authHeaders(),
+      },
+      body: JSON.stringify({ question, conversation_history: conversationHistory, language }),
+    })
+    if (res.status === 401) {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem('genbi_token')
+      throw new Error(i18n.t('errors.session_expired'))
+    }
+    if (!res.ok) throw new Error(i18n.t('errors.http_error', { status: res.status }))
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            yield JSON.parse(line.slice(6))
+            // Un microtask entre chaque event — évite que React batchifie tous les tokens
+            await new Promise(r => setTimeout(r, 0))
+          } catch (_) {}
+        }
+      }
+    }
+  },
+
   getAlerts: () => request('/api/v1/alerts'),
 }
 
