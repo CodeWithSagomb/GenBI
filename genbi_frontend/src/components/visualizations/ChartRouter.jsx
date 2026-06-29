@@ -14,7 +14,7 @@ function isNumeric(sample, colIdx) {
 
 function isPieColumn(name) {
   // B-03: ajout origin/origine  B-04: forme→form (couvre form, forme, formes)
-  return /généri|generic|princep|type|mode|assur|insur|payment|catég|categ|répart|segment|classe|form|thérap|origin/i.test(name)
+  return /généri|generic|princep|type|mode|assur|insur|payment|catég|categ|répart|segment|classe|form|thérap|origin|wholesaler|fournis|laborat|labo\b|pays\b|country|sexe|gender/i.test(name)
 }
 
 function isBooleanRows(rows) {
@@ -42,7 +42,7 @@ function detectChartType(columns, rows) {
   if (
     columns.length === 2 &&
     rows.length >= 2 &&
-    rows.length <= 8 &&
+    rows.length <= 10 &&
     isNumeric(rows[0], 1) &&
     !/_id$|_fcfa$/i.test(columns[0]) &&
     (isPieColumn(columns[0]) || isBooleanRows(rows))
@@ -118,6 +118,6 @@ export function ChartRouter({ columns, rows, vizHint = null }) {
   }
 
   const keys = pickChartKeys(columns, rows)
-  if (!keys) return <p className="chart-empty">Visualisation non disponible pour ce résultat.</p>
+  if (!keys) return null
   return <RankingBarChart data={data} xKey={keys.xKey} yKey={keys.yKey} />
 }

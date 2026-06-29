@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Label } from 'recharts'
 
 const COLORS = [
   'var(--secondary)',           // cyan
@@ -11,16 +11,8 @@ const COLORS = [
   'hsl(170, 70%, 45%)',        // teal
 ]
 
-// B-01: PostgreSQL sérialise les booléens en "t"/"f" dans les résultats JSON
-const BOOL_LABELS = {
-  true: 'Génériques', false: 'Princeps',
-  1: 'Génériques', 0: 'Princeps',
-  t: 'Génériques', f: 'Princeps',
-}
-
 function toLabel(v) {
   if (v === null || v === undefined) return '—'
-  if (v in BOOL_LABELS) return BOOL_LABELS[v]
   const s = String(v)
   return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')
 }
@@ -30,9 +22,27 @@ function buildPieData(rows) {
   return rows.map(row => ({ label: toLabel(row[0]), value: Number(row[1]) }))
 }
 
+function formatTotal(total) {
+  if (total >= 1_000_000) return `${(total / 1_000_000).toFixed(1)}M`
+  if (total >= 1_000) return `${(total / 1_000).toFixed(0)}k`
+  return total.toLocaleString('fr-FR')
+}
+
+function CenterLabel({ viewBox, total }) {
+  const { cx, cy } = viewBox ?? {}
+  if (!cx || !cy) return null
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fill="var(--text)" fontSize={14} fontWeight="600">
+      {formatTotal(total)}
+    </text>
+  )
+}
+
 export function GenericsPieChart({ rows }) {
   const data = buildPieData(rows)
   if (!data.length) return null
+
+  const total = data.reduce((sum, d) => sum + d.value, 0)
 
   return (
     <div className="chart-wrapper" data-chart-type="pie">
@@ -47,11 +57,10 @@ export function GenericsPieChart({ rows }) {
             outerRadius={95}
             innerRadius={50}
             paddingAngle={3}
-            label={({ label, percent }) =>
-              percent >= 0.05 ? `${label} ${Math.round(percent * 100)}%` : ''
-            }
-            labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}
+            label={({ percent }) => percent >= 0.05 ? `${Math.round(percent * 100)}%` : ''}
+            labelLine={false}
           >
+            <Label content={(props) => <CenterLabel {...props} total={total} />} />
             {data.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
