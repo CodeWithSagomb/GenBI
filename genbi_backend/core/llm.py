@@ -132,6 +132,16 @@ def build_sql_prompt(
             "JAMAIS insurer_id IS NOT NULL — JAMAIS JOIN dim_insurers — "
             "JAMAIS patient_share_fcfa — JAMAIS SUM(CASE WHEN insurer_id...)."
         )
+    _evolution_kw = ("évolue", "évolution", "evolve", "evolution", "over the month",
+                     "per month", "by month", "monthly", "par mois", "tendance", "trend")
+    if any(kw in question.lower() for kw in _evolution_kw):
+        _reminders.append(
+            "RAPPEL CRITIQUE ÉVOLUTION : 2 colonnes UNIQUEMENT — "
+            "SELECT sale_month AS mois, SUM(total_amount_fcfa) AS total_revenue "
+            "FROM marts.fct_sales GROUP BY sale_month ORDER BY sale_month — "
+            "JAMAIS ajouter COUNT(*) dans une évolution de CA — "
+            "COUNT uniquement si la question porte EXPLICITEMENT sur le nombre de transactions."
+        )
     if extra_reminder:
         _reminders.append(extra_reminder)
     if _reminders:
