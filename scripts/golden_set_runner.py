@@ -204,6 +204,10 @@ def run_golden_set(
             print(f"\n{c('red', '⛔  --fail-fast : arrêt sur premier échec')}")
             break
 
+        # Pause between questions — gives Ollama time to fully complete
+        # before the next request, preventing memory pressure 503 errors.
+        time.sleep(1)
+
     total_elapsed = int((time.time() - start_all) * 1000)
 
     # ── Résumé ────────────────────────────────────────────────────────────────

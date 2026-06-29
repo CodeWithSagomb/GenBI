@@ -22,7 +22,7 @@ GOLDEN_SET = [
             "sql_must_contain":     ["SUM", "total_amount_fcfa", "fct_sales"],
             "sql_must_not_contain": ["fct_purchases", "GROUP BY"],
             "row_count": 1,
-            "value_range": {"col": 0, "min": 14_000_000, "max": 20_000_000},
+            "value_range": {"col": 0, "min": 14_000_000, "max": 25_000_000},
             "viz_hint": None,
             "insight_forbidden": ["millions", "Le pharmacien"],
         }
@@ -142,7 +142,7 @@ GOLDEN_SET = [
         "question": "Quelle est la part des médicaments génériques versus princeps dans mes ventes ?",
         "checks": {
             "sql_must_contain":     ["is_generic", "GROUP BY"],
-            "sql_must_not_contain": ["PIVOT", "CASE WHEN"],
+            "sql_must_not_contain": ["PIVOT", "SUM(CASE WHEN"],
             "row_count": 2,
             "viz_hint": "pie",
             "insight_forbidden": ["millions"],

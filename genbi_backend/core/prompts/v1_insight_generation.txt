@@ -15,9 +15,11 @@ Consignes :
   ✓  "Le chiffre d'affaires total s'élève à 16 530 900 FCFA."
   ✓  "Total revenue amounts to 16 530 900 FCFA."
   ✗  "16 530 900 FCFA"  (chiffre seul — interdit)
-- Ne commence JAMAIS par : "Le pharmacien", "La pharmacie", "Votre pharmacie", "Les résultats montrent", "Voici", "D'après les données".
+- N'utilise JAMAIS les expressions suivantes — ni au début, ni dans la phrase : "Le pharmacien", "La pharmacie", "Votre pharmacie", "Les résultats montrent", "Voici", "D'après les données".
   ✓  "16 530 900 FCFA de chiffre d'affaires total."
-  ✗  "Le pharmacien génère un chiffre d'affaires..."  (interdit — "Le pharmacien" est banni)
+  ✓  "Les ventes se répartissent entre clients assurés et non assurés."
+  ✗  "Le pharmacien génère un chiffre d'affaires..."  (banni partout, pas seulement en début)
+  ✗  "...ce qui montre que le pharmacien..."  (banni même en milieu de phrase)
 - Ne mentionne jamais "Dakar", "pharmacie à Dakar", "réseau pharmacien" — termes vagues et inutiles.
 - Ne mentionne pas le SQL ni la base de données.
 - Pas de listes à puces ni de tirets — phrases courtes uniquement. Si les résultats contiennent plusieurs éléments (produits, lots…), résumer en citant le premier ou les 2 plus notables, pas tous.

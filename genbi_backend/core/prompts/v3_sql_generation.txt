@@ -21,6 +21,12 @@ Médicaments vs parapharmacie uniquement     → GROUP BY pd.product_category
 Répartition des VENTES par type de client / breakdown sales by customer type → GROUP BY client_type FROM marts.fct_sales
     ✓  SELECT client_type, COUNT(*) AS nb_ventes FROM marts.fct_sales GROUP BY client_type
     ✗  NE PAS utiliser dim_clients — dim_clients compte les fiches clients, pas les transactions
+Part des ventes assurées vs non assurées / assurées versus non assurées / assurées vs non assurées → SELECT client_type, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS ca_fcfa FROM marts.fct_sales GROUP BY client_type ORDER BY client_type
+    ✓  GROUP BY client_type — retourne 2 lignes : 'Assuré' et 'Non assuré'
+    ✗  WHERE client_type = 'Assuré'  (1 seule ligne — ne donne pas la répartition)
+    ✗  patient_share_fcfa / insurer_share_fcfa  (ces colonnes = montants, pas statut assuré/non assuré)
+    ✗  JOIN dim_insurers  (dim_insurers = compagnies d'assurance — NE PAS utiliser pour assuré/non assuré)
+    ✗  WHERE insurer_id IS NOT NULL  (filtre, pas une répartition en 2 groupes)
 Clients chroniques                          → FROM marts.dim_clients WHERE is_chronic = TRUE
 Clients assurés (nombre de clients)         → FROM marts.dim_clients WHERE client_type = 'Assuré'
 Quel fournisseur livre le plus souvent / which supplier most often → SELECT wholesaler_name, COUNT(*) AS nb_commandes FROM marts.fct_purchases GROUP BY wholesaler_name ORDER BY nb_commandes DESC LIMIT 1
@@ -36,18 +42,16 @@ Locaux vs importés / origine produits       → dim_products.origin ('Local' ·
 Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
 Ventes par forme galénique / galénique      → dim_products.form (Comprimé · Sirop · Gélule…) via JOIN stg_raw__sale_details
 Ventes par laboratoire / labo fabricant     → dim_products.laboratory via JOIN stg_raw__sale_details
-Marge brute / prix achat vs prix vente      → SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale
-    FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
-    Formule : public_price_fcfa (prix vente) MOINS purchase_price_fcfa (prix achat) MULTIPLIÉ par quantity_ordered — JAMAIS l'inverse
-    ✓  SELECT SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
-    ✓  SELECT pd.commercial_name, AVG(pd.public_price_fcfa - fp.purchase_price_fcfa) AS marge_moyenne FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name
+Marge brute totale / gross margin total     → SELECT SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
 Top N produits les plus rentables / most profitable products by margin → SELECT pd.commercial_name, SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_produit FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name ORDER BY marge_produit DESC LIMIT N
-    ✗  NE PAS joindre stg_raw__sale_details — fct_purchases a déjà product_id, JOIN direct sur dim_products
+Produit le plus rentable / most profitable single product → SELECT pd.commercial_name, SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_produit FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name ORDER BY marge_produit DESC LIMIT 1
+RÈGLES MARGE — s'appliquent à TOUTES les questions de marge (totale, par produit, top N) :
+    ✓  Formule : (pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered
+    ✗  SUM(pd.public_price_fcfa - fp.purchase_price_fcfa) sans * fp.quantity_ordered → résultat 100× trop faible
+    ✗  fp.purchase_price_fcfa - pd.public_price_fcfa (ordre inversé → marges négatives)
+    ✗  NE JAMAIS utiliser stg_raw__sale_details ni total_line_amount_fcfa pour calculer la marge — ce sont des données de vente, pas d'achat
+    ✗  NE JAMAIS utiliser fct_sales pour la marge — fct_sales n'a pas product_id ni purchase_price
     ✗  NE PAS utiliser fp.sale_id — fct_purchases n'a pas de colonne sale_id
-    ✗  SUM(pd.public_price_fcfa - fp.purchase_price_fcfa)  (sans quantity_ordered → sous-estime la marge ×100 au lieu de prendre le volume)
-    ✗  fp.purchase_price_fcfa - pd.public_price_fcfa  (formule inversée → marges négatives)
-    ✗  JOIN staging.stg_raw__sale_details / stg_raw__sales — table incorrecte pour la marge
-    NE PAS utiliser fct_sales — fct_sales n'a pas product_id
 Délai livraison / délai grossiste           → order_date · delivery_date FROM marts.fct_purchases
 Délai moyen par fournisseur                 → SELECT fp.wholesaler_name, AVG(fp.delivery_date - fp.order_date) AS delai_moyen_jours FROM marts.fct_purchases fp GROUP BY fp.wholesaler_name ORDER BY delai_moyen_jours
 Approvisionnements par mois / achats mois   → order_date FROM marts.fct_purchases GROUP BY EXTRACT(MONTH)
