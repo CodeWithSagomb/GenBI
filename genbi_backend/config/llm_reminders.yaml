@@ -1,0 +1,98 @@
+# Rappels critiques injectés juste avant <question> dans le prompt SQL.
+# Ajouter un nouveau rappel = ajouter une entrée ici — zéro modification Python.
+# Chaque entrée : name (slug), keywords (list), text (string injecté tel quel).
+
+reminders:
+
+  - name: marge
+    keywords:
+      - marge
+      - rentab
+      - profitable
+      - profit
+      - margin
+    text: >-
+      RAPPEL CRITIQUE MARGE — UNIQUEMENT ces 2 tables et cette JOIN :
+      SELECT pd.commercial_name, SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_totale
+      FROM marts.fct_purchases fp
+      JOIN marts.dim_products pd ON fp.product_id = pd.product_id
+      GROUP BY pd.commercial_name ORDER BY marge_totale DESC LIMIT N —
+      fct_purchases.product_id EXISTE et rejoint dim_products.product_id DIRECTEMENT —
+      JAMAIS fp.sale_id (cette colonne n'existe pas) —
+      JAMAIS stg_raw__sale_details — JAMAIS fct_sales.
+
+  - name: assurées
+    keywords:
+      - assurée
+      - assurées
+      - assurés
+      - insured
+      - non assur
+    text: >-
+      RAPPEL CRITIQUE ASSURÉES : utiliser client_type avec GROUP BY —
+      SELECT client_type, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS ca_fcfa
+      FROM marts.fct_sales GROUP BY client_type ORDER BY client_type —
+      JAMAIS insurer_id IS NOT NULL — JAMAIS JOIN dim_insurers —
+      JAMAIS patient_share_fcfa — JAMAIS SUM(CASE WHEN insurer_id...).
+
+  - name: evolution
+    keywords:
+      - évolue
+      - évolution
+      - evolve
+      - evolution
+      - over the month
+      - per month
+      - by month
+      - monthly
+      - par mois
+      - tendance
+      - trend
+    text: >-
+      RAPPEL CRITIQUE ÉVOLUTION : 2 colonnes UNIQUEMENT —
+      SELECT sale_month AS mois, SUM(total_amount_fcfa) AS total_revenue
+      FROM marts.fct_sales GROUP BY sale_month ORDER BY sale_month —
+      JAMAIS ajouter COUNT(*) dans une évolution de CA —
+      COUNT uniquement si la question porte EXPLICITEMENT sur le nombre de transactions.
+
+  - name: ruptures_count
+    keywords:
+      - rupture de stock
+      - en rupture de stock
+    text: >-
+      RAPPEL CRITIQUE RUPTURES-COUNT : une seule ligne scalaire —
+      SELECT COUNT(DISTINCT ms.product_id) AS nb_produits_en_rupture
+      FROM marts.fct_missed_sales ms —
+      JAMAIS SELECT DISTINCT commercial_name (retourne une liste, pas un nombre).
+
+  - name: ruptures_list
+    keywords:
+      - ont eu des ruptures
+      - eu des ruptures
+    text: >-
+      RAPPEL CRITIQUE RUPTURES-LISTE : toujours 2 colonnes —
+      SELECT pd.commercial_name, COUNT(*) AS nb_ruptures
+      FROM marts.fct_missed_sales ms
+      JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+      [WHERE filtre_mois] GROUP BY pd.commercial_name ORDER BY nb_ruptures DESC —
+      JAMAIS SELECT DISTINCT commercial_name sans COUNT (1 colonne = pas de graphique).
+
+  - name: jour_semaine
+    keywords:
+      - jour de la semaine
+      - day of the week
+    text: >-
+      RAPPEL CRITIQUE JOUR-SEMAINE : une seule ligne scalaire —
+      SELECT sale_dow, COUNT(*) AS nb_ventes
+      FROM marts.fct_sales GROUP BY sale_dow ORDER BY nb_ventes DESC LIMIT 1 —
+      LIMIT 1 OBLIGATOIRE — retourne uniquement le meilleur jour.
+
+  - name: unites_vendues
+    keywords:
+      - unités vendues
+      - units sold
+      - quantité vendue
+    text: >-
+      RAPPEL CRITIQUE UNITÉS VENDUES : alias obligatoire total_units_sold —
+      SELECT SUM(total_units_sold) AS total_units_sold FROM marts.fct_sales —
+      JAMAIS COUNT(*) (compte les transactions, pas les unités).

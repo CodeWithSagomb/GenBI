@@ -9,6 +9,7 @@ import litellm
 from config import settings
 from core.exceptions import LLMTimeoutError
 from core.column_classifier import annotate_column_types
+from core.rules_loader import rules
 
 # Désactive les logs verbeux de LiteLLM
 litellm.suppress_debug_info = True
@@ -110,38 +111,14 @@ def build_sql_prompt(
     if "{semantic_context}" in template:
         fmt_kwargs["semantic_context"] = semantic_context
     prompt = template.format(**fmt_kwargs)
-    # Inject critical reminders right before <question> so they sit in high-recency context.
+    # Inject critical reminders right before <question> (high-recency position).
     # RAG examples can pull old patterns — these reminders override them.
+    # Reminder rules are loaded from config/llm_reminders.yaml — no code change needed to add one.
     _reminders: list[str] = []
-    _margin_kw = ("marge", "rentab", "profitable", "profit", "margin")
-    if any(kw in question.lower() for kw in _margin_kw):
-        _reminders.append(
-            "RAPPEL CRITIQUE MARGE : 2 tables UNIQUEMENT — FROM marts.fct_purchases fp "
-            "JOIN marts.dim_products pd ON fp.product_id = pd.product_id — "
-            "formule SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) — "
-            "quantity_ordered OBLIGATOIRE — "
-            "JAMAIS fct_sales (pas même en sous-requête ou JOIN) — "
-            "JAMAIS stg_raw__sale_details — aucune autre table supplémentaire."
-        )
-    _insured_kw = ("assurée", "assurées", "assurés", "insured", "non assur")
-    if any(kw in question.lower() for kw in _insured_kw):
-        _reminders.append(
-            "RAPPEL CRITIQUE ASSURÉES : utiliser client_type avec GROUP BY — "
-            "SELECT client_type, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS ca_fcfa "
-            "FROM marts.fct_sales GROUP BY client_type ORDER BY client_type — "
-            "JAMAIS insurer_id IS NOT NULL — JAMAIS JOIN dim_insurers — "
-            "JAMAIS patient_share_fcfa — JAMAIS SUM(CASE WHEN insurer_id...)."
-        )
-    _evolution_kw = ("évolue", "évolution", "evolve", "evolution", "over the month",
-                     "per month", "by month", "monthly", "par mois", "tendance", "trend")
-    if any(kw in question.lower() for kw in _evolution_kw):
-        _reminders.append(
-            "RAPPEL CRITIQUE ÉVOLUTION : 2 colonnes UNIQUEMENT — "
-            "SELECT sale_month AS mois, SUM(total_amount_fcfa) AS total_revenue "
-            "FROM marts.fct_sales GROUP BY sale_month ORDER BY sale_month — "
-            "JAMAIS ajouter COUNT(*) dans une évolution de CA — "
-            "COUNT uniquement si la question porte EXPLICITEMENT sur le nombre de transactions."
-        )
+    q_lower = question.lower()
+    for _r in rules.reminders["reminders"]:
+        if any(kw in q_lower for kw in _r["keywords"]):
+            _reminders.append(_r["text"])
     if extra_reminder:
         _reminders.append(extra_reminder)
     if _reminders:

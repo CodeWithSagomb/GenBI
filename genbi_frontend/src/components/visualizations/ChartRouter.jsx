@@ -2,9 +2,10 @@ import { SalesLineChart } from './SalesLineChart'
 import { RankingBarChart } from './RankingBarChart'
 import { ComboChart } from './ComboChart'
 import { GenericsPieChart } from './GenericsPieChart'
+import { CHART_CONFIG } from '../../config/chartConfig'
 
 function isDateColumn(name) {
-  return /date|jour|semaine|mois|month/i.test(name)
+  return CHART_CONFIG.dateColumnPattern.test(name)
 }
 
 function isNumeric(sample, colIdx) {
@@ -13,8 +14,7 @@ function isNumeric(sample, colIdx) {
 }
 
 function isPieColumn(name) {
-  // B-03: ajout origin/origine  B-04: forme→form (couvre form, forme, formes)
-  return /généri|generic|princep|type|mode|assur|insur|payment|catég|categ|répart|segment|classe|form|thérap|origin|wholesaler|fournis|laborat|labo\b|pays\b|country|sexe|gender/i.test(name)
+  return CHART_CONFIG.pieColumnPattern.test(name)
 }
 
 function isBooleanRows(rows) {
@@ -42,9 +42,9 @@ function detectChartType(columns, rows) {
   if (
     columns.length === 2 &&
     rows.length >= 2 &&
-    rows.length <= 10 &&
+    rows.length <= CHART_CONFIG.pieMaxRows &&
     isNumeric(rows[0], 1) &&
-    !/_id$|_fcfa$/i.test(columns[0]) &&
+    !CHART_CONFIG.excludeColumnPattern.test(columns[0]) &&
     (isPieColumn(columns[0]) || isBooleanRows(rows))
   ) return 'pie'
 
@@ -63,13 +63,13 @@ function pickChartKeys(columns, rows) {
   const sample = rows[0] ?? []
 
   const labelIdx = columns.findIndex(
-    (col, i) => !/_id$/i.test(col) && isNaN(Number(sample[i]))
+    (col, i) => !CHART_CONFIG.idColumnPattern.test(col) && isNaN(Number(sample[i]))
   )
 
   let valueIdx = -1
   for (let i = columns.length - 1; i >= 0; i--) {
     const isNum = !isNaN(Number(sample[i])) && sample[i] !== null && sample[i] !== ''
-    const isId = /_id$/i.test(columns[i])
+    const isId = CHART_CONFIG.idColumnPattern.test(columns[i])
     if (isNum && !isId) { valueIdx = i; break }
   }
 
@@ -85,7 +85,7 @@ function pickComboKeys(columns, rows) {
   const sample = rows[0] ?? []
   const numericIdxs = columns
     .map((col, i) => ({ col, i }))
-    .filter(({ col, i }) => i > 0 && !/_id$/i.test(col) && isNumeric(sample, i))
+    .filter(({ col, i }) => i > 0 && !CHART_CONFIG.idColumnPattern.test(col) && isNumeric(sample, i))
   if (numericIdxs.length < 2) return null
   return {
     xKey: columns[0],

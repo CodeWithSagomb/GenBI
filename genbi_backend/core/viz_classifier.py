@@ -1,35 +1,10 @@
 import re
 from typing import Optional
 
-_TEMPORAL_RE = re.compile(
-    r"évolution|évolue|\bevolv\b|par mois|tendance|trend|monthly|mensuel|over.?time"
-    r"|par semaine|weekly|par jour(?!\s+de\s+la)|daily|historique|history"
-    r"|over the month|over the week|over time|per month|by month",
-    re.IGNORECASE,
-)
+from core.rules_loader import rules
 
+# _SQL_LIMIT_RE est une règle structurelle SQL (pas une règle métier) — reste hardcodé.
 _SQL_LIMIT_RE = re.compile(r"\bLIMIT\s+\d+\b", re.IGNORECASE)
-
-_TEMPORAL_COL_RE = re.compile(
-    r"mois|month|date|year|année|semaine|week|jour|day",
-    re.IGNORECASE,
-)
-
-_EXCLUDE_COL_RE = re.compile(r"_id$|_fcfa$", re.IGNORECASE)
-
-_COMPOSITION_RE = re.compile(
-    r"répartition|distribution|part\s+d[eu']|breakdown|share"
-    r"|composition|proportion"
-    r"|par\s+(mode|type|catég|categ|origin|assur|payment|insurance)",
-    re.IGNORECASE,
-)
-
-_RANKING_RE = re.compile(
-    r"\bmost\b|\bbest\b|\bhighest\b|\blargest\b|\bbiggest\b"
-    r"|\bleading\b|\blowest\b|\bworst\b|\bfewest\b"
-    r"|\ble\s+plus\b|\bmeilleur\b|\bpire\b",
-    re.IGNORECASE,
-)
 
 
 def _is_numeric_nonneg(rows: list[list], col_idx: int) -> bool:
@@ -80,7 +55,7 @@ def detect_viz_hint(
         return None
 
     # 1. Signal temporel → line
-    if _TEMPORAL_RE.search(question):
+    if rules.temporal_re.search(question):
         return "line"
 
     # 2. LIMIT dans le SQL → top-N → bar
@@ -88,19 +63,16 @@ def detect_viz_hint(
         return "bar"
 
     # 3. Signal de ranking → comparaison, pas composition → bar
-    if _RANKING_RE.search(question):
+    if rules.ranking_re.search(question):
         return "bar"
 
     # 4. Composition structurelle → pie
-    # _COMPOSITION_RE (répartition/distribution/breakdown/…) :
-    #   - relaxe la contrainte "2 colonnes exactement" (LLM génère parfois 3)
-    #   - étend la limite de lignes à 5 (5 catégories = encore lisible en pie)
-    # Sans mot de composition : 2 colonnes + max 4 lignes (règle structurelle stricte).
-    _is_comp_q = bool(_COMPOSITION_RE.search(question))
-    _max_rows = 5 if _is_comp_q else 4
+    _is_comp_q = bool(rules.composition_re.search(question))
+    _thr = rules.viz["thresholds"]
+    _max_rows = _thr["pie_max_rows_composition"] if _is_comp_q else _thr["pie_max_rows_strict"]
     _col0_ok = (
-        not _TEMPORAL_COL_RE.search(columns[0])
-        and not _EXCLUDE_COL_RE.search(columns[0])
+        not rules.temporal_col_re.search(columns[0])
+        and not rules.exclude_col_re.search(columns[0])
         and _is_categorical(rows, col_idx=0)
     )
     if (

@@ -119,11 +119,26 @@ class TestPieDetection:
                      [["CNAM", 80], ["IPM", 50]]) == "pie"
 
     def test_composition_5_rows_is_pie(self):
-        # 5 lignes + mot de composition → pie autorisé (5 types d'assurance lisibles)
+        # 5 lignes + mot de composition → pie autorisé
         assert _hint("distribution par type d'assurance",
                      "SELECT type_assurance, COUNT(*) FROM t GROUP BY type_assurance",
                      ["type_assurance", "nb"],
                      [["CNAM", 80], ["IPM", 50], ["Privée", 30], ["Mutuelle", 20], ["Autre", 10]]) == "pie"
+
+    def test_composition_6_rows_is_pie(self):
+        # 6 lignes + mot de composition → pie autorisé (seuil = 6 pour "répartition/distribution")
+        assert _hint("répartition par assureur",
+                     "SELECT assureur, SUM(ca) FROM t GROUP BY assureur",
+                     ["assureur", "ca_total"],
+                     [["Sans assurance", 1000], ["CNAM", 80], ["IPM", 50],
+                      ["Privée", 30], ["Mutuelle", 20], ["Autre", 10]]) == "pie"
+
+    def test_composition_7_rows_is_bar(self):
+        # 7 lignes + mot de composition → bar (dépasse le seuil de 6)
+        assert _hint("répartition par jour de la semaine",
+                     "SELECT sale_dow, COUNT(*) FROM t GROUP BY sale_dow",
+                     ["sale_dow", "nb_ventes"],
+                     [[0, 90], [1, 100], [2, 95], [3, 88], [4, 92], [5, 85], [6, 80]]) == "bar"
 
     def test_boolean_is_generic_is_pie(self):
         # is_generic retourne bool (True/False) depuis PostgreSQL — bool est
@@ -138,11 +153,11 @@ class TestPieDetection:
 # PIE — cas exclus (doit retourner bar ou None)
 # ---------------------------------------------------------------------------
 class TestPieExclusions:
-    def test_6_rows_not_pie_even_with_composition(self):
-        # ≥6 lignes → pas pie même avec mot de composition
+    def test_7_rows_not_pie_even_with_composition(self):
+        # ≥7 lignes → pas pie même avec mot de composition (seuil composition = 6)
         result = _hint("distribution par catégorie", "SELECT cat, nb FROM t GROUP BY cat",
                        ["categorie", "nb"],
-                       [["A", 10], ["B", 20], ["C", 30], ["D", 40], ["E", 50], ["F", 60]])
+                       [["A", 10], ["B", 20], ["C", 30], ["D", 40], ["E", 50], ["F", 60], ["G", 70]])
         assert result == "bar"
 
     def test_5_rows_neutral_question_not_pie(self):

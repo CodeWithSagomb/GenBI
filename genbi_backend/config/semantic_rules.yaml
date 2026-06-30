@@ -1,0 +1,38 @@
+# Règles de validation sémantique des résultats SQL.
+# Modifier les keywords et seuils ici — zéro modification Python.
+
+# Questions d'existence : 0 lignes acceptable (pas une erreur SQL)
+empty_ok_keywords:
+  - "y a-t-il"
+  - "existe"
+  - "est-ce qu"
+  - "are there"
+  - "is there"
+  - "avons-nous"
+  - "do we have"
+
+# Questions scalaires : attendent 1 valeur agrégée globale
+scalar_keywords:
+  - "quel est le total"
+  - "quel est la"
+  - "quel montant total"
+  - "what is the total"
+  - "what is the"
+  - "how many"
+
+# Mots-clés de groupement : si présents, un résultat multi-lignes est normal
+group_keywords:
+  - "par "
+  - "by "
+  - "chaque"
+  - "each"
+  - "répartition"
+  - "breakdown"
+  - "liste"
+  - "list"
+
+thresholds:
+  # Nombre de lignes au-delà duquel une question scalaire (sans groupement) est suspecte
+  scalar_max_rows: 3
+  # Multiplicateur : si le résultat a plus de N*top_n_multiplier lignes pour un "top N", suspect
+  top_n_multiplier: 2
