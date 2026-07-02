@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from config import settings
 from core.dbt_parser import reload_manifest
+from core.rules_loader import rules
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -12,6 +13,23 @@ def _require_admin(x_admin_secret: str = Header(default="")):
         raise HTTPException(status_code=403, detail="Endpoint admin désactivé (ADMIN_SECRET non configuré).")
     if x_admin_secret != settings.ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Secret admin invalide.")
+
+
+@router.post("/reload-rules", dependencies=[Depends(_require_admin)])
+def reload_rules_endpoint():
+    """Recharge les 4 fichiers YAML de règles sans redémarrer le container.
+
+    À appeler après modification de n'importe quel fichier dans config/.
+    Requiert le header : X-Admin-Secret: <ADMIN_SECRET>
+    """
+    rules.reload()
+    return {
+        "status": "reloaded",
+        "reminders": len(rules.reminders["reminders"]),
+        "patterns": len(rules.compiled_patterns),
+        "viz_thresholds": rules.viz["thresholds"],
+        "semantic_thresholds": rules.semantic["thresholds"],
+    }
 
 
 @router.post("/reload-manifest", dependencies=[Depends(_require_admin)])

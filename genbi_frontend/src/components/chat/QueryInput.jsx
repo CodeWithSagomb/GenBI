@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export function QueryInput({ onSubmit, disabled }) {
+  const { t } = useTranslation()
   const [value, setValue] = useState('')
 
   function handleKeyDown(e) {
@@ -25,7 +27,7 @@ export function QueryInput({ onSubmit, disabled }) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Posez votre question en français…"
+        placeholder={t('chat.placeholder')}
         disabled={disabled}
         autoComplete="off"
       />
@@ -35,7 +37,7 @@ export function QueryInput({ onSubmit, disabled }) {
         onClick={submit}
         disabled={disabled || !value.trim()}
       >
-        Envoyer
+        {t('chat.send')}
       </button>
     </div>
   )

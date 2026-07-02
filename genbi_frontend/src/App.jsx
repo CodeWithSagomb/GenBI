@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare, Sun, Moon, User } from 'lucide-react'
+import { Sparkles, Activity, LogOut, LayoutDashboard, MessageSquare, Sun, Moon, User, Languages } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ChatWindow } from './components/chat/ChatWindow'
 import { DashboardPage } from './components/dashboard/DashboardPage'
 import { LoginPage } from './components/auth/LoginPage'
 import { ProfilePage } from './components/profile/ProfilePage'
 import { ToastProvider } from './hooks/useToast'
+import { LanguageProvider } from './i18n/LanguageContext'
+import { useLang } from './i18n/useLang'
+import './i18n/index'
 
-function App() {
+function AppInner() {
+  const { t } = useTranslation()
+  const { lang, toggleLang } = useLang()
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => !!localStorage.getItem('genbi_token')
   )
@@ -36,7 +42,7 @@ function App() {
       <header className="app-header">
         <div className="logo-section">
           <Sparkles className="logo-icon text-glow" />
-          <span className="logo-text">RuwaGenBI</span>
+          <span className="logo-text">{t('app.logo')}</span>
         </div>
 
         <nav className="app-nav">
@@ -45,42 +51,53 @@ function App() {
             onClick={() => setPage('dashboard')}
           >
             <LayoutDashboard size={15} />
-            Dashboard
+            {t('app.nav_dashboard')}
           </button>
           <button
             className={`app-nav__btn ${page === 'chat' ? 'app-nav__btn--active' : ''}`}
             onClick={() => setPage('chat')}
           >
             <MessageSquare size={15} />
-            Chat
+            {t('app.nav_chat')}
           </button>
           <button
             className={`app-nav__btn ${page === 'profile' ? 'app-nav__btn--active' : ''}`}
             onClick={() => setPage('profile')}
           >
             <User size={15} />
-            Profil
+            {t('app.nav_profile')}
           </button>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="status-badge">
             <Activity className="status-icon pulsate" />
-            <span>Connecté</span>
+            <span>{t('app.status_connected')}</span>
           </div>
+          <button
+            onClick={toggleLang}
+            className="theme-toggle"
+            aria-label={t('app.toggle_theme')}
+            title={lang === 'fr' ? 'Switch to English' : 'Passer en français'}
+          >
+            <Languages size={15} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, marginLeft: '2px' }}>
+              {lang === 'fr' ? 'FR' : 'EN'}
+            </span>
+          </button>
           <button
             onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
             className="theme-toggle"
-            aria-label="Changer le thème"
-            title={theme === 'dark' ? 'Mode jour' : 'Mode nuit'}
+            aria-label={t('app.toggle_theme')}
+            title={theme === 'dark' ? t('app.theme_day') : t('app.theme_night')}
           >
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
           <button
             onClick={handleLogout}
             className="sql-display__edit-btn"
-            aria-label="Se déconnecter"
-            title="Se déconnecter"
+            aria-label={t('app.logout')}
+            title={t('app.logout')}
           >
             <LogOut size={14} />
           </button>
@@ -100,6 +117,14 @@ function App() {
       </main>
     </div>
     </ToastProvider>
+  )
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <AppInner />
+    </LanguageProvider>
   )
 }
 

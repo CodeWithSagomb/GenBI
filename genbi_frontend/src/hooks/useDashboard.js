@@ -90,7 +90,7 @@ export function useDashboard() {
     `SELECT COUNT(*) AS total_ruptures FROM marts.fct_missed_sales`
   )
 
-  const isLoading = [caTotal, caMensuel, topProduits, stocksAlerte, lotsPerimables, ruptures]
+  const isLoading = [caTotal, caMensuel, topProduits, genericsSplit, stocksAlerte, lotsPerimables, ruptures]
     .some(q => q.loading)
 
   function refetchAll() {

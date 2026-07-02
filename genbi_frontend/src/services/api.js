@@ -1,3 +1,5 @@
+import i18n from '../i18n/index'
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 function _authHeaders() {
@@ -17,14 +19,22 @@ async function request(path, options = {}) {
 
   if (res.status === 401) {
     if (typeof localStorage !== 'undefined') localStorage.removeItem('genbi_token')
-    throw new Error('Session expirée. Veuillez vous reconnecter.')
+    throw new Error(i18n.t('errors.session_expired'))
   }
 
   if (!res.ok) {
-    let detail = `Erreur ${res.status}`
+    let detail = i18n.t('errors.http_error', { status: res.status })
     try {
       const body = await res.json()
-      detail = body.error ?? body.detail ?? detail
+      if (Array.isArray(body.detail)) {
+        // Pydantic validation error → [{msg: "Value error, ..."}]
+        const raw = body.detail[0]?.msg?.replace(/^Value error,\s*/i, '') ?? detail
+        detail = raw === 'SQL_INJECTION'
+          ? i18n.t('errors.sql_injection')
+          : raw
+      } else {
+        detail = body.error ?? body.detail ?? detail
+      }
     } catch (_) {}
     throw new Error(detail)
   }
@@ -61,11 +71,48 @@ export const chatApi = {
       body: JSON.stringify({ question, sql_generated, rating, comment }),
     }),
 
-  analyse: (question, conversationHistory = []) =>
+  analyse: (question, conversationHistory = [], language = 'fr') =>
     request('/api/v1/analyse', {
       method: 'POST',
-      body: JSON.stringify({ question, conversation_history: conversationHistory }),
+      body: JSON.stringify({ question, conversation_history: conversationHistory, language }),
     }),
+
+  // Streaming SSE : async generator qui yield des événements {type, ...}
+  async *analyseStream(question, conversationHistory = [], language = 'fr') {
+    const res = await fetch(`${BASE_URL}/api/v1/analyse/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ..._authHeaders(),
+      },
+      body: JSON.stringify({ question, conversation_history: conversationHistory, language }),
+    })
+    if (res.status === 401) {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem('genbi_token')
+      throw new Error(i18n.t('errors.session_expired'))
+    }
+    if (!res.ok) throw new Error(i18n.t('errors.http_error', { status: res.status }))
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            yield JSON.parse(line.slice(6))
+            // Un microtask entre chaque event — évite que React batchifie tous les tokens
+            await new Promise(r => setTimeout(r, 0))
+          } catch (_) {}
+        }
+      }
+    }
+  },
 
   getAlerts: () => request('/api/v1/alerts'),
 }

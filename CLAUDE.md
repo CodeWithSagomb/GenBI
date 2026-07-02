@@ -69,14 +69,47 @@ raw.*  →  staging.*  →  marts.*
 30. **Schema filter — `top_k=15` sur 19 tables** — `core/schema_filter.py` filtre à 80% du schéma (15/19). Descendre à 10 est trop agressif (risque d'exclure des tables nécessaires). Augmenter top_k quand schéma > 50 tables. Fallback schéma complet si Ollama/embeddings indisponibles.
 31. **Insight vide si 0 lignes** — `query_pipeline` retourne `"Aucune donnée disponible pour cette période ou cette sélection."` sans appeler le LLM si `rows=[]`. Évite la réponse absurde "vous n'avez pas fourni de données".
 32. **Chat multi-tour — historique limité** — `useChat.js/_buildHistory()` envoie max 3 tours (6 messages : 3 user + 3 SQL assistant). Seuls les tours avec SQL valide sont inclus. qwen2.5-coder:7b suit le contexte sur 1-2 tours fiablement, moins sur 3+.
+33. **RulesLoader singleton** — `core/rules_loader.py` charge les 4 YAML au démarrage et compile les regex. Modifier une règle métier = éditer le YAML + hot-reload. Ne jamais coder une règle métier directement en Python.
+34. **YAML regex escaping** — Strings double-quotées YAML : `\\b` → `\b` Python, `\\s` → `\s`. Strings single-quotées : `\b` conservé tel quel. Textes multilignes : `>-` fold les newlines en espaces (idéal pour textes RAPPEL). Jamais `yaml.dump()` pour réécrire les configs (détruit le formatage).
+35. **RAPPEL CRITIQUE — position recency** — Texte injecté juste avant `<question>` dans le prompt SQL via `llm.py`. Position de haute recency → le LLM le lit en dernier et le suit mieux que les règles en début de prompt. Ajouter un cas = nouvelle entrée YAML, zéro Python.
+36. **Hot-reload YAML** — `ADMIN_SECRET=genbi_admin_dev` dans `.env`. Après modif YAML : `curl -X POST http://localhost:8000/api/v1/admin/reload-rules -H "X-Admin-Secret: genbi_admin_dev"`. Retourne le résumé de ce qui est chargé (nb reminders, patterns, thresholds). Zéro redémarrage.
+37. **ChromaDB corpus reconstruit** — 315 exemples indexés (×3 pharmacies = 945 entrées). Script de rebuild : `docker exec genbi_backend python scripts/generate_rag_corpus.py`. Guardian `is_semantically_valid()` dans le script rejette les SQL métier incorrects (évolution 3 cols, is_generic sans CASE WHEN, marge sans quantity_ordered). Purger avant rebuild inclus dans le script via `chroma.delete_collection()`.
 
 ## État d'avancement
+- ✅ Architecture config-driven (Phases 1-6) — validé 2026-07-01 — **239/239 tests PASS** — **50/50 golden set (100%)** — commit `44cdefe`
+  - Phase 1 : `core/rules_loader.py` singleton + 4 YAML (`config/viz_rules`, `llm_reminders`, `analysis_patterns`, `semantic_rules`)
+  - Phase 2 : `viz_classifier.py` + `semantic_validator.py` → `rules.*` (hardcoded regex supprimés)
+  - Phase 3 : `llm.py` RAPPEL CRITIQUE → loop générique 4 lignes (au lieu de 34 lignes hardcodées)
+  - Phase 4 : `analyse/service.py` `_PATTERNS` list → `rules.compiled_patterns`
+  - Phase 5 : `ChartRouter.jsx` → `genbi_frontend/src/config/chartConfig.js` + hot-reload `POST /admin/reload-rules`
+  - Phase 6 : RAG purge + rebuild 315 exemples · guardian `is_semantically_valid()` dans le script
+  - 7 RAPPEL CRITIQUE actifs : marge (fp.product_id direct), assurées, évolution (2 cols), ruptures_count, ruptures_list, jour_semaine (LIMIT 1), unites_vendues
+  - Seuil pie composition 5→6 (accommode ligne "Sans assurance" dans répartition assureurs)
+  - Hot-reload activé : `ADMIN_SECRET=genbi_admin_dev` dans `.env`
+- ✅ Session batterie 50q EN + 10 bugs insight/SQL — validé 2026-06-22 — **237/237 tests PASS**
+  - Insight bilingue : `{lang_rules}` FR/EN injecté dans `build_insight_prompt()` — plus de confusion "JAMAIS mots anglais" vs `language=en`
+  - Phrase complète obligatoire : règle + exemples ✓/✗ pour empêcher chiffre brut seul
+  - Mois alias `month` ajouté à `_MONTH_COLS` → "octobre" pour mois 5 (mai) corrigé
+  - `_clean_sql` tronque au premier `;` → texte explicatif LLM après la requête supprimé
+  - Auto-détection langue question dans `useChat.js` (score lexical EN > FR → force `language=en`)
+  - v3 prompt R14 : COUNT doit utiliser alias `nb_*` (jamais `total_sales` → FCFA)
+  - v3 prompt : top N marge → JOIN direct `fct_purchases→dim_products` (pas `fp.sale_id`)
+  - v3 prompt : "répartition ventes par type client" → `GROUP BY client_type FROM fct_sales` (pas dim_clients)
+  - v3 prompt : "out of stock" → `fct_missed_sales` (jamais `quantity <= 0`)
+  - v3 prompt : mapping explicite FO001 "most often" → `COUNT(*) AS nb_commandes GROUP BY wholesaler_name`
+  - v1 insight : anti-bullet-list avec exemple ✓/✗ multi-éléments
+  - v1 insight : "JAMAIS additionner pour obtenir un total absent des données"
+- ✅ Session viz_classifier + qualité insight — validé 2026-06-22 — **237/237 tests PASS** — commit `07e5cc3`
+  - `_TEMPORAL_RE` : ajout `évolue` + lookahead `par jour(?!\s+de\s+la)` → "par jour de la semaine" → bar (pas line)
+  - `_RANKING_RE` : ajout mots-clés FR `le plus`, `meilleur`, `pire` → questions ranking FR → bar (pas pie)
+  - `v1_insight_generation.txt` : exemples concrets ✓/✗ pour la règle anti-millions
+  - 4 nouveaux tests viz_classifier (test_evolue_is_line, test_par_jour_de_la_semaine_is_bar, test_le_plus_fr_is_bar, test_meilleur_fr_is_bar)
 - ✅ Roadmap Innovations — branch `feat/rag-360-coverage` — validé 2026-06-14 — **193/193 tests PASS**
   - Phase 1 `1126353` — MARS-SQL : auto-repair SQL execution-feedback loop (2 tentatives, `SQL_MAX_REPAIR_ATTEMPTS=2`)
   - Phase 2 `68b45fa` — CALM : alertes proactives LLM — 3 alertes (stock critique, lots expirants, taux service) via `/api/v1/alerts`
   - Phase 3 `c32eaee` — AP-SQL : filtrage dynamique schéma — `top_k=15`, score hybride 0.3×lexical + 0.7×cosine (nomic-embed-text)
   - Phase 4 `419bdad` — Chat multi-tour : `conversation_history` → messages LiteLLM natifs (max 3 tours / 6 messages)
-  - Phase 5 ⏸ — Corpus RAG synthétique via Claude Haiku (~$0.10) — **en attente budget API Anthropic**
+  - Phase 5 ✅ — Corpus RAG synthétique : 114 exemples via claude-haiku-4-5 · 342 entrées ChromaDB (×3 pharmacies) · script : scripts/generate_rag_corpus.py
   - Gotchas : `top_k=15` fiable sur 19 tables (80% du schéma) · insight vide si `rows=[]` → message explicite sans appel LLM
   - Nouveaux fichiers : `core/schema_filter.py` · `core/prompts/v1_sql_repair.txt` · `api/v1/alerts/` (router/schemas/service)
 - ✅ Phase 8b — `/api/v1/analyse` — validé 2026-06-12
@@ -155,10 +188,15 @@ data/postgres-init/init.sql             ← schémas DB + users + RLS policies
 airflow/dags/ingest_pharmacy_data.py    ← pipeline d'ingestion
 genbi_backend/main.py                   ← API FastAPI (lifespan + 7 routers + exception handlers)
 genbi_backend/config.py                 ← configuration centralisée (BaseSettings)
+genbi_backend/config/                   ← 4 YAML règles métier : viz_rules · llm_reminders · analysis_patterns · semantic_rules
+genbi_backend/core/rules_loader.py      ← singleton RulesLoader — charge + compile les 4 YAML au démarrage
 genbi_backend/core/                     ← auth, database, sql_validator, dbt_parser, llm, middleware, rag, security, column_classifier
 genbi_backend/api/v1/                   ← chat/, execute/, schema/, interpret/, query/, analyse/, suggestions/, feedback/, auth/, admin/
 genbi_backend/api/v1/analyse/           ← schemas.py · service.py (intent detection) · router.py
-genbi_backend/tests/                    ← unit/ + integration/ + benchmark/ — 122 tests PASS
+genbi_backend/api/v1/admin/router.py    ← hot-reload YAML (POST /reload-rules) + reload manifest
+genbi_backend/scripts/generate_rag_corpus.py ← rebuild ChromaDB corpus via Claude Haiku (315 exemples)
+genbi_backend/tests/                    ← unit/ + integration/ + benchmark/ — 239 tests PASS
+genbi_frontend/src/config/chartConfig.js ← patterns viz frontend (miroir viz_rules.yaml côté React)
 genbi_frontend/src/App.jsx              ← interface React — routing login/dashboard/chat + toggle thème
 genbi_frontend/src/hooks/useChat.js     ← appel unique /api/v1/analyse (simple + composé)
 genbi_frontend/src/hooks/useDashboard.js← 6 requêtes SQL pré-définies via /execute (Phase 7)

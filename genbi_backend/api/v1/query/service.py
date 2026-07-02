@@ -9,7 +9,9 @@ from core.llm import generate_sql, generate_insight, repair_sql
 from core.rag import retrieve_examples
 from core.schema_filter import filter_schema_for_question
 from core.semantic_layer import resolve_semantics
+from core.semantic_validator import check_result_coherence
 from core.sql_validator import validate_sql
+from core.viz_classifier import detect_viz_hint
 from core.exceptions import DatabaseError
 from core.pagination import PageParams
 
@@ -20,7 +22,24 @@ _MOIS_FR = {
     5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
     9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
 }
-_MONTH_COLS = {"mois", "sale_month", "missed_month"}
+_MOIS_EN = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December",
+}
+_MONTH_COLS = {"mois", "sale_month", "missed_month", "month", "order_month", "return_month"}
+
+_DOW_FR = {0: "Dimanche", 1: "Lundi", 2: "Mardi", 3: "Mercredi", 4: "Jeudi", 5: "Vendredi", 6: "Samedi"}
+_DOW_EN = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday"}
+_DOW_COLS = {"sale_dow", "dow", "day_of_week"}
+
+# Booléens métier → libellés lisibles (évite "True/False" dans les insights)
+_BOOL_LABELS: dict[str, dict] = {
+    "is_generic":               {True: "Génériques",  False: "Princeps"},
+    "is_anonymous":             {True: "Anonyme",     False: "Identifié"},
+    "is_chronic":               {True: "Chronique",   False: "Ponctuel"},
+    "is_below_safety_threshold":{True: "Sous seuil",  False: "Stock OK"},
+}
 
 
 def _serialize_val(v):
@@ -35,13 +54,42 @@ def _serialize_row(row):
     return [_serialize_val(v) for v in row]
 
 
-def _humanize_months(columns: list[str], rows: list[list]) -> list[list]:
-    """Convertit les numéros de mois ISO en noms français pour les colonnes mois."""
+def _humanize_booleans(columns: list[str], rows: list[list]) -> list[list]:
+    """Convertit les colonnes booléennes connues en libellés lisibles."""
+    bool_indices = [(i, _BOOL_LABELS[col]) for i, col in enumerate(columns) if col in _BOOL_LABELS]
+    if not bool_indices:
+        return rows
+    result = []
+    for row in rows:
+        new_row = list(row)
+        for idx, label_map in bool_indices:
+            if idx < len(new_row):
+                new_row[idx] = label_map.get(new_row[idx], new_row[idx])
+        result.append(new_row)
+    return result
+
+
+def _humanize_dow(columns: list[str], rows: list[list], language: str = 'fr') -> list[list]:
+    """Convertit les entiers sale_dow (0=Dim … 6=Sam) en noms de jours."""
+    dow_map = _DOW_EN if language == 'en' else _DOW_FR
+    dow_indices = [i for i, c in enumerate(columns) if c in _DOW_COLS]
+    if not dow_indices:
+        return rows
+    return [
+        [dow_map.get(int(v), v) if i in dow_indices and isinstance(v, (int, float)) else v
+         for i, v in enumerate(row)]
+        for row in rows
+    ]
+
+
+def _humanize_months(columns: list[str], rows: list[list], language: str = 'fr') -> list[list]:
+    """Convertit les numéros de mois ISO en noms (français ou anglais) pour les colonnes mois."""
+    month_map = _MOIS_EN if language == 'en' else _MOIS_FR
     month_indices = [i for i, c in enumerate(columns) if c in _MONTH_COLS]
     if not month_indices:
         return rows
     return [
-        [_MOIS_FR.get(v, v) if i in month_indices else v for i, v in enumerate(row)]
+        [month_map.get(v, v) if i in month_indices else v for i, v in enumerate(row)]
         for row in rows
     ]
 
@@ -57,6 +105,7 @@ async def query_pipeline(
     semantic_catalog: dict | None = None,
     schema_embeddings: dict | None = None,
     conversation_history: list | None = None,
+    language: str = 'fr',
 ) -> dict:
     """Pipeline complet : question → SQL → exécution → insight (optionnel).
 
@@ -101,14 +150,40 @@ async def query_pipeline(
     if last_error is not None:
         raise DatabaseError(f"Erreur d'exécution SQL : {last_error}") from last_error
 
-    rows = _humanize_months(columns, rows)
+    # Validation sémantique : vérifie que la cardinalité correspond à l'intention.
+    # Une seule tentative de correction — en cas d'échec on garde le résultat original.
+    hint = check_result_coherence(question, columns, rows)
+    if hint:
+        logger.warning("[SEMANTIC-VALIDATION] %s", hint[:120])
+        try:
+            sql_fixed = await generate_sql(
+                filtered_schema, question, examples or None,
+                semantic_context, conversation_history, extra_reminder=hint,
+            )
+            validate_sql(sql_fixed)
+            paginated_fixed = f"SELECT * FROM ({sql_fixed}) AS _q LIMIT {page.limit} OFFSET {page.offset}"
+            with conn.cursor() as cur:
+                cur.execute(paginated_fixed)
+                columns = [desc[0] for desc in cur.description]
+                rows    = [_serialize_row(row) for row in cur.fetchall()]
+            sql = sql_fixed
+            logger.info("[SEMANTIC-VALIDATION] SQL corrigé — %d lignes", len(rows))
+        except Exception as exc:
+            logger.warning("[SEMANTIC-VALIDATION] correction échouée, résultat original conservé: %s", exc)
+            conn.rollback()
+
+    rows = _humanize_months(columns, rows, language)
+    rows = _humanize_dow(columns, rows, language)
+    rows = _humanize_booleans(columns, rows)
     results = {"columns": columns, "rows": rows}
     if with_insight and rows:
-        insight = await generate_insight(question, results)
+        insight = await generate_insight(question, results, language=language)
     elif with_insight and not rows:
-        insight = "Aucune donnée disponible pour cette période ou cette sélection."
+        insight = "Aucune donnée disponible pour cette période ou cette sélection." if language == 'fr' else "No data available for this period or selection."
     else:
         insight = ""
+
+    viz_hint = detect_viz_hint(question, sql, columns, rows)
 
     return {
         "question": question,
@@ -119,4 +194,5 @@ async def query_pipeline(
         "limit": page.limit,
         "offset": page.offset,
         "insight": insight,
+        "viz_hint": viz_hint,
     }

@@ -100,6 +100,18 @@ RÈGLES CRITIQUES :
 - Différence de dates en jours : (date_col - CURRENT_DATE) sans INTERVAL
 - dim_products alias TOUJOURS pd — jamais dp
 
+RÈGLES ABSOLUES (violations = exemple rejeté) :
+- ÉVOLUTION/TENDANCE : exactement 2 colonnes — (période, métrique). JAMAIS COUNT(*) ET SUM() dans le même SELECT d'évolution.
+  ✓ SELECT sale_month AS mois, SUM(total_amount_fcfa) AS total_revenue FROM marts.fct_sales GROUP BY sale_month ORDER BY sale_month
+  ✗ SELECT sale_month, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS ca FROM marts.fct_sales GROUP BY sale_month
+- GÉNÉRIQUES : toujours CASE WHEN pour les labels — JAMAIS SELECT is_generic directement (retourne True/False illisible).
+  ✓ SELECT CASE WHEN pd.is_generic THEN 'Générique' ELSE 'Princeps' END AS type_produit, SUM(...) ...
+  ✗ SELECT pd.is_generic, SUM(...) FROM ... GROUP BY pd.is_generic
+- MARGE : formule = SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered). quantity_ordered OBLIGATOIRE.
+  ✗ SUM(pd.public_price_fcfa - fp.purchase_price_fcfa) — sans * fp.quantity_ordered donne résultat 100× trop faible
+- RUPTURES : utiliser marts.fct_missed_sales — JAMAIS quantity_in_stock <= 0 ni quantity <= 0 (ces valeurs n'atteignent pas 0 dans les données)
+- COUNT alias : COUNT(*) doit utiliser nb_* ou count_* — JAMAIS total_sales, total_orders (réservés aux montants FCFA)
+
 SCHÉMA :
 {schema}
 
@@ -144,6 +156,40 @@ def get_schema() -> str:
         return "\n".join(f"{tbl}: {cols}" for tbl, cols in rows)
     finally:
         conn.close()
+
+
+def is_semantically_valid(question: str, sql: str) -> bool:
+    """Rejette les SQL qui passent l'exécution mais violent les règles métier.
+
+    Ces patterns causent des régressions dans le RAG même si le SQL est syntaxiquement valide.
+    """
+    sql_l = sql.lower()
+    q_l = question.lower()
+
+    # Évolution 3 colonnes : COUNT + SUM ensemble sur une question temporelle
+    evolution_kw = ("évol", "tendance", "par mois", "monthly", "trend", "mois")
+    if any(k in q_l for k in evolution_kw):
+        if "count(" in sql_l and "sum(" in sql_l:
+            print(f"    ✗ REJETÉ (évolution 3 cols) : {question[:60]}")
+            return False
+
+    # is_generic direct → retourne True/False illisible
+    if "is_generic" in sql_l and "case when" not in sql_l:
+        print(f"    ✗ REJETÉ (is_generic sans CASE WHEN) : {question[:60]}")
+        return False
+
+    # Marge sans quantity_ordered
+    if "purchase_price_fcfa" in sql_l and "public_price_fcfa" in sql_l:
+        if "quantity_ordered" not in sql_l:
+            print(f"    ✗ REJETÉ (marge sans quantity_ordered) : {question[:60]}")
+            return False
+
+    # Ruptures via quantity <= 0 (les données n'atteignent jamais 0)
+    if ("quantity" in sql_l and "<= 0" in sql) or ("quantity_in_stock = 0" in sql_l):
+        print(f"    ✗ REJETÉ (ruptures via quantity=0) : {question[:60]}")
+        return False
+
+    return True
 
 
 def validate_sql(sql: str) -> bool:
@@ -228,7 +274,7 @@ def main():
             if not q or not sql or not sql.upper().startswith("SELECT"):
                 continue
 
-            if validate_sql(sql):
+            if is_semantically_valid(q, sql) and validate_sql(sql):
                 total_valid += 1
                 for pharmacy_id in [1, 2, 3]:
                     index_example(chroma, pharmacy_id, q, sql)

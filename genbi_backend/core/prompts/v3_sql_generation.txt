@@ -6,11 +6,30 @@ QUESTION → TABLE (correspondances directes) :
 CA / chiffre d'affaires / revenu / recettes → SUM(total_amount_fcfa) FROM marts.fct_sales
 Nombre de ventes / transactions             → COUNT(*) FROM marts.fct_sales
 Tiers-payant                                → marts.fct_sales WHERE payment_method = 'Tiers-Payant'
+Répartition / part par mode de paiement    → GROUP BY payment_method  (valeurs exactes : 'Espèces' · 'Orange Money' · 'Wave' · 'Tiers-Payant' — jamais 'Assurance', 'Cash', 'CB')
 Ruptures / ventes manquées / stockout       → COUNT(*) FROM marts.fct_missed_sales
+Combien de produits en rupture / ont manqué → SELECT COUNT(DISTINCT ms.product_id) AS nb_produits_en_rupture FROM marts.fct_missed_sales ms
+Quels produits en rupture / liste ruptures  → SELECT DISTINCT pd.commercial_name FROM marts.fct_missed_sales ms JOIN marts.dim_products pd ON ms.product_id = pd.product_id
+How many products out of stock / out of stock → SELECT COUNT(DISTINCT ms.product_id) AS nb_produits_en_rupture FROM marts.fct_missed_sales ms
+    ✗ NE PAS utiliser stg_raw__sale_details WHERE quantity <= 0 — cela donne toujours 0 résultat
+    ✗ NE PAS utiliser dim_stocks WHERE quantity_in_stock = 0 — aucun produit n'atteint 0 dans les données
 Stocks / péremptions / seuil sécurité       → FROM marts.dim_stocks
-CA ou ventes par produit / par catégorie    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
+Produits sous seuil / out of stock / below threshold → WHERE is_below_safety_threshold = TRUE FROM marts.dim_stocks  (NE PAS utiliser quantity_in_stock <= 0 — aucun produit n'atteint 0 dans les données)
+CA ou ventes par produit                    → JOIN staging.stg_raw__sale_details + marts.dim_products depuis marts.fct_sales
+Top N catégories / quelles catégories       → GROUP BY pd.therapeutic_class LIMIT N  (JAMAIS pd.product_category qui n'a que 2 valeurs)
+Médicaments vs parapharmacie uniquement     → GROUP BY pd.product_category
+Répartition des VENTES par type de client / breakdown sales by customer type → GROUP BY client_type FROM marts.fct_sales
+    ✓  SELECT client_type, COUNT(*) AS nb_ventes FROM marts.fct_sales GROUP BY client_type
+    ✗  NE PAS utiliser dim_clients — dim_clients compte les fiches clients, pas les transactions
+Part des ventes assurées vs non assurées / assurées versus non assurées / assurées vs non assurées → SELECT client_type, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS ca_fcfa FROM marts.fct_sales GROUP BY client_type ORDER BY client_type
+    ✓  GROUP BY client_type — retourne 2 lignes : 'Assuré' et 'Non assuré'
+    ✗  WHERE client_type = 'Assuré'  (1 seule ligne — ne donne pas la répartition)
+    ✗  patient_share_fcfa / insurer_share_fcfa  (ces colonnes = montants, pas statut assuré/non assuré)
+    ✗  JOIN dim_insurers  (dim_insurers = compagnies d'assurance — NE PAS utiliser pour assuré/non assuré)
+    ✗  WHERE insurer_id IS NOT NULL  (filtre, pas une répartition en 2 groupes)
 Clients chroniques                          → FROM marts.dim_clients WHERE is_chronic = TRUE
 Clients assurés (nombre de clients)         → FROM marts.dim_clients WHERE client_type = 'Assuré'
+Quel fournisseur livre le plus souvent / which supplier most often → SELECT wholesaler_name, COUNT(*) AS nb_commandes FROM marts.fct_purchases GROUP BY wholesaler_name ORDER BY nb_commandes DESC LIMIT 1
 Achats / approvisionnements                 → FROM marts.fct_purchases (wholesaler_name, purchase_price_fcfa, quantity_received)
 Retours fournisseurs / avoirs               → FROM marts.fct_wholesaler_returns
 Assureurs / répartition par assureur        → JOIN marts.dim_insurers ON s.insurer_id = ins.insurer_id
@@ -18,19 +37,42 @@ Panier moyen / nb articles par vente        → AVG(nb_products_in_cart) FROM ma
 Part patient / part assureur (montants)     → patient_share_fcfa · insurer_share_fcfa FROM marts.fct_sales
 Ventes par jour / activité hebdomadaire     → sale_dow FROM marts.fct_sales  (0=Dim 1=Lun 2=Mar 3=Mer 4=Jeu 5=Ven 6=Sam)
 TVA collectée / montant TVA                 → SUM(vat_amount_fcfa) FROM marts.fct_sales
-Génériques vs princeps / part génériques    → dim_products.is_generic (TRUE=générique · FALSE=princeps)
+Génériques vs princeps / part génériques / generic vs branded / breakdown generic    →
+    SELECT CASE WHEN pd.is_generic THEN 'Générique' ELSE 'Princeps' END AS type_produit, SUM(sd.total_line_amount_fcfa) AS ca_total
+    FROM marts.fct_sales s JOIN staging.stg_raw__sale_details sd ON sd.sale_id = s.sale_id JOIN marts.dim_products pd ON sd.product_id = pd.product_id
+    GROUP BY pd.is_generic ORDER BY ca_total DESC
+    ✓ CASE WHEN obligatoire — jamais is_generic directement (retourne True/False non lisible)
+    ✓ 2 colonnes exactement pour le pie chart
+    ✗ SELECT is_generic, COUNT(*), SUM(...) → 3 colonnes, labels illisibles
 Locaux vs importés / origine produits       → dim_products.origin ('Local' · 'Importé') via JOIN stg_raw__sale_details
 Fidélité / meilleurs clients / points       → loyalty_points FROM marts.dim_clients ORDER BY loyalty_points DESC
 Ventes par forme galénique / galénique      → dim_products.form (Comprimé · Sirop · Gélule…) via JOIN stg_raw__sale_details
 Ventes par laboratoire / labo fabricant     → dim_products.laboratory via JOIN stg_raw__sale_details
-Marge brute / prix achat vs prix vente      → JOIN marts.fct_purchases fp ON fp.product_id = dp.product_id + marts.dim_products dp  (NE PAS utiliser fct_sales — fct_sales n'a pas product_id)
+Marge brute totale / gross margin total     → SELECT SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_brute_totale FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id
+Top N produits les plus rentables / most profitable products by margin → SELECT pd.commercial_name, SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_produit FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name ORDER BY marge_produit DESC LIMIT N
+Produit le plus rentable / most profitable single product → SELECT pd.commercial_name, SUM((pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered) AS marge_produit FROM marts.fct_purchases fp JOIN marts.dim_products pd ON fp.product_id = pd.product_id GROUP BY pd.commercial_name ORDER BY marge_produit DESC LIMIT 1
+RÈGLES MARGE — s'appliquent à TOUTES les questions de marge (totale, par produit, top N) :
+    ✓  Formule : (pd.public_price_fcfa - fp.purchase_price_fcfa) * fp.quantity_ordered
+    ✗  SUM(pd.public_price_fcfa - fp.purchase_price_fcfa) sans * fp.quantity_ordered → résultat 100× trop faible
+    ✗  fp.purchase_price_fcfa - pd.public_price_fcfa (ordre inversé → marges négatives)
+    ✗  NE JAMAIS utiliser stg_raw__sale_details ni total_line_amount_fcfa pour calculer la marge — ce sont des données de vente, pas d'achat
+    ✗  NE JAMAIS utiliser fct_sales pour la marge — fct_sales n'a pas product_id ni purchase_price
+    ✗  NE PAS utiliser fp.sale_id — fct_purchases n'a pas de colonne sale_id
 Délai livraison / délai grossiste           → order_date · delivery_date FROM marts.fct_purchases
+Délai moyen par fournisseur                 → SELECT fp.wholesaler_name, AVG(fp.delivery_date - fp.order_date) AS delai_moyen_jours FROM marts.fct_purchases fp GROUP BY fp.wholesaler_name ORDER BY delai_moyen_jours
 Approvisionnements par mois / achats mois   → order_date FROM marts.fct_purchases GROUP BY EXTRACT(MONTH)
 Ruptures par mois / évolution ruptures      → missed_year · missed_month FROM marts.fct_missed_sales
 Retours par grossiste / retours par mois    → wholesaler_name · return_date FROM marts.fct_wholesaler_returns
 Ventes anonymes / clients non identifiés    → is_anonymous FROM marts.fct_sales
 Nouveaux clients par mois / inscriptions    → created_at FROM marts.dim_clients
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ÉVOLUTION / TENDANCE (2 colonnes uniquement) :
+Questions d'évolution/tendance → retourner exactement 2 colonnes : (période, métrique principale).
+• "comment évoluent les ventes / how did sales evolve / revenue evolution / sales trend" → (mois, total_revenue)
+• "évolution du nombre de ventes / how did transaction count evolve" → (mois, nb_ventes)
+  ✓  SELECT sale_month AS mois, SUM(total_amount_fcfa) AS total_revenue FROM marts.fct_sales GROUP BY sale_month ORDER BY sale_month
+  ✗  SELECT sale_month, COUNT(*) AS nb_ventes, SUM(total_amount_fcfa) AS total_revenue ...  (3 colonnes → mélange revenu/count dans l'insight)
 
 FILTRES TEMPORELS :
 • "par mois"            → GROUP BY sale_month ORDER BY sale_month  (fct_sales, sans WHERE)
@@ -47,12 +89,20 @@ RÈGLES TECHNIQUES :
 3. RLS actif : ne pas ajouter WHERE pharmacy_id (filtrage automatique)
 4. Colonnes : utiliser uniquement celles du schéma ci-dessous — ne rien inventer
 5. Marge : utiliser marts.fct_purchases (a product_id) — fct_sales N'A PAS product_id
+14. ALIAS COUNT obligatoires : COUNT(*) doit utiliser un alias clair parmi nb_*, count_*, nombre_* — JAMAIS total_sales, total_orders, total_amount (ces noms sont réservés aux montants FCFA)
+    ✓  SELECT COUNT(*) AS nb_ventes FROM marts.fct_sales
+    ✓  SELECT COUNT(*) AS nb_commandes FROM marts.fct_purchases
+    ✗  SELECT COUNT(*) AS total_sales ...  (total_sales sera interprété comme montant FCFA — confusion garantie)
+    ✗  SELECT COUNT(*) AS total_orders ...  (idem)
 6. Produit par vente : passer par staging.stg_raw__sale_details sd JOIN marts.fct_sales s ON sd.sale_id = s.sale_id
 7. COUNT DISTINCT produits → toujours via sd.product_id qualifié — fct_sales n'a pas product_id
    ✓  SELECT COUNT(DISTINCT sd.product_id) FROM marts.fct_sales s JOIN staging.stg_raw__sale_details sd ON sd.sale_id = s.sale_id
    ✗  SELECT COUNT(DISTINCT product_id) ...
 8. Différence de dates en jours → (date_col - CURRENT_DATE) retourne un INTEGER directement — ne jamais utiliser INTERVAL pour calculer des jours
-   ✓  WHERE (sk.expiration_date - CURRENT_DATE) < 30
+   Lots expirant dans X jours → toujours écrire la condition complète avec BETWEEN
+   ✓  WHERE (sk.expiration_date - CURRENT_DATE) BETWEEN 0 AND 30
+   ✓  WHERE (sk.expiration_date - CURRENT_DATE) < 30 AND (sk.expiration_date - CURRENT_DATE) >= 0
+   ✗  WHERE sk.days_until_expiry  (incomplet — toujours inclure l'opérateur et la valeur)
    ✗  WHERE (sk.expiration_date - CURRENT_DATE) * INTERVAL '1 day' ...
 9. dim_stocks JOIN ventes → toujours GROUP BY pd.commercial_name + MIN(sk.quantity_in_stock) — un produit a plusieurs lots, le JOIN crée des doublons sinon
    ✓  SELECT pd.commercial_name, MIN(sk.quantity_in_stock) AS stock ... GROUP BY pd.commercial_name
@@ -60,6 +110,26 @@ RÈGLES TECHNIQUES :
 10. dim_products → alias TOUJOURS pd — jamais dp, d, prod ou tout autre raccourci
     ✓  JOIN marts.dim_products pd ON sd.product_id = pd.product_id → pd.commercial_name · pd.product_category · pd.therapeutic_class
     ✗  JOIN marts.dim_products dp ... → dp.product_category (alias inconnu → erreur SQL)
+11. Catégories produits — deux colonnes, deux usages distincts :
+    • pd.origin → exactement 2 valeurs : 'Local' · 'Importé'  (NE PAS utiliser 'Sénégal', 'France' ou toute autre valeur inventée)
+    ✓  WHERE pd.origin = 'Local'   ✓  WHERE pd.origin = 'Importé'
+    ✗  WHERE pd.origin = 'Sénégal' (valeur inexistante — hallucination)
+    • pd.product_category  → seulement 2 valeurs (Médicament · Parapharmacie) — utiliser UNIQUEMENT pour comparer médicaments vs parapharmacie
+    • pd.therapeutic_class → 14+ valeurs (Antibiotique · Antalgique · Anti-inflammatoire · Antipaludéen…) — utiliser pour "top catégories" / classement / analyses de classes
+    ✓  "top 5 catégories" / "quelles catégories génèrent le plus de CA" → GROUP BY pd.therapeutic_class
+    ✗  "top 5 catégories" → GROUP BY pd.product_category (retourne toujours 2 lignes maximum)
+12. Répartitions / proportion / distribution / breakdown / share → toujours GROUP BY — jamais PIVOT
+    Règle absolue : pour toute question de répartition (FR) ou proportion/share/breakdown/distribution (EN)
+    → utiliser GROUP BY pour retourner une ligne par catégorie avec la valeur brute
+    → JAMAIS SUM(CASE WHEN ...) en colonnes horizontales
+    → JAMAIS diviser dans le SQL (le frontend calcule les % automatiquement)
+    ✓  SELECT payment_method, COUNT(*) AS nb FROM marts.fct_sales GROUP BY payment_method
+    ✓  SELECT pd.is_generic, SUM(sd.total_line_amount_fcfa) AS ca FROM ... GROUP BY pd.is_generic
+    ✗  SELECT SUM(CASE WHEN payment_method = 'Espèces' THEN 1 ELSE 0 END) AS especes, ...  (PIVOT interdit)
+    ✗  SELECT SUM(...) / SUM(...) * 100 AS part ...  (division entière = 0 en PostgreSQL)
+13. sales_rep / agent commercial / sales representative → concept INEXISTANT dans ce modèle de données
+    fct_sales n'a pas de colonne sales_rep_id, agent_id, pharmacist_id, employee_id
+    Pour segmenter les performances : utiliser client_type, payment_method ou insurer_id
 
 <schema_dbt>
 {schema}

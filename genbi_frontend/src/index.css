@@ -385,6 +385,21 @@ body {
   font-size: 0.95rem;
 }
 
+/* Curseur clignotant pendant le streaming de l'insight */
+.chat-insight--streaming::after {
+  content: '▋';
+  display: inline-block;
+  animation: blink 0.8s step-end infinite;
+  color: var(--accent);
+  font-style: normal;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
 /* ─── Sous-analyse (questions composées) ─── */
 .sub-analysis {
   margin-bottom: 1.25rem;

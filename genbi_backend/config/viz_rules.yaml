@@ -1,0 +1,27 @@
+# Règles de classification des visualisations.
+# Modifier les patterns et seuils ici — zéro modification Python.
+# Patterns = regex Python (flags re.IGNORECASE appliqués à la compilation).
+# Dans les strings double-quotées YAML : \\ = backslash littéral → \b en Python = word boundary.
+
+temporal:
+  # Signal temporel dans la question → line chart
+  pattern: "évolution|évolue|\\bevolv\\b|par mois|tendance|trend|monthly|mensuel|over.?time|par semaine|weekly|par jour(?!\\s+de\\s+la)|daily|historique|history|over the month|over the week|over time|per month|by month"
+  # Noms de colonnes temporelles (pour exclure du pie)
+  col_pattern: "mois|month|date|year|année|semaine|week|jour|day"
+
+ranking:
+  # Signal de classement → bar chart (comparaison, pas composition)
+  pattern: "\\bmost\\b|\\bbest\\b|\\bhighest\\b|\\blargest\\b|\\bbiggest\\b|\\bleading\\b|\\blowest\\b|\\bworst\\b|\\bfewest\\b|\\ble\\s+plus\\b|\\bmeilleur\\b|\\bpire\\b"
+
+composition:
+  # Signal de répartition → pie chart si structure compatible
+  pattern: "répartition|distribution|part\\s+d[eu']|breakdown|share|composition|proportion|par\\s+(mode|type|catég|categ|origin|assur|payment|insurance)"
+
+exclude:
+  # Suffixes de colonnes à exclure de la détection pie
+  col_pattern: "_id$|_fcfa$"
+
+thresholds:
+  # Nombre max de lignes pour autoriser un pie chart
+  pie_max_rows_composition: 6   # quand le signal "répartition/breakdown" est présent
+  pie_max_rows_strict: 4        # sans signal de composition (règle structurelle stricte)
