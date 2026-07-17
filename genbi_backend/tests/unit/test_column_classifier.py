@@ -11,8 +11,18 @@ def test_classifie_montant_financier():
 
 
 def test_classifie_comptage():
-    assert classify_column("total_sales") == "count"
+    assert classify_column("nb_ventes") == "count"
     assert classify_column("nombre_ventes") == "count"
+    assert classify_column("count_transactions") == "count"
+    assert classify_column("total_ventes") == "count"   # COUNT(*) AS total_ventes → jamais FCFA
+    assert classify_column("panier_moyen") == "count"   # AVG(nb_products_in_cart) → jamais FCFA
+
+
+def test_classifie_sales_comme_financier():
+    # "sales" et "total_sales" → MONTANT FINANCIER (SUM de FCFA)
+    # avant fix : "sales" était dans _COUNT → monthly_sales → faux type TRANSACTIONS
+    assert classify_column("total_sales") == "financial"
+    assert classify_column("monthly_sales") == "financial"
 
 
 def test_classifie_quantite():
@@ -28,7 +38,7 @@ def test_classifie_inconnu():
 # ── annotate_column_types ─────────────────────────────────────────────────────
 
 def test_annotation_count_pas_fcfa():
-    result = annotate_column_types(["total_sales"])
+    result = annotate_column_types(["nb_ventes"])
     assert "NOMBRE DE TRANSACTIONS" in result
     assert "pas un montant fcfa" in result.lower()
 
@@ -49,6 +59,6 @@ def test_annotation_inconnu_donnee():
 
 
 def test_annotation_plusieurs_colonnes():
-    result = annotate_column_types(["total_sales", "total_amount_fcfa"])
+    result = annotate_column_types(["nb_ventes", "total_amount_fcfa"])
     assert "NOMBRE DE TRANSACTIONS" in result
     assert "MONTANT FINANCIER" in result

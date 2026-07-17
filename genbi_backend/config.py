@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     # Ollama (LLM local natif macOS — accès depuis Docker)
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
     OLLAMA_MODEL: str = "qwen2.5-coder:7b"
-    LLM_SQL_TIMEOUT: int = 60
-    LLM_INSIGHT_TIMEOUT: int = 45
+    LLM_SQL_TIMEOUT: int = 90
+    LLM_INSIGHT_TIMEOUT: int = 60
 
     # dbt manifest (chemin dans le conteneur Docker)
     DBT_MANIFEST_PATH: str = "/app/dbt_project/target/manifest.json"

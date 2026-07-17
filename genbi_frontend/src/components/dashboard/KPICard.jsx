@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 
 function formatNumber(val) {
@@ -8,6 +9,7 @@ function formatNumber(val) {
 }
 
 export function KPICard({ title, value, unit = '', icon: Icon, color = 'primary', loading, error, sparklineData }) {
+  const { t } = useTranslation()
   return (
     <div className={`kpi-card kpi-card--${color}`}>
       <div className="kpi-card__header">
@@ -21,7 +23,7 @@ export function KPICard({ title, value, unit = '', icon: Icon, color = 'primary'
             <div className="kpi-card__skeleton-unit" />
           </div>
         )}
-        {!loading && error && <span className="kpi-card__error">Erreur</span>}
+        {!loading && error && <span className="kpi-card__error">{t('dashboard.kpi_error')}</span>}
         {!loading && !error && (
           <span className="kpi-card__value">
             {formatNumber(value)}

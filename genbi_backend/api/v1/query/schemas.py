@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -14,3 +15,4 @@ class QueryResponse(BaseModel):
     limit: int
     offset: int
     insight: str
+    viz_hint: Optional[str] = None

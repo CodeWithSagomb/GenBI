@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useChat } from '../../hooks/useChat'
 import { QueryInput } from './QueryInput'
 import { MessageBubble } from './MessageBubble'
@@ -9,27 +10,28 @@ import { DataTable } from '../data/DataTable'
 import { ChartRouter } from '../visualizations/ChartRouter'
 import { chatApi } from '../../services/api'
 
-function formatTime(ts) {
-  if (!ts) return ''
-  const mins = Math.floor((Date.now() - ts) / 60000)
-  if (mins < 1) return 'À l\'instant'
-  if (mins < 60) return `il y a ${mins} min`
-  return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-}
-
-function getConfidence(rows) {
-  if (!rows || rows.length === 0) return { level: 'empty', label: 'Aucune donnée' }
-  if (rows.length >= 10) return { level: 'high', label: `${rows.length} résultats` }
-  if (rows.length >= 2) return { level: 'medium', label: `${rows.length} résultats` }
-  return { level: 'low', label: '1 résultat' }
-}
-
 export function ChatWindow() {
+  const { t } = useTranslation()
   const { messages, status, sendQuestion, setFeedback, clearChat: clearChatState } = useChat()
   const [reexecuteResults, setReexecuteResults] = useState({})
   const [reexecuteLoading, setReexecuteLoading] = useState({})
   const [reexecuteErrors, setReexecuteErrors] = useState({})
   const bottomRef = useRef(null)
+
+  function formatTime(ts) {
+    if (!ts) return ''
+    const mins = Math.floor((Date.now() - ts) / 60000)
+    if (mins < 1) return t('chat.time_now')
+    if (mins < 60) return t('chat.time_ago', { mins })
+    return new Date(ts).toLocaleTimeString(t('app.logo') === 'RuwaGenBI' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  function getConfidence(rows) {
+    if (!rows || rows.length === 0) return { level: 'empty', label: t('chat.confidence_no_data') }
+    if (rows.length >= 10) return { level: 'high', label: t('chat.confidence_results_other', { count: rows.length }) }
+    if (rows.length >= 2)  return { level: 'medium', label: t('chat.confidence_results_other', { count: rows.length }) }
+    return { level: 'low', label: t('chat.confidence_results_one') }
+  }
 
   function clearChat() {
     clearChatState()
@@ -49,7 +51,7 @@ export function ChatWindow() {
       const result = await chatApi.executeSQL(editedSql)
       setReexecuteResults(prev => ({ ...prev, [messageId]: result }))
     } catch (err) {
-      setReexecuteErrors(prev => ({ ...prev, [messageId]: err.message ?? 'Erreur d\'exécution SQL.' }))
+      setReexecuteErrors(prev => ({ ...prev, [messageId]: err.message ?? t('chat.sql_error') }))
     } finally {
       setReexecuteLoading(prev => { const n = { ...prev }; delete n[messageId]; return n })
     }
@@ -78,9 +80,15 @@ export function ChatWindow() {
     const sub = msg.sub_analyses?.[0] ?? {}
     const display = getSimpleDisplayData(msg)
     const conf = getConfidence(display.rows)
+    const isStreaming = status === 'streaming' && msg.id === messages[messages.length - 1]?.id
     return (
       <>
-        {sub.insight && <p className="chat-insight">{sub.insight}</p>}
+        {isStreaming && !sub.insight
+          ? <p className="chat-insight chat-insight--streaming">&#8203;</p>
+          : sub.insight
+            ? <p className={`chat-insight${isStreaming ? ' chat-insight--streaming' : ''}`}>{sub.insight}</p>
+            : null
+        }
         <div className={`confidence-badge confidence-badge--${conf.level}`}>
           <span className={`confidence-dot confidence-dot--${conf.level}`} />
           {conf.label}
@@ -93,7 +101,7 @@ export function ChatWindow() {
             reexecuteError={reexecuteErrors[msg.id]}
           />
         )}
-        <ChartRouter columns={display.columns} rows={display.rows} />
+        <ChartRouter columns={display.columns} rows={display.rows} vizHint={reexecuteResults[msg.id] ? null : (sub.viz_hint ?? null)} />
         <DataTable
           columns={display.columns}
           rows={display.rows}
@@ -123,7 +131,7 @@ export function ChatWindow() {
               {sub.insight && <p className="chat-insight">{sub.insight}</p>}
               {sub.columns?.length > 0 && (
                 <>
-                  <ChartRouter columns={sub.columns} rows={sub.rows} />
+                  <ChartRouter columns={sub.columns} rows={sub.rows} vizHint={sub.viz_hint ?? null} />
                   <DataTable
                     columns={sub.columns}
                     rows={sub.rows}
@@ -145,7 +153,7 @@ export function ChatWindow() {
           <button
             className="sql-display__edit-btn"
             onClick={clearChat}
-            title="Effacer la conversation"
+            title={t('chat.clear_title')}
           >
             <Trash2 size={14} />
           </button>
@@ -177,12 +185,12 @@ export function ChatWindow() {
           <span className="chat-loading__dot" />
           <span className="chat-loading__dot" />
           <span className="chat-loading__dot" />
-          <span>Analyse en cours…</span>
+          <span>{t('chat.analyzing')}</span>
         </div>
       )}
 
       <div ref={bottomRef} />
-      <QueryInput onSubmit={sendQuestion} disabled={status === 'loading'} />
+      <QueryInput onSubmit={sendQuestion} disabled={status === 'loading' || status === 'streaming'} />
     </div>
   )
 }

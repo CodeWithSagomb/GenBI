@@ -5,7 +5,7 @@
 .PHONY: help \
         dev up down restart ps logs clean \
         seed dbt-run dbt-parse dbt-test \
-        test test-backend test-frontend benchmark \
+        test test-backend test-frontend benchmark golden \
         health shell db-shell \
         branch status
 
@@ -42,6 +42,7 @@ help:
 	@echo "║  make test-backend Lance pytest backend (122 tests)           ║"
 	@echo "║  make test-frontend Lance Vitest frontend (44 tests)          ║"
 	@echo "║  make benchmark    Lance le benchmark LLM (30 questions)      ║"
+	@echo "║  make golden       Lance le golden set (50 questions métier)  ║"
 	@echo "╠══════════════════════════════════════════════════════════════╣"
 	@echo "║  ACCÈS RAPIDE                                                 ║"
 	@echo "║  make shell        Shell dans le conteneur backend            ║"
@@ -136,6 +137,14 @@ test-frontend:
 benchmark:
 	@echo "📊 Benchmark LLM (30 questions golden)..."
 	docker exec genbi_backend python -m pytest tests/benchmark/ -v --tb=short
+
+golden:
+	@echo "🏅 Golden set — 50 questions métier..."
+	$(PYTHON) scripts/golden_set_runner.py $(ARGS)
+
+golden-save:
+	@echo "🏅 Golden set avec rapport JSON..."
+	$(PYTHON) scripts/golden_set_runner.py --save $(ARGS)
 
 # ─── ACCÈS RAPIDE ────────────────────────────────────────────────────────────
 shell:
