@@ -385,10 +385,10 @@ GOLDEN_SET = [
         "id": "C004", "category": "clients",
         "question": "Quel est le panier moyen par vente ?",
         "checks": {
-            "sql_must_contain":     ["nb_products_in_cart", "AVG", "fct_sales"],
+            "sql_must_contain":     ["total_amount_fcfa", "AVG", "fct_sales"],
             "row_count": 1,
             "viz_hint": None,
-            "insight_forbidden": ["millions", "FCFA"],
+            "insight_forbidden": ["millions"],
         }
     },
     {
