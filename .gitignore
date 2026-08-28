@@ -49,3 +49,4 @@ genbi_frontend/test-results/
 
 # --- CLAUDE CODE ---
 .claude/projects/
+.env

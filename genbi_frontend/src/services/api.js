@@ -1,6 +1,7 @@
 import i18n from '../i18n/index'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const _isNgrok = BASE_URL.includes('ngrok')
 
 function _authHeaders() {
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('genbi_token') : null
@@ -13,6 +14,7 @@ async function request(path, options = {}) {
     headers: {
       'Content-Type': 'application/json',
       ..._authHeaders(),
+      ...(_isNgrok ? { 'ngrok-skip-browser-warning': 'true' } : {}),
       ...options.headers,
     },
   })

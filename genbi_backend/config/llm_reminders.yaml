@@ -96,3 +96,16 @@ reminders:
       RAPPEL CRITIQUE UNITÉS VENDUES : alias obligatoire total_units_sold —
       SELECT SUM(total_units_sold) AS total_units_sold FROM marts.fct_sales —
       JAMAIS COUNT(*) (compte les transactions, pas les unités).
+
+  - name: fournisseur_livraisons
+    keywords:
+      - livre le plus souvent
+      - most often
+      - delivers most
+      - le plus de livraisons
+      - livre le plus
+    text: >-
+      RAPPEL CRITIQUE FOURNISSEUR LIVRAISONS : utiliser marts.fct_purchases UNIQUEMENT —
+      SELECT wholesaler_name, COUNT(*) AS nb_livraisons
+      FROM marts.fct_purchases GROUP BY wholesaler_name ORDER BY nb_livraisons DESC LIMIT 1 —
+      JAMAIS stg_raw__purchases — JAMAIS raw.purchases — TOUJOURS marts.fct_purchases.

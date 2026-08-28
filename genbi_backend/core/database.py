@@ -10,7 +10,7 @@ from core.exceptions import DatabaseError
 def create_pool() -> pool.ThreadedConnectionPool:
     return pool.ThreadedConnectionPool(
         minconn=2,
-        maxconn=10,
+        maxconn=20,
         host=settings.DB_HOST,
         port=settings.DB_PORT,
         dbname=settings.DB_NAME,
