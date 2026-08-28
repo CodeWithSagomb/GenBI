@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # Couche sémantique — catalogue des termes métier de la pharmacie
     SEMANTIC_CATALOG_PATH: str = "/app/core/semantic_catalog.yaml"
 
+    # CORS — origines autorisées, séparées par virgule (localhost toujours inclus)
+    CORS_ORIGINS: str = "http://localhost:5173"
+
     APP_ENV: str = "development"
     DEBUG: bool = True
 

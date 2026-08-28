@@ -1,0 +1,726 @@
+<title>RuwaGenBI, présentation end-to-end</title>
+<style>
+  :root {
+    --ink: #16323E;
+    --paper: #EEF0E9;
+    --paper-raised: #E4E7DD;
+    --accent: #B96E23;
+    --accent-soft: #E4B27C;
+    --teal: #2C6D62;
+    --teal-soft: #A8CAC1;
+    --rule: #C9CCC0;
+    --text: #1C2521;
+    --text-soft: #52584E;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #E8E6DC;
+      --paper: #12181B;
+      --paper-raised: #1A2226;
+      --accent: #E0A24E;
+      --accent-soft: #7A5323;
+      --teal: #6FB3A3;
+      --teal-soft: #24413A;
+      --rule: #2C3630;
+      --text: #E8E6DC;
+      --text-soft: #9BA39A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #E8E6DC;
+    --paper: #12181B;
+    --paper-raised: #1A2226;
+    --accent: #E0A24E;
+    --accent-soft: #7A5323;
+    --teal: #6FB3A3;
+    --teal-soft: #24413A;
+    --rule: #2C3630;
+    --text: #E8E6DC;
+    --text-soft: #9BA39A;
+  }
+  :root[data-theme="light"] {
+    --ink: #16323E;
+    --paper: #EEF0E9;
+    --paper-raised: #E4E7DD;
+    --accent: #B96E23;
+    --accent-soft: #E4B27C;
+    --teal: #2C6D62;
+    --teal-soft: #A8CAC1;
+    --rule: #C9CCC0;
+    --text: #1C2521;
+    --text-soft: #52584E;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", sans-serif;
+    scroll-behavior: smooth;
+  }
+  body { overflow-x: hidden; }
+
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+
+  h1, h2, h3, .display {
+    font-family: "Iowan Old Style", "Palatino Linotype", "Georgia", serif;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  code, pre, .mono {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .deck {
+    height: 100vh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+  }
+
+  .slide {
+    min-height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6vh 9vw;
+    position: relative;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .slide__inner { max-width: 920px; width: 100%; }
+  .slide--wide .slide__inner { max-width: 1120px; }
+
+  .eyebrow {
+    font-family: "Avenir Next", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px; height: 1px;
+    background: var(--accent);
+    display: inline-block;
+  }
+  .eyebrow.teal { color: var(--teal); }
+  .eyebrow.teal::before { background: var(--teal); }
+
+  h2.slide__title {
+    font-size: clamp(1.7rem, 3.4vw, 2.7rem);
+    font-weight: 600;
+    margin: 0 0 1.3rem 0;
+    line-height: 1.12;
+    color: var(--ink);
+  }
+
+  .slide__lede {
+    font-size: 1.12rem;
+    line-height: 1.6;
+    color: var(--text-soft);
+    max-width: 62ch;
+    margin: 0 0 1.6rem 0;
+  }
+
+  .slide__body p {
+    font-size: 1.02rem;
+    line-height: 1.65;
+    max-width: 66ch;
+    margin: 0 0 1rem 0;
+  }
+
+  ul.points, ol.points {
+    margin: 0 0 1.2rem 0;
+    padding: 0;
+    list-style: none;
+    max-width: 68ch;
+  }
+  ul.points li, ol.points li {
+    position: relative;
+    padding-left: 1.4rem;
+    margin-bottom: 0.7rem;
+    line-height: 1.55;
+    font-size: 1rem;
+  }
+  ul.points li::before {
+    content: "•";
+    position: absolute; left: 0;
+    color: var(--accent);
+  }
+  ol.points { counter-reset: pt; }
+  ol.points li { counter-increment: pt; }
+  ol.points li::before {
+    content: counter(pt) ".";
+    position: absolute; left: 0;
+    color: var(--teal);
+    font-family: "SF Mono", monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .quote {
+    font-family: "Iowan Old Style", "Georgia", serif;
+    font-style: italic;
+    font-size: 1.28rem;
+    line-height: 1.5;
+    color: var(--ink);
+    border-left: 3px solid var(--accent);
+    padding: 0.3rem 0 0.3rem 1.4rem;
+    max-width: 60ch;
+    margin: 1.4rem 0;
+  }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1.2rem 0 1.4rem 0;
+  }
+  .flow__node {
+    font-family: "SF Mono", monospace;
+    font-size: 0.82rem;
+    padding: 0.5rem 0.85rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .flow__node.hi { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .flow__node.hi2 { border-color: var(--teal); color: var(--teal); font-weight: 700; }
+  .flow__arrow { color: var(--text-soft); font-size: 0.9rem; }
+
+  .pillrow { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 0.3rem 0 1.3rem 0; }
+  .pill {
+    font-size: 0.78rem; font-weight: 600;
+    padding: 0.32rem 0.7rem;
+    border-radius: 100px;
+    border: 1px solid var(--rule);
+    color: var(--text-soft);
+  }
+
+  .cols { display: grid; gap: 1.6rem; }
+  .cols--2 { grid-template-columns: 1fr 1fr; }
+  .cols--3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 860px) {
+    .cols--2, .cols--3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.2rem 1.3rem;
+  }
+  .card h3 {
+    font-size: 1.02rem; margin: 0 0 0.5rem 0; font-weight: 600; color: var(--ink);
+  }
+  .card p { font-size: 0.92rem; color: var(--text-soft); line-height: 1.55; margin: 0; }
+
+  .stat {
+    font-family: "Iowan Old Style", serif;
+    font-size: 2.1rem;
+    color: var(--accent);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat + span { font-size: 0.8rem; color: var(--text-soft); display: block; margin-top: 0.3rem; }
+
+  /* Title slide */
+  .title-slide {
+    background: var(--ink);
+    color: var(--paper);
+    justify-content: center;
+  }
+  .title-slide .kicker {
+    color: var(--accent-soft);
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 1.6rem;
+  }
+  .title-slide h1 {
+    font-size: clamp(2.6rem, 7vw, 5.2rem);
+    line-height: 0.98;
+    margin: 0 0 1.2rem 0;
+    color: var(--paper);
+  }
+  .title-slide .sub {
+    font-size: 1.25rem;
+    color: var(--paper);
+    opacity: 0.72;
+    max-width: 46ch;
+    line-height: 1.5;
+    margin-bottom: 2.4rem;
+  }
+  .title-slide .meta {
+    display: flex; gap: 1.8rem; flex-wrap: wrap;
+    font-family: "SF Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--paper);
+    opacity: 0.55;
+  }
+  .title-slide::after {
+    content: "";
+    position: absolute; left: 9vw; right: 9vw; bottom: 8vh; top: 8vh;
+    border: 1px solid rgba(238,240,233,0.14);
+    pointer-events: none;
+    border-radius: 2px;
+  }
+
+  /* pipeline diagram slide */
+  .pipeline-map {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    margin: 1.4rem 0;
+  }
+  .pipeline-map .row {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr auto;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--paper-raised);
+  }
+  .pipeline-map .row .n {
+    font-family: "SF Mono", monospace;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+  }
+  .pipeline-map .row .label { font-weight: 600; font-size: 0.94rem; }
+  .pipeline-map .row .tag {
+    font-family: "SF Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--teal);
+    text-align: right;
+  }
+
+  /* nav */
+  .nav-rail {
+    position: fixed;
+    right: 1.3rem; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 6px;
+    z-index: 50;
+  }
+  .nav-rail button {
+    width: 7px; height: 7px; border-radius: 50%;
+    border: none; padding: 0; cursor: pointer;
+    background: var(--rule);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .nav-rail button.active { background: var(--accent); transform: scale(1.5); }
+
+  .counter {
+    position: fixed; left: 1.6rem; bottom: 1.4rem;
+    font-family: "SF Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--text-soft);
+    z-index: 50;
+    background: var(--paper);
+    padding: 0.2rem 0.5rem;
+  }
+
+  .theme-btn {
+    position: fixed; right: 1.4rem; bottom: 1.4rem;
+    z-index: 50;
+    font-family: "SF Mono", monospace;
+    font-size: 0.68rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    color: var(--text-soft);
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .theme-btn:focus-visible, .nav-rail button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .closing-slide {
+    background: var(--ink); color: var(--paper);
+  }
+  .closing-slide .quote { color: var(--paper); border-color: var(--accent-soft); }
+  .closing-slide h2 { color: var(--paper); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide">
+    <div class="slide__inner">
+      <div class="kicker">Présentation technique · end-to-end</div>
+      <h1>RuwaGenBI</h1>
+      <div class="sub">BI générative pour pharmacies à Dakar. Du langage naturel au SQL fiable, entièrement en local.</div>
+      <div class="meta">
+        <span>FASTAPI · REACT · OLLAMA · POSTGRES · DBT</span>
+        <span>ZÉRO FUITE DE DONNÉES</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. LE PROBLEME -->
+  <section class="slide">
+    <div class="slide__inner">
+      <div class="eyebrow">Le contexte</div>
+      <h2 class="slide__title">La BI classique fige la question avant de connaître le besoin</h2>
+      <div class="flow">
+        <span class="flow__node">besoin métier</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">analyste écrit le SQL</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">dashboard publié</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node hi">utilisateur consulte</span>
+      </div>
+      <p class="slide__body"><strong>Toute question non anticipée</strong> déclenche un nouveau cycle : ticket, développeur, déploiement. L'utilisateur reste prisonnier de ce qui a été construit à l'avance.</p>
+      <div class="quote">Dans ce projet même, le Dashboard React interroge 6 requêtes SQL pré-écrites. C'est de la BI classique, avec une interface moderne.</div>
+    </div>
+  </section>
+
+  <!-- 3. LA PROPOSITION -->
+  <section class="slide">
+    <div class="slide__inner">
+      <div class="eyebrow">La proposition</div>
+      <h2 class="slide__title">Générer le SQL à la volée, pas l'écrire à l'avance</h2>
+      <p class="slide__body">Un LLM traduit n'importe quelle question en langage naturel vers du SQL, au moment où elle est posée. La couverture n'est plus « ce qu'on a eu le temps de construire », mais « tout ce que les données permettent de répondre ».</p>
+      <div class="quote">Le vrai piège : un LLM peut halluciner du SQL faux. Le reste de cette présentation, c'est comment on construit la confiance autour de cette imprévisibilité.</div>
+    </div>
+  </section>
+
+  <!-- 4. ARCHITECTURE -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Vue d'ensemble</div>
+      <h2 class="slide__title">Trois couches, un LLM local, une base gardée par RLS</h2>
+      <div class="cols cols--3">
+        <div class="card">
+          <h3>Frontend</h3>
+          <p>React 18 + Vite · Dashboard (SQL fixe) + Chat (LLM) + Profil · i18n FR/EN</p>
+        </div>
+        <div class="card">
+          <h3>Backend</h3>
+          <p>FastAPI + Python 3.11 · orchestration du pipeline en 9 étapes · aucune logique métier codée en dur</p>
+        </div>
+        <div class="card">
+          <h3>LLM local</h3>
+          <p>Ollama tourne nativement sur macOS avec qwen2.5-coder:7b, jamais dans un container Docker</p>
+        </div>
+      </div>
+      <div class="quote">Concrètement, aucune question posée ni aucune donnée ne sort jamais de la machine.</div>
+    </div>
+  </section>
+
+  <!-- 5. DONNEES -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow teal">La couche de données</div>
+      <h2 class="slide__title">raw → staging → marts, et l'isolation qui ne dépend pas du code</h2>
+      <div class="flow">
+        <span class="flow__node">raw (brut, jamais modifié)</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">staging (vues, nettoyage)</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node hi2">marts (tables, 9 modèles)</span>
+      </div>
+      <p class="slide__body">19 modèles dbt au total, 10 en staging et 9 en marts, exactement le nombre filtré à l'étape 2 du pipeline.</p>
+      <p class="slide__body">Chaque table de faits reçoit une règle de sécurité au niveau de la ligne : une vente n'est visible que si son identifiant de pharmacie correspond à la session en cours. Cette règle est appliquée automatiquement à chaque reconstruction des tables, sans intervention manuelle.</p>
+      <p class="slide__body">Même si le SQL généré oublie un filtre, la fuite entre pharmacies reste structurellement impossible.</p>
+    </div>
+  </section>
+
+  <!-- 6. PIPELINE OVERVIEW -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Le pipeline</div>
+      <h2 class="slide__title">9 étapes, ~800ms, zéro donnée qui quitte la machine</h2>
+      <div class="pipeline-map">
+        <div class="row"><span class="n">01</span><span class="label">Recherche d'exemples similaires</span><span class="tag">ChromaDB</span></div>
+        <div class="row"><span class="n">02</span><span class="label">Filtrage du schéma pertinent</span><span class="tag">Python pur</span></div>
+        <div class="row"><span class="n">03</span><span class="label">Génération du SQL par le modèle</span><span class="tag">Ollama · temp 0.0</span></div>
+        <div class="row"><span class="n">04</span><span class="label">Validation du SQL, lecture seule</span><span class="tag">sqlglot AST</span></div>
+        <div class="row"><span class="n">05</span><span class="label">Exécution, réparation si besoin</span><span class="tag">Postgres · RLS</span></div>
+        <div class="row"><span class="n">06</span><span class="label">Vérification de la cohérence</span><span class="tag">Python pur</span></div>
+        <div class="row"><span class="n">07</span><span class="label">Mise en forme lisible</span><span class="tag">Python pur</span></div>
+        <div class="row"><span class="n">08</span><span class="label">Rédaction de l'insight</span><span class="tag">Ollama · temp 0.1</span></div>
+        <div class="row"><span class="n">09</span><span class="label">Choix automatique du graphique</span><span class="tag">Python pur</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. RAG + SCHEMA FILTER -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Étapes 1 et 2</div>
+      <h2 class="slide__title">Réduire intelligemment le contexte, sans LLM</h2>
+      <div class="cols cols--2">
+        <div class="card">
+          <h3>Recherche d'exemples (RAG)</h3>
+          <p>Une collection <em>par pharmacie</em> dans ChromaDB. On retrouve les 3 exemples question et SQL les plus proches en sens, injectés comme modèle à suivre.</p>
+        </div>
+        <div class="card">
+          <h3>Filtrage du schéma</h3>
+          <p>Un score qui combine un peu de lexical et surtout de la similarité de sens, calculé par table. On garde les 15 tables les plus pertinentes sur 19, dont 3 toujours incluses par sécurité.</p>
+        </div>
+      </div>
+      <p class="slide__body">Aucun appel au LLM dans ce filtrage : un calcul simple, tenu en mémoire, recalculé une seule fois au démarrage. Un schéma plus court mesure un vrai gain de qualité sur un modèle aussi petit que celui utilisé ici.</p>
+    </div>
+  </section>
+
+  <!-- 8. GEN SQL + VALIDATE -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Étapes 3 et 4</div>
+      <h2 class="slide__title">Génération déterministe, validation structurelle</h2>
+      <p class="slide__body">Le SQL est généré à température zéro, pour rester le plus déterministe possible. Les rappels les plus importants sont ajoutés juste avant la question elle-même : le modèle les lit en dernier, donc il les suit mieux que les règles placées plus haut dans le prompt.</p>
+      <p class="slide__body">La validation qui suit n'est pas une simple liste de mots interdits. C'est un vrai parseur, qui vérifie qu'il n'y a qu'une seule instruction, et que c'est bien une lecture, jamais une écriture.</p>
+      <div class="quote">Ce n'est d'ailleurs pas là que se joue la vraie sécurité. Elle vient des droits en lecture seule sur la base et de l'isolation au niveau des lignes.</div>
+    </div>
+  </section>
+
+  <!-- 9. MARS-SQL -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Étape 5, moment fort</div>
+      <h2 class="slide__title">MARS-SQL, la réparation automatique par feedback d'exécution</h2>
+      <div class="flow">
+        <span class="flow__node">le SQL échoue</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node hi">l'erreur exacte remonte au LLM</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">le SQL est corrigé</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">nouvel essai</span>
+      </div>
+      <p class="slide__body">La différence avec un simple nouvel essai, c'est que le modèle voit pourquoi ça a échoué, colonne inconnue ou syntaxe invalide, et pas seulement qu'il faut réessayer à l'aveugle.</p>
+      <div class="pillrow">
+        <span class="pill">1 tentative initiale</span>
+        <span class="pill">jusqu'à 2 réparations</span>
+        <span class="pill">3 essais au total maximum</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. SEMANTIC VALIDATION -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow teal">Étape 6</div>
+      <h2 class="slide__title">La cohérence du résultat, pas seulement sa syntaxe</h2>
+      <p class="slide__body">Le SQL s'exécute sans erreur. Mais est-ce que le résultat a du sens par rapport à la question posée ?</p>
+      <ol class="points">
+        <li>Une réponse vide est suspecte, sauf pour une question d'existence du type « y a-t-il... »</li>
+        <li>Une question qui attend une seule valeur mais reçoit plus de 3 lignes sans regroupement, c'est suspect</li>
+        <li>Un « top N » qui renvoie beaucoup plus que N lignes, c'est suspect aussi</li>
+      </ol>
+      <p class="slide__body">Volontairement conservateur : préfère laisser passer un cas limite plutôt que re-générer inutilement. C'est la couche que la plupart des systèmes text-to-SQL n'ont pas.</p>
+    </div>
+  </section>
+
+  <!-- 11. HUMANIZE + INSIGHT -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Étapes 7 et 8</div>
+      <h2 class="slide__title">Du solide construit autour de l'incertain</h2>
+      <div class="cols cols--2">
+        <div class="card">
+          <h3>Mise en forme lisible</h3>
+          <p>Mois, jours, valeurs vrai ou faux : de simples conversions, sans aucune dépendance au LLM.</p>
+        </div>
+        <div class="card">
+          <h3>L'insight</h3>
+          <p>Une phrase générée à faible température, puis corrigée automatiquement pour que le format des montants soit toujours correct, quoi que le modèle ait écrit.</p>
+        </div>
+      </div>
+      <div class="quote">Chaque étape ajoute une sécurité fiable autour d'un modèle qui ne l'est pas toujours. Toute l'architecture part du principe que le LLM va se tromper, et s'organise autour de ça.</div>
+    </div>
+  </section>
+
+  <!-- 12. VIZ HINT -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Étape 9</div>
+      <h2 class="slide__title">Le graphique se choisit tout seul</h2>
+      <div class="flow">
+        <span class="flow__node hi">tendance dans le temps → courbe</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">classement limité → barres</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">comparaison → barres</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node hi2">répartition → camembert</span>
+        <span class="flow__arrow">→</span>
+        <span class="flow__node">sinon → barres</span>
+      </div>
+      <p class="slide__body">Une cascade de règles classées par priorité, entièrement calculée à l'avance, sans passer par le LLM. Le frontend affine encore le choix ensuite, selon le nombre de colonnes numériques à afficher.</p>
+    </div>
+  </section>
+
+  <!-- 13. CONFIG DRIVEN -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow teal">Architecture</div>
+      <h2 class="slide__title">Zéro redéploiement pour ajuster le comportement du LLM</h2>
+      <p class="slide__body">Toutes les règles métier, celles qui portent sur les graphiques, la validation sémantique ou les rappels du prompt, vivent dans quatre fichiers de configuration lisibles.</p>
+      <p class="slide__body">Un simple appel à un point d'administration les recharge à chaud, sans redémarrer quoi que ce soit. Ajuster une règle revient à éditer un fichier texte, jamais à toucher au code Python.</p>
+    </div>
+  </section>
+
+  <!-- 14. QUALITY -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Discipline qualité</div>
+      <h2 class="slide__title">Benchmarker au lieu de supposer</h2>
+      <div class="cols cols--3">
+        <div class="card">
+          <div class="stat">50</div>
+          <span>questions métier réparties en 7 catégories, un test rejoué à chaque changement</span>
+        </div>
+        <div class="card">
+          <div class="stat">100%</div>
+          <span>face à un modèle deux fois plus gros : même score, mais deux fois plus lent. Retour en arrière assumé, chiffres à l'appui</span>
+        </div>
+        <div class="card">
+          <div class="stat">7b</div>
+          <span>le modèle retenu, pour le meilleur équilibre entre qualité et rapidité, mesuré et non supposé</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. SECURITY -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow teal">Sécurité</div>
+      <h2 class="slide__title">Trois couches indépendantes, aucune ne dépend du LLM</h2>
+      <div class="cols cols--3">
+        <div class="card">
+          <h3>Un rôle en lecture seule</h3>
+          <p>Le compte utilisé par le pipeline n'a que des droits de lecture, et ne peut pas contourner l'isolation entre pharmacies, même s'il en avait la possibilité.</p>
+        </div>
+        <div class="card">
+          <h3>L'isolation par la base</h3>
+          <p>Chaque pharmacie ne voit que ses propres lignes, garanti même si le SQL généré oublie un filtre.</p>
+        </div>
+        <div class="card">
+          <h3>Un vrai parseur</h3>
+          <p>Une vérification structurelle du SQL : une seule instruction, et jamais autre chose qu'une lecture.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. DEMO -->
+  <section class="slide title-slide">
+    <div class="slide__inner">
+      <div class="kicker">Moment démo</div>
+      <h2 class="slide__title" style="color:var(--paper); font-size: clamp(2rem,4.5vw,3.2rem);">Une vraie question, en direct</h2>
+      <div class="sub">On pose une question dans le Chat, et on regarde ensemble le SQL généré, le graphique, et la phrase qui en sort. Si possible, une question un peu ambiguë pour voir la réparation automatique se déclencher en direct.</div>
+    </div>
+  </section>
+
+  <!-- 17. LIMITS -->
+  <section class="slide slide--wide">
+    <div class="slide__inner">
+      <div class="eyebrow">Honnêteté technique</div>
+      <h2 class="slide__title">Ce qui ne scale pas encore</h2>
+      <p class="slide__body"><strong>Ollama ne traite qu'une génération à la fois.</strong> Il n'y a pas encore de vrai parallélisme entre plusieurs utilisateurs. C'est assumé : ce système reste un MVP de labo, pas une mise en production.</p>
+      <div class="pillrow">
+        <span class="pill">activer le parallélisme d'Ollama</span>
+        <span class="pill">mettre en cache les questions fréquentes</span>
+        <span class="pill">passer à un serveur d'inférence avec traitement par lots</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. CLOSING -->
+  <section class="slide closing-slide">
+    <div class="slide__inner">
+      <div class="eyebrow" style="color:var(--accent-soft)">Conclusion</div>
+      <h2 class="slide__title">Ne pas choisir entre fiabilité et flexibilité</h2>
+      <div class="quote">La BI classique gagne en fiabilité ce qu'elle perd en flexibilité. Un LLM livré tel quel fait l'inverse. Ce système garde la liberté du langage naturel, avec des garde-fous solides à chaque étage, pour retrouver la confiance qu'on aurait dans du SQL écrit à la main.</div>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav-rail" id="navRail"></div>
+<div class="counter" id="counter">01 / 18</div>
+<button class="theme-btn" id="themeBtn" aria-label="Changer de thème">thème</button>
+
+<script>
+  (function () {
+    var deck = document.getElementById('deck');
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var rail = document.getElementById('navRail');
+    var counter = document.getElementById('counter');
+
+    slides.forEach(function (s, i) {
+      var b = document.createElement('button');
+      b.setAttribute('aria-label', 'Aller à la section ' + (i + 1));
+      b.addEventListener('click', function () {
+        s.scrollIntoView({ behavior: 'smooth' });
+      });
+      rail.appendChild(b);
+    });
+    var dots = Array.prototype.slice.call(rail.children);
+
+    function currentIndex() {
+      var mid = deck.scrollTop + deck.clientHeight / 2;
+      var best = 0, bestDist = Infinity;
+      slides.forEach(function (s, i) {
+        var d = Math.abs((s.offsetTop + s.clientHeight / 2) - mid);
+        if (d < bestDist) { bestDist = d; best = i; }
+      });
+      return best;
+    }
+
+    function updateUI() {
+      var idx = currentIndex();
+      dots.forEach(function (d, i) { d.classList.toggle('active', i === idx); });
+      counter.textContent = String(idx + 1).padStart(2, '0') + ' / ' + slides.length;
+    }
+
+    deck.addEventListener('scroll', function () {
+      window.requestAnimationFrame(updateUI);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      var idx = currentIndex();
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        if (idx < slides.length - 1) slides[idx + 1].scrollIntoView({ behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        if (idx > 0) slides[idx - 1].scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+
+    var themeBtn = document.getElementById('themeBtn');
+    themeBtn.addEventListener('click', function () {
+      var root = document.documentElement;
+      var current = root.getAttribute('data-theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var effectiveDark = current ? current === 'dark' : prefersDark;
+      root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+    });
+
+    updateUI();
+  })();
+</script>
